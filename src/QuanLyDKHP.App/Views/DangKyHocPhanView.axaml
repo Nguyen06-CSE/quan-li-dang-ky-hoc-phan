@@ -1,0 +1,245 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+             xmlns:dtos="using:QuanLyDKHP.App.Dtos"
+             xmlns:coreDtos="using:QuanLyDKHP.Core.Dtos"
+             xmlns:entities="using:QuanLyDKHP.Core.Entities"
+             x:Class="QuanLyDKHP.App.Views.DangKyHocPhanView"
+             x:DataType="vm:DangKyHocPhanViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24" RowSpan="1">
+        <!-- 1. Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <TextBlock Text="Đăng ký / Điều chỉnh học phần" Classes="h1" VerticalAlignment="Center" />
+                <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" 
+                        BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Học kỳ hiện hành:" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+                        <TextBlock Text="{Binding HocKyHienHanh.TenHocKy, FallbackValue='(Chưa mở)'}" FontWeight="Bold" Foreground="{DynamicResource BrushPrimaryDark}" FontSize="13"/>
+                        <TextBlock Text="{Binding HocKyHienHanh.MaHocKy, StringFormat='({0})', FallbackValue=''}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Status Message Banner -->
+            <Border Grid.Column="2" VerticalAlignment="Center"
+                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Background="{DynamicResource BrushSurfaceAlt}" 
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1"
+                    CornerRadius="6" Padding="14,8">
+                <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold"
+                           Foreground="{Binding IsStatusError, Converter={x:Static ObjectConverters.IsNull}}" />
+            </Border>
+        </Grid>
+
+        <!-- 2. Khối chọn sinh viên + Card thông tin & Tổng hợp tín chỉ -->
+        <Border Grid.Row="1" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" 
+                BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+            <Grid RowDefinitions="Auto,Auto">
+                <!-- Search SV -->
+                <Grid Grid.Row="0" ColumnDefinitions="130,350,*" Margin="0,0,0,12">
+                    <TextBlock Grid.Column="0" Text="Chọn sinh viên:" VerticalAlignment="Center" FontWeight="Bold"/>
+                    
+                    <Grid Grid.Column="1">
+                        <TextBox Text="{Binding TuKhoaSinhVien, Mode=TwoWay}" 
+                                 PlaceholderText="Nhập mã SV hoặc tên (≥ 2 ký tự)..." />
+                        <!-- Dropdown Popup gợi ý SV -->
+                        <Popup IsOpen="{Binding IsGoiYOpen, Mode=TwoWay}" IsLightDismissEnabled="True" 
+                               PlacementTarget="{Binding $parent[TextBox]}" Placement="Bottom"
+                               Width="350" MaxHeight="220">
+                            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" BoxShadow="0 4 8 0 #20000000">
+                                <ListBox ItemsSource="{Binding GoiYSinhVien}" SelectionMode="Single" Background="Transparent">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="coreDtos:SinhVienDto">
+                                            <Button Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                    Command="{Binding $parent[UserControl].((vm:DangKyHocPhanViewModel)DataContext).ChonSinhVienCommand}"
+                                                    CommandParameter="{Binding}" Padding="8,4">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding MaSV}" FontWeight="Bold" Width="90"/>
+                                                    <TextBlock Text="{Binding HoTen}" Width="150"/>
+                                                    <TextBlock Text="{Binding LopSinhHoat}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Grid>
+
+                <!-- Card thông tin SV + Tiến độ tín chỉ -->
+                <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" 
+                        BorderThickness="1" CornerRadius="6" Padding="14"
+                        IsVisible="{Binding SinhVienDangChon, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Grid ColumnDefinitions="*,Auto,380">
+                        <!-- SV Details -->
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="Sinh viên:" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                <TextBlock Text="{Binding SinhVienDangChon.HoTen}" FontWeight="Bold" FontSize="15"/>
+                                <TextBlock Text="{Binding SinhVienDangChon.MaSV, StringFormat='({0})'}" Foreground="{DynamicResource BrushTextSecondary}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Lớp sinh hoạt:" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding SinhVienDangChon.LopSinhHoat, FallbackValue='--'}" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Khóa học:" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding SinhVienDangChon.KhoaHoc, FallbackValue='--'}" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Rectangle Grid.Column="1" Width="1" Fill="{DynamicResource BrushBorder}" Margin="16,0"/>
+
+                        <!-- Credit Summary -->
+                        <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="Tổng tín chỉ đã đăng ký:" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Grid.Column="1" FontWeight="Bold" FontSize="14">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} / {1} tín chỉ">
+                                            <Binding Path="TongTinChiHienTai"/>
+                                            <Binding Path="TinChiToiDa"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Grid>
+                            
+                            <!-- Progress Bar -->
+                            <ProgressBar Value="{Binding ProgressBarValue}" Maximum="100" Height="10" CornerRadius="5"
+                                         Foreground="{Binding ProgressBarColor}"/>
+
+                            <!-- Warning if < min credits -->
+                            <TextBlock Text="{Binding CanhBaoToiThieuText}" 
+                                       Foreground="{DynamicResource BrushWarning}" 
+                                       FontSize="12" FontWeight="SemiBold"
+                                       IsVisible="{Binding IsChuaDatToiThieu}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 3. Khối thêm đăng ký mới -->
+        <Border Grid.Row="2" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" 
+                BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="Auto,280,Auto,320,Auto" VerticalAlignment="Center">
+                <!-- Chọn môn học -->
+                <TextBlock Grid.Column="0" Text="Môn học:" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding DsMonHoc}" 
+                          SelectedItem="{Binding MonDangChon}"
+                          HorizontalAlignment="Stretch" Margin="0,0,16,0"
+                          PlaceholderText="-- Chọn môn học --">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="entities:MonHoc">
+                            <TextBlock>
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} - {1} ({2} TC)">
+                                        <Binding Path="MaMon"/>
+                                        <Binding Path="TenMon"/>
+                                        <Binding Path="SoTinChiLT"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Chọn LHP còn chỗ -->
+                <TextBlock Grid.Column="2" Text="Lớp học phần:" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0"/>
+                <ComboBox Grid.Column="3" ItemsSource="{Binding DsLHPTheoMon}" 
+                          SelectedItem="{Binding LHPDangChon}"
+                          HorizontalAlignment="Stretch" Margin="0,0,16,0"
+                          PlaceholderText="-- Chọn lớp học phần --">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="dtos:LopHocPhanDisplayDto">
+                            <TextBlock>
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} | GV: {1} | Sĩ số: {2}">
+                                        <Binding Path="MaLHP"/>
+                                        <Binding Path="TenGiangVien"/>
+                                        <Binding Path="SiSoHienThi"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Button Đăng ký -->
+                <Button Grid.Column="4" Content="+ Đăng ký" 
+                        Command="{Binding DangKyCommand}" 
+                        Classes="btn-primary"/>
+            </Grid>
+        </Border>
+
+        <!-- 4. Bảng Học phần đã đăng ký -->
+        <Border Grid.Row="3" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="0" ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding DsDaDangKy}" AutoGenerateColumns="False" IsReadOnly="True"
+                      GridLinesVisibility="All" BorderThickness="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="120" />
+                    <DataGridTextColumn Header="Tên môn học" Binding="{Binding TenMon}" Width="*" />
+                    
+                    <DataGridTemplateColumn Header="Số TC" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="dtos:DangKyHocPhanDisplayDto">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} ({1}+{2})">
+                                            <Binding Path="TongTinChi"/>
+                                            <Binding Path="SoTinChiLT"/>
+                                            <Binding Path="SoTinChiTH"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="Giảng viên" Binding="{Binding TenGiangVien}" Width="180" />
+                    <DataGridTextColumn Header="Hình thức" Binding="{Binding HinhThucDK}" Width="90" />
+                    <DataGridTextColumn Header="Ngày ĐK" Binding="{Binding NgayDK, StringFormat='dd/MM/yyyy HH:mm'}" Width="140" />
+
+                    <!-- Trạng thái badge -->
+                    <DataGridTemplateColumn Header="Trạng thái" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="dtos:DangKyHocPhanDisplayDto">
+                                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Background="{DynamicResource BrushSuccess}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding IsDangHoc}">
+                                        <TextBlock Text="Đang học" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource BrushBorder}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding !IsDangHoc}">
+                                        <TextBlock Text="Đã hủy" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" FontWeight="SemiBold"/>
+                                    </Border>
+                                </Panel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Thao tác Hủy ĐK -->
+                    <DataGridTemplateColumn Header="Thao tác" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="dtos:DangKyHocPhanDisplayDto">
+                                <Button Content="Hủy ĐK" 
+                                        Classes="btn-danger"
+                                        Command="{Binding $parent[UserControl].((vm:DangKyHocPhanViewModel)DataContext).HuyDangKyCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsVisible="{Binding IsDangHoc}"
+                                        Padding="8,4" FontSize="12"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

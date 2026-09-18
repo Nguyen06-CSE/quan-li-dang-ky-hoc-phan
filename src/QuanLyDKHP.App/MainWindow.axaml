@@ -2,8 +2,106 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="QuanLyDKHP.App.MainWindow"
-        Title="QuanLyDKHP.App">
-    Welcome to Avalonia!
+        x:DataType="vm:MainWindowViewModel"
+        Title="Hệ Thống Quản Lý Đăng Ký Học Phần"
+        Width="1200" Height="750"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BrushBackground}">
+
+    <Grid RowDefinitions="56, 36, *">
+        <!-- Row 0: Header -->
+        <Grid Grid.Row="0" Background="{DynamicResource BrushPrimary}" ColumnDefinitions="Auto, *, Auto, Auto">
+            <!-- App Logo + Title -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
+                          Width="28" Height="28" Foreground="White" />
+                <TextBlock Text="QUẢN LÝ ĐĂNG KÝ HỌC PHẦN"
+                           Foreground="White"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- User Info -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Text="{Binding CurrentUserDisplayName}"
+                           Foreground="White"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="|" Foreground="#D0E6AD" VerticalAlignment="Center" />
+                <Border Background="#20FFFFFF" CornerRadius="4" Padding="6,2">
+                    <TextBlock Text="{Binding CurrentUserRole}"
+                               Foreground="White"
+                               FontSize="12"
+                               VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+
+            <!-- Logout Button -->
+            <Button Grid.Column="3"
+                    Classes="btn-secondary"
+                    Command="{Binding DangXuatCommand}"
+                    Margin="0,0,16,0"
+                    VerticalAlignment="Center"
+                    Padding="12,6"
+                    BorderBrush="#8CB450"
+                    Foreground="White">
+                <TextBlock Text="Đăng xuất" Foreground="White" FontSize="13" />
+            </Button>
+        </Grid>
+
+        <!-- Row 1: Menu Strip -->
+        <Border Grid.Row="1" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
+            <Menu VerticalAlignment="Center" Margin="8,0">
+                <MenuItem Header="Tệp">
+                    <MenuItem Header="Import Excel" Command="{Binding NavigateToCommand}" />
+                    <Separator />
+                    <MenuItem Header="Đăng xuất" Command="{Binding DangXuatCommand}" />
+                </MenuItem>
+                <MenuItem Header="Danh mục">
+                    <MenuItem Header="Sinh viên" />
+                    <MenuItem Header="Môn học" />
+                    <MenuItem Header="Học kỳ / Lớp học phần" />
+                </MenuItem>
+                <MenuItem Header="Đăng ký">
+                    <MenuItem Header="Đăng ký học phần" />
+                    <MenuItem Header="Học phí" />
+                </MenuItem>
+                <MenuItem Header="Báo cáo">
+                    <MenuItem Header="Báo cáo &amp; Thống kê" />
+                </MenuItem>
+                <MenuItem Header="Trợ giúp">
+                    <MenuItem Header="Giới thiệu" />
+                </MenuItem>
+            </Menu>
+        </Border>
+
+        <!-- Row 2: Content Body (Sidebar + View Content) -->
+        <Grid Grid.Row="2" ColumnDefinitions="220, *">
+            <!-- Sidebar Navigation -->
+            <Border Grid.Column="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,1,0">
+                <ListBox ItemsSource="{Binding FilteredMenuItems}"
+                         SelectedItem="{Binding SelectedMenuItem}"
+                         Background="Transparent"
+                         Margin="4">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,6">
+                                <TextBlock Text="{Binding Icon}" FontSize="16" Width="20" TextAlignment="Center" />
+                                <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- Main Workspace Area -->
+            <Grid Grid.Column="1" Background="{DynamicResource BrushBackground}" Margin="24">
+                <ContentControl Content="{Binding CurrentViewModel}" />
+            </Grid>
+        </Grid>
+    </Grid>
 </Window>

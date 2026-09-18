@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="350"
+        x:Class="QuanLyDKHP.App.Views.HocKyEditDialog"
+        x:DataType="vm:HocKyEditDialogViewModel"
+        Title="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='Chỉnh sửa Học kỳ', FallbackValue='Thêm Học kỳ mới'}"
+        Width="450" Height="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        <StackPanel Grid.Row="0" Spacing="15">
+            <TextBlock Text="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='SỬA HỌC KỲ', FallbackValue='THÊM HỌC KỲ MỚI'}"
+                       Classes="h2" HorizontalAlignment="Center"/>
+
+            <!-- Error message display -->
+            <Border Background="{DynamicResource BrushDangerBackground}" 
+                    BorderBrush="{DynamicResource BrushDanger}" 
+                    BorderThickness="1" CornerRadius="4" Padding="10"
+                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"/>
+            </Border>
+
+            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã học kỳ:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaHocKy}" IsReadOnly="{Binding IsEditMode}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Tên học kỳ:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TenHocKy}"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Ngày bắt đầu:" VerticalAlignment="Center"/>
+                <DatePicker Grid.Row="2" Grid.Column="1" SelectedDate="{Binding NgayBatDau}"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Ngày kết thúc:" VerticalAlignment="Center"/>
+                <DatePicker Grid.Row="3" Grid.Column="1" SelectedDate="{Binding NgayKetThuc}"/>
+
+                <CheckBox Grid.Row="4" Grid.Column="1" Content="Đặt làm học kỳ hiện hành (Đang mở)" IsChecked="{Binding DangMo}"/>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,15,0,0">
+            <Button Content="Hủy" Command="{Binding CancelCommand}" Classes="secondary"/>
+            <Button Content="Lưu" Command="{Binding SaveCommand}" Classes="primary"/>
+        </StackPanel>
+    </Grid>
+</Window>

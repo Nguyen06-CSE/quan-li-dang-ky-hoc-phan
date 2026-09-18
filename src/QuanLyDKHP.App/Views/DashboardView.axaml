@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="QuanLyDKHP.App.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="20">
+
+            <!-- Header Row -->
+            <Grid ColumnDefinitions="*, Auto">
+                <TextBlock Grid.Column="0" Text="Trang chủ" Classes="h1" VerticalAlignment="Center" />
+
+                <!-- Học kỳ Selector -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="Học kỳ đang xem:" Classes="body" VerticalAlignment="Center" FontWeight="Medium" />
+                    <ComboBox ItemsSource="{Binding DsHocKy}"
+                              SelectedItem="{Binding HocKyDangXem, Mode=TwoWay}"
+                              Width="220">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding TenHocKy}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+
+            <!-- 4 Summary Cards -->
+            <UniformGrid Columns="4">
+                <!-- Card 1: Sinh viên -->
+                <Border Background="{DynamicResource BrushPrimaryLight}" CornerRadius="10" Padding="16,20" Margin="4">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding TongSinhVien}" Classes="h1" FontSize="28" HorizontalAlignment="Center" Foreground="{DynamicResource BrushTextPrimary}" />
+                        <TextBlock Text="Tổng số Sinh viên" Classes="caption" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Card 2: Môn học -->
+                <Border Background="{DynamicResource BrushPrimaryLight}" CornerRadius="10" Padding="16,20" Margin="4">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding TongMonHoc}" Classes="h1" FontSize="28" HorizontalAlignment="Center" Foreground="{DynamicResource BrushTextPrimary}" />
+                        <TextBlock Text="Tổng số Môn học" Classes="caption" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Card 3: Lớp học phần -->
+                <Border Background="{DynamicResource BrushPrimaryLight}" CornerRadius="10" Padding="16,20" Margin="4">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding TongLopHocPhan}" Classes="h1" FontSize="28" HorizontalAlignment="Center" Foreground="{DynamicResource BrushTextPrimary}" />
+                        <TextBlock Text="Lớp HP đang mở" Classes="caption" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Card 4: Lượt đăng ký -->
+                <Border Background="{DynamicResource BrushPrimaryLight}" CornerRadius="10" Padding="16,20" Margin="4">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding TongLuotDangKy}" Classes="h1" FontSize="28" HorizontalAlignment="Center" Foreground="{DynamicResource BrushTextPrimary}" />
+                        <TextBlock Text="Lượt đăng ký" Classes="caption" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Shortcuts Section (Admin / TroLyGiaoVu / GiaoVuBoMon) -->
+            <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="10" Padding="16" IsVisible="{Binding IsQuanLy}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Thao tác nhanh" Classes="h2" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Classes="btn-secondary" Command="{Binding NavigateShortcutCommand}" CommandParameter="ImportExcel">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="📥" />
+                                <TextBlock Text="Import Excel" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="btn-secondary" Command="{Binding NavigateShortcutCommand}" CommandParameter="CrudSinhVien">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="+" />
+                                <TextBlock Text="Thêm sinh viên" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="btn-secondary" Command="{Binding NavigateShortcutCommand}" CommandParameter="CrudMonHoc">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="+" />
+                                <TextBlock Text="Thêm môn học" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Lecturer Class List Section (Role GiangVien) -->
+            <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="10" Padding="16" IsVisible="{Binding IsGiangVien}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Các lớp học phần bạn đang dạy" Classes="h2" />
+                    <DataGrid ItemsSource="{Binding DsLhpGiangVien}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" Height="220">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="150" />
+                            <DataGridTextColumn Header="Tên môn học" Binding="{Binding TenMon}" Width="*" />
+                            <DataGridTextColumn Header="Sĩ số" Binding="{Binding SiSo}" Width="100" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

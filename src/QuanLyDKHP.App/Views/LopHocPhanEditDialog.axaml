@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+        xmlns:entities="using:QuanLyDKHP.Core.Entities"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="420"
+        x:Class="QuanLyDKHP.App.Views.LopHocPhanEditDialog"
+        x:DataType="vm:LopHocPhanEditDialogViewModel"
+        Title="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='Chỉnh sửa Lớp học phần', FallbackValue='Thêm Lớp học phần'}"
+        Width="500" Height="420"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        <StackPanel Grid.Row="0" Spacing="15">
+            <TextBlock Text="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='SỬA LỚP HỌC PHẦN', FallbackValue='THÊM LỚP HỌC PHẦN MỚI'}"
+                       Classes="h2" HorizontalAlignment="Center"/>
+
+            <!-- Error message display -->
+            <Border Background="{DynamicResource BrushDangerBackground}" 
+                    BorderBrush="{DynamicResource BrushDanger}" 
+                    BorderThickness="1" CornerRadius="4" Padding="10"
+                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"/>
+            </Border>
+
+            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã LHP:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaLHP}" IsReadOnly="{Binding IsEditMode}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Môn học:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                          ItemsSource="{Binding DanhSachMonHoc}" 
+                          SelectedItem="{Binding SelectedMonHoc}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="entities:MonHoc">
+                            <TextBlock Text="{Binding TenMon, StringFormat='{}{0} ('}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Giảng viên:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                          ItemsSource="{Binding DanhSachGiangVien}"
+                          SelectedItem="{Binding SelectedGiangVien}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="vm:NguoiDungItem">
+                            <TextBlock Text="{Binding TenHienThi}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Loại hình ĐT:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch"
+                          ItemsSource="{Binding DanhSachLoaiHinhDT}"
+                          SelectedItem="{Binding LoaiHinhDT}"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Sĩ số tối đa:" VerticalAlignment="Center"/>
+                <NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding SiSoToiDa}" Minimum="1" Maximum="500" ParsingNumberStyle="Integer"/>
+
+                <CheckBox Grid.Row="5" Grid.Column="1" Content="Giảng dạy Online" IsChecked="{Binding GiangDayOnline}"/>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,15,0,0">
+            <Button Content="Hủy" Command="{Binding CancelCommand}" Classes="secondary"/>
+            <Button Content="Lưu" Command="{Binding SaveCommand}" Classes="primary"/>
+        </StackPanel>
+    </Grid>
+</Window>

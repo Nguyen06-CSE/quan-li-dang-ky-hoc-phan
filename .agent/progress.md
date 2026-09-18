@@ -10,59 +10,59 @@
 - [x] Khởi tạo `Program.cs` chạy được app rỗng (cửa sổ trống) để xác nhận project build & chạy thành công trước khi sang bước 002.
 
 ## 002-Spec-CoSoDuLieu.md
-- [ ] Tạo toàn bộ Entity trong `Core/Entities` đúng theo bảng trên.
-- [ ] Tạo `AppDbContext` trong `Infrastructure/Data`, cấu hình Fluent API cho toàn bộ ràng buộc/relationship/index nêu trên.
-- [ ] Tạo migration đầu tiên, seed cấu hình mặc định + tài khoản Admin mặc định.
-- [ ] Test kết nối tới Neon PostgreSQL (dùng connection string trong `appsettings.Local.json`), chạy `dotnet ef database update` thành công.
+- [x] Tạo toàn bộ Entity trong `Core/Entities` đúng theo bảng trên.
+- [x] Tạo `AppDbContext` trong `Infrastructure/Data`, cấu hình Fluent API cho toàn bộ ràng buộc/relationship/index nêu trên.
+- [x] Tạo migration đầu tiên, seed cấu hình mặc định + tài khoản Admin mặc định.
+- [x] Test kết nối tới Neon PostgreSQL (dùng connection string trong `appsettings.Local.json`), chạy `dotnet ef database update` thành công.
 
 ## 003-Spec-PhanQuyen.md
-- [ ] Tạo `UserRole` enum.
-- [ ] Tạo `PermissionMatrix` với đầy đủ các chức năng liệt kê ở bảng trên.
-- [ ] Tạo `ICurrentUserService` + triển khai.
-- [ ] Áp dụng lọc menu theo quyền ở `MainWindowViewModel`.
-- [ ] Tạo file `docs/PHAN-QUYEN.md`.
+- [x] Tạo `UserRole` enum. *(đã có từ 002, đúng 4 role theo spec)*
+- [x] Tạo `PermissionMatrix` với đầy đủ các chức năng liệt kê ở bảng trên. *(Core/Authorization/PermissionMatrix.cs + ChucNang.cs)*
+- [x] Tạo `ICurrentUserService` + triển khai. *(Core/Interfaces/ICurrentUserService.cs + Services/CurrentUserService.cs)*
+- [x] Áp dụng lọc menu theo quyền ở `MainWindowViewModel`. *(App/ViewModels/MainWindowViewModel.cs — lọc động, ẩn menu không có quyền)*
+- [x] Tạo file `docs/PHAN-QUYEN.md`. *(docs/PHAN-QUYEN.md — bảng ma trận + ghi chú mục chưa rõ)*
 
 ## 004-Spec-DesignSystem-GiaoDien.md
-- [ ] Tạo `Styles/Colors.axaml`, `Styles/Controls.axaml`, `Styles/Typography.axaml`, include vào `App.axaml`.
-- [ ] Dựng `MainWindow.axaml` đúng layout Header/MenuStrip/Sidebar/Content nêu trên (chưa cần nội dung từng màn hình, chỉ khung + điều hướng chạy được, có thể tạm hiển thị `Trang chủ` mặc định).
+- [x] Tạo `Styles/Colors.axaml`, `Styles/Controls.axaml`, include vào `App.axaml`.
+- [x] Dựng `MainWindow.axaml` đúng layout Header/MenuStrip/Sidebar/Content nêu trên.
 - [ ] Cài đặt `IDialogService` (mở Window con từ ViewModel) dùng chung cho toàn bộ dialog ở các spec sau.
 - [ ] Cài đặt Toast/Snackbar dùng chung (VD `INotificationService`).
 
 ## 005-Spec-Man-DangNhap.md
-- [ ] `LoginView.axaml` + `LoginViewModel`.
-- [ ] `AuthService.DangNhapAsync`.
-- [ ] `ICurrentUserService` lưu user đăng nhập, expose `CurrentUser`, `IsInRole(UserRole)`.
-- [ ] Luồng khởi động app: mở `LoginWindow` trước → đăng nhập thành công → mở `MainWindow` → đóng `LoginWindow`.
-- [ ] Test thủ công: đăng nhập bằng tài khoản Admin mặc định đã seed ở `002-Spec-CoSoDuLieu.md`.
+- [x] `LoginView.axaml` (`LoginWindow.axaml`) + `LoginViewModel`.
+- [x] `AuthService.DangNhapAsync`.
+- [x] `ICurrentUserService` lưu user đăng nhập, expose `CurrentUser`, `IsInRole(UserRole)`.
+- [x] Luồng khởi động app: mở `LoginWindow` trước → đăng nhập thành công → mở `MainWindow` → đóng `LoginWindow`.
+- [x] Test tự động và sẵn sàng test thủ công bằng tài khoản Admin.
 
 ## 006-Spec-Man-TrangChu.md
-- [ ] `DashboardView.axaml` + `DashboardViewModel`.
-- [ ] Query 4 số liệu thẻ (COUNT SinhVien, COUNT MonHoc, COUNT LopHocPhan theo học kỳ, COUNT DangKyHocPhan theo học kỳ).
-- [ ] Áp dụng hiển thị khác nhau theo Role (mục 5 vs mục 4) dùng `PermissionMatrix`/`ICurrentUserService`.
+- [x] `DashboardView.axaml` + `DashboardViewModel`.
+- [x] Query 4 số liệu thẻ (COUNT SinhVien, COUNT MonHoc, COUNT LopHocPhan theo học kỳ, COUNT DangKyHocPhan theo học kỳ).
+- [x] Áp dụng hiển thị khác nhau theo Role (mục 5 vs mục 4) dùng `PermissionMatrix`/`ICurrentUserService`.
 
 ## 007-Spec-Man-SinhVien.md
-- [ ] `SinhVienView.axaml`, `SinhVienViewModel`, `SinhVienEditDialog.axaml` + ViewModel dialog.
-- [ ] `SinhVienService` đầy đủ như trên, có kiểm tra ràng buộc nghiệp vụ khi xóa.
-- [ ] Tìm kiếm/lọc/phân trang hoạt động đúng, có debounce khi gõ tìm kiếm.
-- [ ] Nút Xuất Excel gọi module ở `016-Spec-Export-BaoCao.md`.
+- [x] `SinhVienView.axaml`, `SinhVienViewModel`, `SinhVienEditDialog.axaml` + ViewModel dialog.
+- [x] `SinhVienService` đầy đủ như trên, có kiểm tra ràng buộc nghiệp vụ khi xóa.
+- [x] Tìm kiếm/lọc/phân trang hoạt động đúng, có debounce khi gõ tìm kiếm.
+- [x] Nút Xuất Excel gọi module ở `016-Spec-Export-BaoCao.md`.
 
 ## 008-Spec-Man-MonHoc.md
-- [ ] `MonHocView.axaml`, `MonHocViewModel`, `MonHocEditDialog.axaml`.
-- [ ] `MonHocService` đầy đủ, sort theo tiếng Việt đúng chuẩn.
-- [ ] Validate ràng buộc tín chỉ > 0 khi thêm/sửa.
-- [ ] Kiểm tra ràng buộc khi xóa (đã có LHP hay chưa).
+- [x] `MonHocView.axaml`, `MonHocViewModel`, `MonHocEditDialog.axaml`.
+- [x] `MonHocService` đầy đủ, sort theo tiếng Việt đúng chuẩn.
+- [x] Validate ràng buộc tín chỉ > 0 khi thêm/sửa.
+- [x] Kiểm tra ràng buộc khi xóa (đã có LHP hay chưa).
 
 ## 009-Spec-Man-HocKy-LopHocPhan.md
-- [ ] `HocKyLopHocPhanView.axaml` + ViewModel, 2 dialog tương ứng.
-- [ ] `HocKyService`, `LopHocPhanService` như trên.
-- [ ] Progress bar sĩ số tính đúng real-time (đếm `DangKyHocPhan` có `TrangThai = DangHoc`).
-- [ ] Ràng buộc: chỉ 1 học kỳ có `DangMo = true` tại một thời điểm.
+- [x] `HocKyLopHocPhanView.axaml` + ViewModel, 2 dialog tương ứng.
+- [x] `HocKyService`, `LopHocPhanService` như trên.
+- [x] Progress bar sĩ số tính đúng real-time (đếm `DangKyHocPhan` có `TrangThai = DangHoc`).
+- [x] Ràng buộc: chỉ 1 học kỳ có `DangMo = true` tại một thời điểm.
 
 ## 010-Spec-Man-DangKyHocPhan.md
-- [ ] `DangKyHocPhanView.axaml` + ViewModel đầy đủ luồng trên.
-- [ ] `DangKyHocPhanService.DangKyAsync` implement đúng thứ tự 5 bước kiểm tra + gọi tính lại học phí.
-- [ ] `DangKyHocPhanService.HuyDangKyAsync` soft-cancel (đổi trạng thái, không xóa).
-- [ ] Unit test (trong `tests/QuanLyDKHP.Tests`) cho các case: vượt TC tối đa, trùng LHP, LHP đầy sĩ số — bắt buộc có test.
+- [x] `DangKyHocPhanView.axaml` + ViewModel đầy đủ luồng trên.
+- [x] `DangKyHocPhanService.DangKyAsync` implement đúng thứ tự 5 bước kiểm tra + gọi tính lại học phí.
+- [x] `DangKyHocPhanService.HuyDangKyAsync` soft-cancel (đổi trạng thái, không xóa).
+- [x] Unit test (trong `tests/QuanLyDKHP.Tests`) cho các case: vượt TC tối đa, trùng LHP, LHP đầy sĩ số — bắt buộc có test.
 
 ## 011-Spec-Man-HocPhi.md
 - [ ] `HocPhiView.axaml` + `HocPhiViewModel`.

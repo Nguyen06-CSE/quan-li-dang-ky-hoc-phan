@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="QuanLyDKHP.App.Views.LoginWindow"
+        x:DataType="vm:LoginViewModel"
+        Title="Đăng nhập - Hệ Thống Quản Lý Đăng Ký Học Phần"
+        Width="800" Height="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BrushSurfaceAlt}">
+
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- Login Card -->
+        <Border Width="380"
+                Background="{DynamicResource BrushBackground}"
+                CornerRadius="10"
+                BoxShadow="0 4 12 0 #20000000"
+                Padding="24,28">
+            <StackPanel Spacing="16">
+                <!-- Top Accent Line -->
+                <Border Height="4"
+                        Background="{DynamicResource BrushPrimary}"
+                        CornerRadius="2"
+                        Margin="0,-28,0,12" />
+
+                <!-- Title & Logo Header -->
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
+                              Width="48" Height="48"
+                              Foreground="{DynamicResource BrushPrimary}" />
+                    <TextBlock Text="ĐĂNG NHẬP HỆ THỐNG"
+                               Classes="h1"
+                               FontSize="18"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="QUẢN LÝ ĐĂNG KÝ HỌC PHẦN"
+                               Classes="caption"
+                               HorizontalAlignment="Center"
+                               FontWeight="SemiBold" />
+                </StackPanel>
+
+                <!-- Input Form -->
+                <StackPanel Spacing="12" Margin="0,12,0,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Tên đăng nhập" Classes="body" FontWeight="Medium" />
+                        <TextBox Text="{Binding TenDangNhap, Mode=TwoWay}"
+                                 PlaceholderText="Nhập tên đăng nhập"
+                                 IsEnabled="{Binding !DangXuLy}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Mật khẩu" Classes="body" FontWeight="Medium" />
+                        <TextBox Text="{Binding MatKhau, Mode=TwoWay}"
+                                 PlaceholderText="Nhập mật khẩu"
+                                 PasswordChar="●"
+                                 IsEnabled="{Binding !DangXuLy}" />
+                    </StackPanel>
+
+                    <!-- Error Message -->
+                    <TextBlock Text="{Binding LoiThongBao}"
+                               Foreground="{DynamicResource BrushDanger}"
+                               Classes="caption"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding LoiThongBao, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                    <!-- Submit Button -->
+                    <Button Classes="btn-primary"
+                            Command="{Binding DangNhapCommand}"
+                            IsDefault="True"
+                            IsEnabled="{Binding !DangXuLy}"
+                            Margin="0,8,0,0">
+                        <Grid>
+                            <TextBlock Text="ĐĂNG NHẬP"
+                                       IsVisible="{Binding !DangXuLy}"
+                                       HorizontalAlignment="Center" />
+                            <ProgressBar IsIndeterminate="True"
+                                         Width="24" Height="24"
+                                         IsVisible="{Binding DangXuLy}" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

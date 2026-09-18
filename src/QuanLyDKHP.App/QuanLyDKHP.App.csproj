@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
@@ -16,13 +17,30 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    
+    <!-- Cập nhật EF Core Design lên 8.0.11 đồng bộ với EF Core -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <!-- Hạ Microsoft.Extensions.Configuration.Json về bản 8.0.0 khớp với TargetFramework net8.0 -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+
+    <!-- Nâng DependencyInjection lên 8.0.1 để sửa lỗi NU1605 -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\QuanLyDKHP.Services\QuanLyDKHP.Services.csproj" />
     <ProjectReference Include="..\QuanLyDKHP.Infrastructure\QuanLyDKHP.Infrastructure.csproj" />
     <ProjectReference Include="..\QuanLyDKHP.Core\QuanLyDKHP.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Đảm bảo copy appsettings.json ra thư mục bin khi build -->
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
