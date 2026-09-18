@@ -1,0 +1,53 @@
+# --- Các thư mục build của .NET ---
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# --- Các file cấu hình của Visual Studio / Rider / VS Code ---
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# --- Các file build results ---
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# --- Các file liên quan đến NuGet ---
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# --- Các file tạm của hệ điều hành ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Các file cấu hình môi trường (như secrets) ---
+.env
+*.local
+
+# --- Các file script tạm (nếu bạn không muốn commit các script này) ---
+# Lưu ý: Nếu đây là script cần thiết cho dự án, hãy xóa hoặc comment các dòng dưới đây
+# fix_packages.sh
+# scaffold.sh
+
+# --- Các file log của agent (dựa trên cấu trúc thư mục .agent của bạn) ---
+.agent/session_log*

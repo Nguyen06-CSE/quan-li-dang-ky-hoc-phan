@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuanLyDKHP.App/QuanLyDKHP.App.csproj" />
+    <Project Path="src/QuanLyDKHP.Core/QuanLyDKHP.Core.csproj" />
+    <Project Path="src/QuanLyDKHP.Infrastructure/QuanLyDKHP.Infrastructure.csproj" />
+    <Project Path="src/QuanLyDKHP.Services/QuanLyDKHP.Services.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QuanLyDKHP.Tests/QuanLyDKHP.Tests.csproj" />
+  </Folder>
+</Solution>
