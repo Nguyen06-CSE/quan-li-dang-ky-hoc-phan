@@ -36,6 +36,12 @@ public partial class HocPhiViewModel : ObservableObject
     [ObservableProperty]
     private bool _isTheoKhoa;
 
+    [RelayCommand]
+    private void ChonPhamVi(string phamVi)
+    {
+        PhamVi = phamVi;
+    }
+
     [ObservableProperty]
     private string? _tuKhoaSinhVien;
 

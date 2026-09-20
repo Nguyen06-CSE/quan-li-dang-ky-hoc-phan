@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+             x:Class="QuanLyDKHP.App.Views.CauHinhView"
+             x:DataType="vm:CauHinhViewModel">
+
+    <Grid Margin="24">
+        <!-- Panel Card Cấu hình ở chính giữa -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="24" MaxWidth="680" HorizontalAlignment="Left">
+                <!-- Header -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Cấu hình hệ thống" Classes="h1" />
+                    <TextBlock Text="Thiết lập các thông số toàn hệ thống: giới hạn tín chỉ đăng ký và đơn giá tín chỉ" 
+                               Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+                </StackPanel>
+
+                <!-- Status Banner -->
+                <Border IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                        Background="{DynamicResource BrushSurfaceAlt}" 
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8" Padding="16,12">
+                    <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}" />
+                </Border>
+
+                <!-- Card Form -->
+                <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="24">
+                    <StackPanel Spacing="20">
+                        <TextBlock Text="GIỚI HẠN TÍN CHỈ HỌC KỲ" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource BrushPrimaryDark}" Margin="0,0,0,4"/>
+
+                        <!-- Field 1: TC Tối thiểu -->
+                        <Grid ColumnDefinitions="260,*">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Số tín chỉ tối thiểu / học kỳ:" FontWeight="SemiBold"/>
+                                <TextBlock Text="Số TC tối thiểu để hoàn tất đăng ký" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" 
+                                           Value="{Binding SoTinChiToiThieu, Mode=TwoWay}" 
+                                           Minimum="1" Maximum="50" Increment="1"
+                                           FormatString="0" />
+                        </Grid>
+
+                        <!-- Field 2: TC Tối đa -->
+                        <Grid ColumnDefinitions="260,*">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Số tín chỉ tối đa / học kỳ:" FontWeight="SemiBold"/>
+                                <TextBlock Text="Phải lớn hơn số tín chỉ tối thiểu" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" 
+                                           Value="{Binding SoTinChiToiDa, Mode=TwoWay}" 
+                                           Minimum="1" Maximum="50" Increment="1"
+                                           FormatString="0" />
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{DynamicResource BrushBorder}" Margin="0,8"/>
+
+                        <TextBlock Text="ĐƠN GIÁ TÍN CHỈ (VNĐ)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource BrushPrimaryDark}" Margin="0,0,0,4"/>
+
+                        <!-- Field 3: Đơn giá LT -->
+                        <Grid ColumnDefinitions="260,*">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Đơn giá 1 TC Lý thuyết:" FontWeight="SemiBold"/>
+                                <TextBlock Text="Áp dụng khi tính học phí tín chỉ LT" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" 
+                                           Value="{Binding DonGiaTinChiLT, Mode=TwoWay}" 
+                                           Minimum="0" Maximum="10000000" Increment="50000"
+                                           FormatString="###,###,##0" />
+                        </Grid>
+
+                        <!-- Field 4: Đơn giá TH -->
+                        <Grid ColumnDefinitions="260,*">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Đơn giá 1 TC Thực hành:" FontWeight="SemiBold"/>
+                                <TextBlock Text="Áp dụng khi tính học phí tín chỉ TH" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" 
+                                           Value="{Binding DonGiaTinChiTH, Mode=TwoWay}" 
+                                           Minimum="0" Maximum="10000000" Increment="50000"
+                                           FormatString="###,###,##0" />
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{DynamicResource BrushBorder}" Margin="0,8"/>
+
+                        <!-- Buttons -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+                            <Button Content="Tải lại" Command="{Binding LoadCauHinhCommand}" Classes="btn-secondary"/>
+                            <Button Content="Lưu cấu hình" Command="{Binding LuuCauHinhCommand}" Classes="btn-primary"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Overlay Dialog hỏi tính lại học phí -->
+        <Border Background="#40000000" IsVisible="{Binding HienThiHoiTinhLaiHocPhi}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
+            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+                    CornerRadius="8" Padding="24" MaxWidth="500" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BoxShadow="0 8 24 0 #30000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Xác nhận tính lại học phí" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                    <TextBlock Text="Cấu hình hệ thống đã được lưu thành công. Bạn có muốn tính lại học phí cho toàn bộ sinh viên trong học kỳ hiện hành theo đơn giá mới không?" 
+                               TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
+                        <Button Content="Không, để sau" Command="{Binding TuChoiTinhLaiHocPhiCommand}" Classes="btn-secondary"/>
+                        <Button Content="Có, tính lại ngay" Command="{Binding DongYTinhLaiHocPhiCommand}" Classes="btn-primary"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

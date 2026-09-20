@@ -18,10 +18,10 @@
 
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*" RowSpacing="12" ColumnSpacing="8">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã môn học *:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaMon}" IsReadOnly="{Binding IsEditMode}" Watermark="Ví dụ: INT1001" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaMon}" IsReadOnly="{Binding IsEditMode}" PlaceholderText="Ví dụ: INT1001" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Tên môn học *:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TenMon}" Watermark="Ví dụ: Lập trình C++" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TenMon}" PlaceholderText="Ví dụ: Lập trình C++" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Số TC Lý thuyết:" VerticalAlignment="Center" />
                 <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SoTinChiLT}" Minimum="0" Maximum="20" FormatString="0" />

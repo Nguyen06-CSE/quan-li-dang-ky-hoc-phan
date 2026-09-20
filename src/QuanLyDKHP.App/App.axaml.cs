@@ -40,10 +40,11 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // 1. Khởi tạo Configuration để đọc file appsettings.json
+        // 1. Khởi tạo Configuration để đọc file appsettings.json từ thư mục chạy ứng dụng
         IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
             .Build();
 
         string connectionString = configuration.GetConnectionString("DefaultConnection") 
@@ -56,6 +57,7 @@ public partial class App : Application
         // Repositories
         services.AddScoped<INguoiDungRepository, NguoiDungRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IBaoCaoRepository, BaoCaoRepository>();
         services.AddScoped<ISinhVienRepository, SinhVienRepository>();
         services.AddScoped<IMonHocRepository, MonHocRepository>();
         services.AddScoped<IHocKyRepository, HocKyRepository>();
@@ -66,6 +68,7 @@ public partial class App : Application
         // Services
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<INguoiDungService, NguoiDungService>();
         services.AddScoped<IBaoCaoService, BaoCaoService>();
         services.AddScoped<ISinhVienService, SinhVienService>();
         services.AddScoped<IMonHocService, MonHocService>();
@@ -74,6 +77,9 @@ public partial class App : Application
         services.AddScoped<ICauHinhService, CauHinhService>();
         services.AddScoped<IHocPhiService, HocPhiService>();
         services.AddScoped<IDangKyHocPhanService, DangKyHocPhanService>();
+        services.AddScoped<IImportExcelService, QuanLyDKHP.Infrastructure.Repositories.ImportExcelRepository>();
+        services.AddScoped<IPdfExportService, QuanLyDKHP.Infrastructure.Export.PdfExportService>();
+        services.AddScoped<IExcelExportService, QuanLyDKHP.Infrastructure.Export.ExcelExportService>();
 
         // ViewModels
         services.AddTransient<LoginViewModel>();
@@ -83,11 +89,21 @@ public partial class App : Application
         services.AddTransient<MonHocViewModel>();
         services.AddTransient<HocKyLopHocPhanViewModel>();
         services.AddTransient<DangKyHocPhanViewModel>();
+        services.AddTransient<HocPhiViewModel>();
+        services.AddTransient<BaoCaoViewModel>();
+        services.AddTransient<CauHinhViewModel>();
+        services.AddTransient<NguoiDungViewModel>();
+        services.AddTransient<ImportExcelViewModel>();
         services.AddSingleton<Func<DashboardViewModel>>(sp => () => sp.GetRequiredService<DashboardViewModel>());
         services.AddSingleton<Func<SinhVienViewModel>>(sp => () => sp.GetRequiredService<SinhVienViewModel>());
         services.AddSingleton<Func<MonHocViewModel>>(sp => () => sp.GetRequiredService<MonHocViewModel>());
         services.AddSingleton<Func<HocKyLopHocPhanViewModel>>(sp => () => sp.GetRequiredService<HocKyLopHocPhanViewModel>());
         services.AddSingleton<Func<DangKyHocPhanViewModel>>(sp => () => sp.GetRequiredService<DangKyHocPhanViewModel>());
+        services.AddSingleton<Func<HocPhiViewModel>>(sp => () => sp.GetRequiredService<HocPhiViewModel>());
+        services.AddSingleton<Func<BaoCaoViewModel>>(sp => () => sp.GetRequiredService<BaoCaoViewModel>());
+        services.AddSingleton<Func<CauHinhViewModel>>(sp => () => sp.GetRequiredService<CauHinhViewModel>());
+        services.AddSingleton<Func<NguoiDungViewModel>>(sp => () => sp.GetRequiredService<NguoiDungViewModel>());
+        services.AddSingleton<Func<ImportExcelViewModel>>(sp => () => sp.GetRequiredService<ImportExcelViewModel>());
 
         // Views
         services.AddTransient<LoginWindow>();
@@ -97,6 +113,11 @@ public partial class App : Application
         services.AddTransient<MonHocView>();
         services.AddTransient<HocKyLopHocPhanView>();
         services.AddTransient<DangKyHocPhanView>();
+        services.AddTransient<HocPhiView>();
+        services.AddTransient<BaoCaoView>();
+        services.AddTransient<CauHinhView>();
+        services.AddTransient<NguoiDungView>();
+        services.AddTransient<ImportExcelView>();
     }
 
     private static void ShowLoginWindow(IClassicDesktopStyleApplicationLifetime desktop)

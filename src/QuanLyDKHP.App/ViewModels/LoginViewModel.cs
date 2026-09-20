@@ -70,9 +70,10 @@ public partial class LoginViewModel : ObservableObject
                 return;
             }
 
-            if (!Enum.TryParse<UserRole>(user.Role, out var userRole))
+            if (!Enum.TryParse<UserRole>(user.Role, ignoreCase: true, out var userRole) || !Enum.IsDefined(typeof(UserRole), userRole))
             {
-                userRole = UserRole.GiangVien;
+                LoiThongBao = "Vai trò người dùng trong hệ thống không hợp lệ. Vui lòng liên hệ Admin.";
+                return;
             }
 
             // Lưu thông tin vào CurrentUserService

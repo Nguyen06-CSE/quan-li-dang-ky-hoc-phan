@@ -20,7 +20,37 @@ public partial class SinhVienView : UserControl
         {
             vm.ShowEditDialogFunc = ShowEditDialogAsync;
             vm.ShowConfirmDeleteFunc = ShowConfirmDeleteAsync;
+            vm.SaveFileDialogFunc = ShowSaveFileDialogAsync;
         }
+    }
+
+    private async Task<string?> ShowSaveFileDialogAsync(string suggestedFileName, string extension, byte[] data)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return null;
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+        {
+            Title = "Lưu file Excel",
+            SuggestedFileName = suggestedFileName,
+            DefaultExtension = extension,
+            FileTypeChoices = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType(extension.ToUpper())
+                {
+                    Patterns = new[] { $"*.{extension}" }
+                }
+            }
+        });
+
+        if (file != null)
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await stream.WriteAsync(data);
+            return file.Path.LocalPath;
+        }
+
+        return null;
     }
 
     private async Task<SinhVien?> ShowEditDialogAsync(SinhVien? sv)

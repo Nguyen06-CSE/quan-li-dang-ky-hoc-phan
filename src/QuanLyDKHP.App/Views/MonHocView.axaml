@@ -20,7 +20,7 @@
 
         <!-- 2. Toolbar -->
         <Grid Grid.Row="1" ColumnDefinitions="280,200,*,Auto" Margin="0,0,0,16">
-            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" Watermark="Tìm theo Mã môn hoặc Tên môn..." Margin="0,0,8,0" />
+            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" PlaceholderText="Tìm theo Mã môn hoặc Tên môn..." Margin="0,0,8,0" />
 
             <ComboBox Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch" Margin="0,0,8,0">
                 <ComboBoxItem Content="Tên môn A → Z" />

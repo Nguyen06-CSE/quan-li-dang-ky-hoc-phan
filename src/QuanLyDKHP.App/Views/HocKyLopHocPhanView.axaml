@@ -58,7 +58,7 @@
 
         <!-- 3. Thanh công cụ LHP (Middle toolbar) -->
         <Grid Grid.Row="2" ColumnDefinitions="280,260,*,Auto" Margin="0,0,0,16">
-            <TextBox Grid.Column="0" Text="{Binding TuKhoaLHP, Mode=TwoWay}" Watermark="Tìm theo Mã LHP hoặc Tên môn..." Margin="0,0,8,0"/>
+            <TextBox Grid.Column="0" Text="{Binding TuKhoaLHP, Mode=TwoWay}" PlaceholderText="Tìm theo Mã LHP hoặc Tên môn..." Margin="0,0,8,0"/>
 
             <ComboBox Grid.Column="1" 
                       ItemsSource="{Binding DanhSachMonHocFilter}" 

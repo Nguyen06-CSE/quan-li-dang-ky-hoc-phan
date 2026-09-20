@@ -24,6 +24,7 @@ public class SinhVienServiceTests
 
         public Task<List<string>> GetDanhSachLopSinhHoatAsync() => Task.FromResult(new List<string>());
         public Task<List<string>> GetDanhSachKhoaHocAsync() => Task.FromResult(new List<string>());
+        public Task<List<SinhVien>> LayDanhSachAsync(string? tuKhoa, string? lop, string? khoaHoc) => Task.FromResult(new List<SinhVien>());
         public Task<SinhVien?> GetByIdAsync(string maSV) => Task.FromResult(SavedSv);
         public Task ThemAsync(SinhVien sv) { SavedSv = sv; return Task.CompletedTask; }
         public Task CapNhatAsync(SinhVien sv) { SavedSv = sv; return Task.CompletedTask; }

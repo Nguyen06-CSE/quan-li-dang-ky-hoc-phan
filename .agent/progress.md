@@ -1,7 +1,7 @@
 # Tiến độ Dự án (Progress Checklist)
 
 ## 000-Spec-TongQuan.md
-- [ ] Đọc và hiểu spec
+- [x] Đọc và hiểu spec
 
 ## 001-Spec-KienTrucDuAn.md
 - [x] Tạo solution + toàn bộ project theo cấu trúc trên.
@@ -25,8 +25,8 @@
 ## 004-Spec-DesignSystem-GiaoDien.md
 - [x] Tạo `Styles/Colors.axaml`, `Styles/Controls.axaml`, include vào `App.axaml`.
 - [x] Dựng `MainWindow.axaml` đúng layout Header/MenuStrip/Sidebar/Content nêu trên.
-- [ ] Cài đặt `IDialogService` (mở Window con từ ViewModel) dùng chung cho toàn bộ dialog ở các spec sau.
-- [ ] Cài đặt Toast/Snackbar dùng chung (VD `INotificationService`).
+- [x] Cài đặt `IDialogService` (mở Window con từ ViewModel) dùng chung cho toàn bộ dialog ở các spec sau.
+- [x] Cài đặt Toast/Snackbar dùng chung (VD `INotificationService`).
 
 ## 005-Spec-Man-DangNhap.md
 - [x] `LoginView.axaml` (`LoginWindow.axaml`) + `LoginViewModel`.
@@ -65,45 +65,45 @@
 - [x] Unit test (trong `tests/QuanLyDKHP.Tests`) cho các case: vượt TC tối đa, trùng LHP, LHP đầy sĩ số — bắt buộc có test.
 
 ## 011-Spec-Man-HocPhi.md
-- [ ] `HocPhiView.axaml` + `HocPhiViewModel`.
-- [ ] `HocPhiService` với công thức đúng như trên, viết unit test kiểm tra vài trường hợp cụ thể (SV học nhiều môn, môn có cả LT lẫn TH).
-- [ ] Xuất PDF phiếu học phí theo mẫu đơn giản: Header trường + tiêu đề "PHIẾU HỌC PHÍ", thông tin SV, bảng chi tiết, tổng cộng, ngày in.
-- [ ] Nút "Tính lại học phí" gọi đúng `TinhLaiHocPhiAsync` cho toàn bộ SV trong phạm vi đang lọc.
+- [x] `HocPhiView.axaml` + `HocPhiViewModel`.
+- [x] `HocPhiService` với công thức đúng như trên, viết unit test kiểm tra vài trường hợp cụ thể (SV học nhiều môn, môn có cả LT lẫn TH).
+- [x] Xuất PDF phiếu học phí theo mẫu đơn giản: Header trường + tiêu đề "PHIẾU HỌC PHÍ", thông tin SV, bảng chi tiết, tổng cộng, ngày in.
+- [x] Nút "Tính lại học phí" gọi đúng `TinhLaiHocPhiAsync` cho toàn bộ SV trong phạm vi đang lọc.
 
 ## 012-Spec-Man-BaoCao.md
-- [ ] `BaoCaoView.axaml` với `TabControl` 4 tab như trên.
-- [ ] `BaoCaoService` đầy đủ 4 hàm.
-- [ ] Xuất Excel dùng chung module ở `016-Spec-Export-BaoCao.md`.
-- [ ] Xuất PDF: danh sách thi + phiếu ĐKHP, dùng chung module QuestPDF ở `016-Spec-Export-BaoCao.md`.
+- [x] `BaoCaoView.axaml` với `TabControl` 4 tab như trên.
+- [x] `BaoCaoService` đầy đủ 4 hàm.
+- [x] Xuất Excel dùng chung module ở `016-Spec-Export-BaoCao.md`.
+- [x] Xuất PDF: danh sách thi + phiếu ĐKHP, dùng chung module QuestPDF ở `016-Spec-Export-BaoCao.md`.
 
 ## 013-Spec-Man-CauHinh.md
-- [ ] `CauHinhView.axaml` + `CauHinhViewModel`.
-- [ ] `CauHinhService` đọc/ghi bảng `CauHinhHeThong`.
-- [ ] Validate tối đa > tối thiểu trước khi lưu.
-- [ ] Chỉ hiển thị mục Sidebar/menu này với role Admin (theo `PermissionMatrix`).
+- [x] `CauHinhView.axaml` + `CauHinhViewModel`.
+- [x] `CauHinhService` đọc/ghi bảng `CauHinhHeThong`.
+- [x] Validate tối đa > tối thiểu trước khi lưu.
+- [x] Chỉ hiển thị mục Sidebar/menu này với role Admin (theo `PermissionMatrix`).
 
 ## 014-Spec-Man-NguoiDung.md
-- [ ] `NguoiDungView.axaml` + ViewModel + 2 dialog (Thêm/Sửa, Đổi mật khẩu).
-- [ ] `NguoiDungService` đầy đủ, hash mật khẩu bằng BCrypt khi tạo/đổi.
-- [ ] Không cho Admin tự khóa chính tài khoản đang đăng nhập (validate ở Service).
+- [x] `NguoiDungView.axaml` + ViewModel + 2 dialog (Thêm/Sửa, Đổi mật khẩu).
+- [x] `NguoiDungService` đầy đủ, hash mật khẩu bằng BCrypt khi tạo/đổi.
+- [x] Không cho Admin tự khóa chính tài khoản đang đăng nhập (validate ở Service).
 
 ## 015-Spec-Import-Excel.md
-- [ ] `ImportExcelDialog.axaml` + ViewModel theo 4 bước trên.
-- [ ] `ImportExcelService` implement đúng logic upsert + xử lý đặc biệt TC như trên.
-- [ ] Đảm bảo 1 dòng lỗi không làm dừng toàn bộ quá trình import (try/catch theo từng dòng, gom log).
-- [ ] Test thử với chính file mẫu `26_27_-_ThongKeDKHP.xlsx` (542 SV, 36 môn, 110 LHP, 4843 dòng đăng ký) trước khi báo hoàn thành.
+- [x] `ImportExcelDialog.axaml` (`ImportExcelView.axaml`) + ViewModel theo 4 bước trên.
+- [x] `ImportExcelService` implement đúng logic upsert + xử lý đặc biệt TC như trên.
+- [x] Đảm bảo 1 dòng lỗi không làm dừng toàn bộ quá trình import (try/catch theo từng dòng, gom log).
+- [x] Test thử với chính file mẫu `26_27_-_ThongKeDKHP.xlsx` (542 SV, 36 môn, 110 LHP, 4843 dòng đăng ký) trước khi báo hoàn thành.
 
 ## 016-Spec-Export-BaoCao.md
-- [ ] `ExcelExportService.XuatExcelAsync<T>` generic, dùng chung cho mọi màn hình cần xuất Excel.
-- [ ] `PdfExportService` với 3 hàm riêng cho 3 loại phiếu (không cần generic hóa PDF vì layout mỗi loại khác nhau).
-- [ ] Cấu hình `QuestPDF.Settings.License = LicenseType.Community` (bắt buộc từ QuestPDF bản mới) trong khởi tạo app.
-- [ ] Test xuất thử cả 2 định dạng, mở file kiểm tra hiển thị tiếng Việt có dấu đúng.
+- [x] `ExcelExportService.XuatExcelAsync<T>` generic, dùng chung cho mọi màn hình cần xuất Excel.
+- [x] `PdfExportService` với 3 hàm riêng cho 3 loại phiếu (không cần generic hóa PDF vì layout mỗi loại khác nhau).
+- [x] Cấu hình `QuestPDF.Settings.License = LicenseType.Community` (bắt buộc từ QuestPDF bản mới) trong khởi tạo app.
+- [x] Test xuất thử cả 2 định dạng, mở file kiểm tra hiển thị tiếng Việt có dấu đúng.
 
 ## 017-Spec-LoTrinh-DoD.md
-- [ ] Toàn bộ 9 yêu cầu chức năng trong đề bài (mục `000-Spec-TongQuan.md`) chạy được, có thể demo trực tiếp cho giảng viên.
-- [ ] Ứng dụng chạy như 1 desktop app độc lập (không mở trình duyệt, không phụ thuộc localhost web server).
-- [ ] Đăng nhập phân quyền 4 role hoạt động đúng ma trận đã duyệt.
-- [ ] Import được file Excel mẫu thật không lỗi crash, ra kết quả log rõ ràng.
-- [ ] Xuất được ít nhất: 1 phiếu ĐKHP PDF, 1 danh sách Excel, 1 phiếu học phí PDF.
-- [ ] README hướng dẫn: cách cấu hình connection string, cách chạy migration, tài khoản Admin mặc định.
+- [x] Toàn bộ 9 yêu cầu chức năng trong đề bài (mục `000-Spec-TongQuan.md`) chạy được, có thể demo trực tiếp cho giảng viên.
+- [x] Ứng dụng chạy như 1 desktop app độc lập (không mở trình duyệt, không phụ thuộc localhost web server).
+- [x] Đăng nhập phân quyền 4 role hoạt động đúng ma trận đã duyệt.
+- [x] Import được file Excel mẫu thật không lỗi crash, ra kết quả log rõ ràng.
+- [x] Xuất được ít nhất: 1 phiếu ĐKHP PDF, 1 danh sách Excel, 1 phiếu học phí PDF.
+- [x] README hướng dẫn: cách cấu hình connection string, cách chạy migration, tài khoản Admin mặc định.
 

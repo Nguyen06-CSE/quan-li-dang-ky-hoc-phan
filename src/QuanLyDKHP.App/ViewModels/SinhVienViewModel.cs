@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Timers;
@@ -50,10 +52,15 @@ public partial class SinhVienViewModel : ObservableObject
     public ObservableCollection<string> DsLopSinhHoat { get; } = new();
     public ObservableCollection<string> DsKhoaHoc { get; } = new();
 
-    public SinhVienViewModel(ISinhVienService sinhVienService, ICurrentUserService currentUserService)
+    private readonly IExcelExportService _excelExportService;
+
+    public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
+
+    public SinhVienViewModel(ISinhVienService sinhVienService, ICurrentUserService currentUserService, IExcelExportService excelExportService)
     {
         _sinhVienService = sinhVienService;
         _currentUserService = currentUserService;
+        _excelExportService = excelExportService;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudSinhVien, _currentUserService.CurrentUser.Role);
@@ -68,6 +75,7 @@ public partial class SinhVienViewModel : ObservableObject
     {
         _sinhVienService = null!;
         _currentUserService = null!;
+        _excelExportService = null!;
         _debounceTimer = new Timer(300);
     }
 
@@ -85,11 +93,14 @@ public partial class SinhVienViewModel : ObservableObject
             DsKhoaHoc.Add("Tất cả");
             foreach (var k in khoas) DsKhoaHoc.Add(k);
 
+            LopFilter = "Tất cả";
+            KhoaHocFilter = "Tất cả";
+
             await LoadDataAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            // Tránh throw unhandled trong constructor async
+            ShowMessage($"Lỗi khởi tạo dữ liệu: {ex.Message}", true);
         }
     }
 
@@ -118,7 +129,10 @@ public partial class SinhVienViewModel : ObservableObject
 
         try
         {
-            var result = await _sinhVienService.TimKiemAsync(TuKhoa, LopFilter, KhoaHocFilter, CurrentPage, PageSize);
+            string? lop = (string.IsNullOrWhiteSpace(LopFilter) || LopFilter == "Tất cả") ? null : LopFilter;
+            string? khoa = (string.IsNullOrWhiteSpace(KhoaHocFilter) || KhoaHocFilter == "Tất cả") ? null : KhoaHocFilter;
+
+            var result = await _sinhVienService.TimKiemAsync(TuKhoa, lop, khoa, CurrentPage, PageSize);
             DanhSach.Clear();
             foreach (var item in result.Items)
             {
@@ -231,13 +245,36 @@ public partial class SinhVienViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportExcelAsync()
     {
-        if (ExportExcelAction != null)
+        if (_excelExportService == null || SaveFileDialogFunc == null) return;
+
+        try
         {
-            await ExportExcelAction();
+            var ds = await _sinhVienService.LayDanhSachAsync(TuKhoa, LopFilter, KhoaHocFilter);
+            if (ds.Count == 0)
+            {
+                ShowMessage("Không có dữ liệu sinh viên để xuất Excel.", true);
+                return;
+            }
+
+            var cotMap = new List<(string TieuDe, Func<SinhVien, object?> LayGiaTri)>
+            {
+                ("Mã SV", new Func<SinhVien, object?>(x => x.MaSV)),
+                ("Họ và tên", new Func<SinhVien, object?>(x => x.HoTen)),
+                ("Lớp sinh hoạt", new Func<SinhVien, object?>(x => x.LopSinhHoat ?? string.Empty)),
+                ("Khóa học", new Func<SinhVien, object?>(x => x.KhoaHoc ?? string.Empty))
+            };
+
+            byte[] bytes = await _excelExportService.XuatExcelAsync<SinhVien>("SinhVien", ds, cotMap);
+            string suggestedName = $"DanhSachSinhVien_{System.DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            string? saved = await SaveFileDialogFunc(suggestedName, "xlsx", bytes);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                ShowMessage($"Đã xuất danh sách Sinh viên thành công tại: {saved}", false);
+            }
         }
-        else
+        catch (System.Exception ex)
         {
-            ShowMessage("Mô-đun xuất Excel đang được tích hợp (016-Spec).", false);
+            ShowMessage($"Lỗi xuất Excel: {ex.Message}", true);
         }
     }
 

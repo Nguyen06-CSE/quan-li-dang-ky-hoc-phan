@@ -80,4 +80,47 @@ public class AuthServiceTests
         Assert.Equal("admin", result!.TenDangNhap);
     }
 
+    [Fact]
+    public async Task DangNhapAsync_LockedUser_ReturnsUser()
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword("correct_password");
+        var user = new NguoiDung
+        {
+            Id = 2,
+            TenDangNhap = "locked_user",
+            MatKhauHash = hash,
+            Role = "GiangVien",
+            TrangThai = "DaKhoa"
+        };
+
+        _mockRepo.Setup(r => r.GetByTenDangNhapAsync("locked_user"))
+                 .ReturnsAsync(user);
+
+        var result = await _authService.DangNhapAsync("locked_user", "correct_password");
+
+        // AuthService trả về user để ViewModel nhận biết được trạng thái DaKhoa
+        Assert.NotNull(result);
+        Assert.Equal("DaKhoa", result!.TrangThai);
+    }
+
+    [Fact]
+    public async Task DangNhapAsync_WhitespaceUsername_Trimmed()
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword("correct_password");
+        var user = new NguoiDung
+        {
+            Id = 1,
+            TenDangNhap = "admin",
+            MatKhauHash = hash,
+            Role = "Admin"
+        };
+
+        _mockRepo.Setup(r => r.GetByTenDangNhapAsync("admin"))
+                 .ReturnsAsync(user);
+
+        var result = await _authService.DangNhapAsync("  admin  ", "correct_password");
+
+        Assert.NotNull(result);
+        Assert.Equal("admin", result!.TenDangNhap);
+    }
 }

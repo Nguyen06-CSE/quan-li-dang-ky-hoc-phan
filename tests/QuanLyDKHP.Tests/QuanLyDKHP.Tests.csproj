@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\QuanLyDKHP.Services\QuanLyDKHP.Services.csproj" />
+    <ProjectReference Include="..\..\src\QuanLyDKHP.Infrastructure\QuanLyDKHP.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

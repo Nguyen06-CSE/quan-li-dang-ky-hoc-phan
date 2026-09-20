@@ -71,6 +71,11 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly Func<MonHocViewModel> _monHocViewModelFactory;
     private readonly Func<HocKyLopHocPhanViewModel> _hocKyLopHocPhanViewModelFactory;
     private readonly Func<DangKyHocPhanViewModel> _dangKyHocPhanViewModelFactory;
+    private readonly Func<HocPhiViewModel> _hocPhiViewModelFactory;
+    private readonly Func<BaoCaoViewModel> _baoCaoViewModelFactory;
+    private readonly Func<CauHinhViewModel> _cauHinhViewModelFactory;
+    private readonly Func<NguoiDungViewModel> _nguoiDungViewModelFactory;
+    private readonly Func<ImportExcelViewModel> _importExcelViewModelFactory;
 
     public MainWindowViewModel(
         ICurrentUserService currentUserService, 
@@ -78,7 +83,12 @@ public partial class MainWindowViewModel : ObservableObject
         Func<SinhVienViewModel> sinhVienViewModelFactory,
         Func<MonHocViewModel> monHocViewModelFactory,
         Func<HocKyLopHocPhanViewModel> hocKyLopHocPhanViewModelFactory,
-        Func<DangKyHocPhanViewModel> dangKyHocPhanViewModelFactory)
+        Func<DangKyHocPhanViewModel> dangKyHocPhanViewModelFactory,
+        Func<HocPhiViewModel> hocPhiViewModelFactory,
+        Func<BaoCaoViewModel> baoCaoViewModelFactory,
+        Func<CauHinhViewModel> cauHinhViewModelFactory,
+        Func<NguoiDungViewModel> nguoiDungViewModelFactory,
+        Func<ImportExcelViewModel> importExcelViewModelFactory)
     {
         _currentUserService = currentUserService;
         _dashboardViewModelFactory = dashboardViewModelFactory;
@@ -86,6 +96,11 @@ public partial class MainWindowViewModel : ObservableObject
         _monHocViewModelFactory = monHocViewModelFactory;
         _hocKyLopHocPhanViewModelFactory = hocKyLopHocPhanViewModelFactory;
         _dangKyHocPhanViewModelFactory = dangKyHocPhanViewModelFactory;
+        _hocPhiViewModelFactory = hocPhiViewModelFactory;
+        _baoCaoViewModelFactory = baoCaoViewModelFactory;
+        _cauHinhViewModelFactory = cauHinhViewModelFactory;
+        _nguoiDungViewModelFactory = nguoiDungViewModelFactory;
+        _importExcelViewModelFactory = importExcelViewModelFactory;
         RefreshMenuForCurrentUser();
         NavigateToHome();
     }
@@ -169,6 +184,26 @@ public partial class MainWindowViewModel : ObservableObject
         else if (menuItem.ChucNang == ChucNang.DangKyHocPhan)
         {
             CurrentViewModel = _dangKyHocPhanViewModelFactory();
+        }
+        else if (menuItem.ChucNang == ChucNang.XemHocPhi)
+        {
+            CurrentViewModel = _hocPhiViewModelFactory();
+        }
+        else if (menuItem.ChucNang == ChucNang.ThongKeSvTheoMon)
+        {
+            CurrentViewModel = _baoCaoViewModelFactory();
+        }
+        else if (menuItem.ChucNang == ChucNang.CauHinhHeThong)
+        {
+            CurrentViewModel = _cauHinhViewModelFactory();
+        }
+        else if (menuItem.ChucNang == ChucNang.QuanLyNguoiDung)
+        {
+            CurrentViewModel = _nguoiDungViewModelFactory();
+        }
+        else if (menuItem.ChucNang == ChucNang.ImportExcel)
+        {
+            CurrentViewModel = _importExcelViewModelFactory();
         }
     }
 }

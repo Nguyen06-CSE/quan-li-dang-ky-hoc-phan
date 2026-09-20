@@ -21,7 +21,7 @@
 
         <!-- 2. Toolbar -->
         <Grid Grid.Row="1" ColumnDefinitions="280,180,180,*,Auto" Margin="0,0,0,16">
-            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" Watermark="Tìm theo Mã SV hoặc Họ tên..." Margin="0,0,8,0" />
+            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" PlaceholderText="Tìm theo Mã SV hoặc Họ tên..." Margin="0,0,8,0" />
 
             <ComboBox Grid.Column="1" ItemsSource="{Binding DsLopSinhHoat}" SelectedItem="{Binding LopFilter}" HorizontalAlignment="Stretch" Margin="0,0,8,0" />
 

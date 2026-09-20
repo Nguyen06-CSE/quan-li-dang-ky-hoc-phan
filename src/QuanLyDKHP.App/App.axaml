@@ -29,6 +29,21 @@
         <DataTemplate DataType="{x:Type vm:DangKyHocPhanViewModel}">
             <views:DangKyHocPhanView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HocPhiViewModel}">
+            <views:HocPhiView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:BaoCaoViewModel}">
+            <views:BaoCaoView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CauHinhViewModel}">
+            <views:CauHinhView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:NguoiDungViewModel}">
+            <views:NguoiDungView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ImportExcelViewModel}">
+            <views:ImportExcelView />
+        </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Styles>

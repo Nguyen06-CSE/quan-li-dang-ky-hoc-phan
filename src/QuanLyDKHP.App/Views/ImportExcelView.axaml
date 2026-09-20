@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+             xmlns:entities="using:QuanLyDKHP.Core.Entities"
+             xmlns:coreDtos="using:QuanLyDKHP.Core.Dtos"
+             x:Class="QuanLyDKHP.App.Views.ImportExcelView"
+             x:DataType="vm:ImportExcelViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="24">
+        <!-- 1. Header & Giới thiệu -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+            <TextBlock Text="Import dữ liệu đăng ký từ Excel" Classes="h1" />
+            <TextBlock Text="Hỗ trợ import dữ liệu hàng loạt từ file mẫu thống kê ĐKHP (.xlsx), tự động upsert Sinh viên, Môn học, Lớp HP và Đăng ký" 
+                       Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+        </StackPanel>
+
+        <!-- 2. Form Các bước Import -->
+        <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,16">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
+                <!-- Bước 1 & 2: Chọn Học Kỳ và File -->
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,260,32,Auto,*,Auto" VerticalAlignment="Center">
+                    <!-- Bước 1: Học kỳ -->
+                    <TextBlock Grid.Column="0" Text="1. Học kỳ đích:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding DsHocKy}" 
+                              SelectedItem="{Binding HocKyDangChon}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate DataType="entities:HocKy">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding TenHocKy}"/>
+                                    <Border Background="{DynamicResource BrushSuccess}" 
+                                            CornerRadius="3" Padding="4,1" 
+                                            IsVisible="{Binding DangMo}">
+                                        <TextBlock Text="ĐANG MỞ" FontSize="9" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <!-- Bước 2: Chọn file -->
+                    <TextBlock Grid.Column="3" Text="2. File Excel nguồn:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBox Grid.Column="4" Text="{Binding FileName, Mode=OneWay}" 
+                             IsReadOnly="True" PlaceholderText="Chưa chọn file (.xlsx)..." 
+                             Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <Button Grid.Column="5" Content="Chọn file..." Command="{Binding ChonFileCommand}" Classes="btn-secondary" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Bước 3: Nút Bắt đầu Import & Tiến trình -->
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <Button Grid.Column="0" Content="3. Bắt đầu Import dữ liệu" 
+                            Command="{Binding BatDauImportCommand}" 
+                            IsEnabled="{Binding !IsImporting}"
+                            Classes="btn-primary" Padding="16,8"/>
+
+                    <StackPanel Grid.Column="1" Margin="24,0" VerticalAlignment="Center" Spacing="4">
+                        <ProgressBar Value="{Binding TienDo}" Minimum="0" Maximum="100" Height="8" CornerRadius="4"
+                                     Foreground="{DynamicResource BrushPrimary}" Background="{DynamicResource BrushBorder}"/>
+                        <TextBlock Text="{Binding ThongBaoTienDo}" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="2" Content="Xuất log ra file .txt" 
+                            Command="{Binding XuatLogTxtCommand}" 
+                            IsEnabled="{Binding KetQua, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Classes="btn-secondary" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Thống kê nhanh kết quả (nếu có) -->
+                <Border Grid.Row="2" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" 
+                        BorderThickness="1" CornerRadius="6" Padding="16,10"
+                        IsVisible="{Binding KetQua, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Grid ColumnDefinitions="*,*,*,*,*,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Tổng dòng:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                            <TextBlock Text="{Binding KetQua.TongSoDong}" FontWeight="Bold" FontSize="15"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Thành công:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                            <TextBlock Text="{Binding KetQua.SoDongThanhCong}" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource BrushSuccess}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Lỗi:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                            <TextBlock Text="{Binding KetQua.SoDongLoi}" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource BrushDanger}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="SV mới tạo:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                            <TextBlock Text="{Binding KetQua.SoSinhVienMoi}" FontWeight="Bold" FontSize="15"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Môn mới tạo:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                            <TextBlock Text="{Binding KetQua.SoMonHocMoi}" FontWeight="Bold" FontSize="15"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="5">
+                            <TextBlock Text="LHP mới tạo:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11"/>
+                            <TextBlock Text="{Binding KetQua.SoLopHocPhanMoi}" FontWeight="Bold" FontSize="15"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 3. Chi tiết bảng Log Import -->
+        <Border Grid.Row="2" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding DanhSachLogHienThi}" AutoGenerateColumns="False" IsReadOnly="True"
+                      GridLinesVisibility="All" BorderThickness="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Dòng" Binding="{Binding DongSo}" Width="70" />
+                    <DataGridTemplateColumn Header="Loại log" Width="110">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="coreDtos:LogDongImportDto">
+                                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Background="{DynamicResource BrushDanger}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding LoaiLog, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='Loi'}">
+                                        <TextBlock Text="LỖI" FontSize="10" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource BrushWarning}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding LoaiLog, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='CanhBao'}">
+                                        <TextBlock Text="CẢNH BÁO" FontSize="10" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource BrushSuccess}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding LoaiLog, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='ThongTin'}">
+                                        <TextBlock Text="THÔNG TIN" FontSize="10" Foreground="White" FontWeight="Bold"/>
+                                    </Border>
+                                </Panel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Mã SV" Binding="{Binding MaSV}" Width="110" />
+                    <DataGridTextColumn Header="Mã môn" Binding="{Binding MaMon}" Width="100" />
+                    <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="110" />
+                    <DataGridTextColumn Header="Nội dung chi tiết" Binding="{Binding NoiDung}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

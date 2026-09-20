@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Timers;
@@ -33,10 +35,15 @@ public partial class MonHocViewModel : ObservableObject
 
     public ObservableCollection<MonHocDto> DanhSach { get; } = new();
 
-    public MonHocViewModel(IMonHocService monHocService, ICurrentUserService currentUserService)
+    private readonly IExcelExportService _excelExportService;
+
+    public System.Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
+
+    public MonHocViewModel(IMonHocService monHocService, ICurrentUserService currentUserService, IExcelExportService excelExportService)
     {
         _monHocService = monHocService;
         _currentUserService = currentUserService;
+        _excelExportService = excelExportService;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudMonHoc, _currentUserService.CurrentUser.Role);
@@ -51,6 +58,7 @@ public partial class MonHocViewModel : ObservableObject
     {
         _monHocService = null!;
         _currentUserService = null!;
+        _excelExportService = null!;
         _debounceTimer = new Timer(300);
     }
 
@@ -168,13 +176,46 @@ public partial class MonHocViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportExcelAsync()
     {
-        if (ExportExcelAction != null)
+        if (_excelExportService == null || SaveFileDialogFunc == null) return;
+
+        try
         {
-            await ExportExcelAction();
+            string sortParam = SelectedSortBy switch
+            {
+                "TenMonZA" => "TenMonZToA",
+                "MaMon" => "MaMon",
+                _ => "TenMon"
+            };
+
+            var ds = await _monHocService.LayDanhSachDtoAsync(TuKhoa, sortParam);
+            if (ds.Count == 0)
+            {
+                ShowMessage("Không có dữ liệu môn học để xuất Excel.", true);
+                return;
+            }
+
+            var cotMap = new List<(string TieuDe, Func<MonHocDto, object?> LayGiaTri)>
+            {
+                ("Mã môn", new Func<MonHocDto, object?>(x => x.MaMon)),
+                ("Tên môn học", new Func<MonHocDto, object?>(x => x.TenMon)),
+                ("Số TC LT", new Func<MonHocDto, object?>(x => x.SoTinChiLT)),
+                ("Số TC TH", new Func<MonHocDto, object?>(x => x.SoTinChiTH)),
+                ("Tổng số TC", new Func<MonHocDto, object?>(x => x.TongTinChi)),
+                ("Bậc đào tạo", new Func<MonHocDto, object?>(x => x.BacDaoTao ?? string.Empty)),
+                ("Số LHP đang mở", new Func<MonHocDto, object?>(x => x.SoLhpDangMo))
+            };
+
+            byte[] bytes = await _excelExportService.XuatExcelAsync<MonHocDto>("MonHoc", ds, cotMap);
+            string suggestedName = $"DanhSachMonHoc_{System.DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            string? saved = await SaveFileDialogFunc(suggestedName, "xlsx", bytes);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                ShowMessage($"Đã xuất danh sách Môn học thành công tại: {saved}", false);
+            }
         }
-        else
+        catch (System.Exception ex)
         {
-            ShowMessage("Mô-đun xuất Excel đang được tích hợp (016-Spec).", false);
+            ShowMessage($"Lỗi xuất Excel: {ex.Message}", true);
         }
     }
 

@@ -65,3 +65,9 @@ File này sẽ ghi lại các quyết định kỹ thuật, kiến trúc hoặc 
 **Vấn đề 3:** Tự động tính toán lại học phí khi đăng ký/hủy đăng ký học phần (bước 6 của quy trình).
 **Quyết định 3:** Tạo sẵn `IHocPhiService` & `HocPhiService` với method `TinhLaiHocPhiAsync(maSV, maHocKy)` tính toán số tiền phải đóng của từng LHP dựa trên cấu hình đơn giá LT/TH từ `CauHinhHeThong` và cập nhật vào trường `DangKyHocPhan.SoTienPhaiDong`.
 **Lý do 3:** Đảm bảo đúng yêu cầu trong Spec 010 và chuẩn bị sẵn nền tảng cho Spec 011.
+
+## 2026-09-19 - 011-Spec-Man-HocPhi.md
+**Vấn đề 1:** Giao diện chi tiết học phí của sinh viên cần thể hiện bảng chi tiết từng môn kèm đơn giá LT/TH, thành tiền và có nút xuất PDF phiếu học phí trực tiếp.
+**Quyết định 1:** Thiết kế `HocPhiView.axaml` với bảng tổng hợp danh sách SV và modal/panel overlay chi tiết trực tiếp trong View (thay vì popup Window con), liên kết với `XuatPhieuHocPhiPdfAsync` thông qua Avalonia `StorageProvider` (lưu file độc lập không phụ thuộc cứng đường dẫn).
+**Lý do 1:** Trải nghiệm người dùng đồng nhất, mượt mà trên Avalonia MVVM và tuân thủ chặt chẽ mẫu hiển thị phiếu học phí trong spec.
+

@@ -1,0 +1,235 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+             xmlns:entities="using:QuanLyDKHP.Core.Entities"
+             x:Class="QuanLyDKHP.App.Views.NguoiDungView"
+             x:DataType="vm:NguoiDungViewModel">
+
+    <Grid RowDefinitions="Auto,*" Margin="24">
+        <!-- 1. Header & Actions & Status -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <TextBlock Text="Quản lý người dùng" Classes="h1" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Status Banner -->
+            <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Background="{DynamicResource BrushSurfaceAlt}" 
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1"
+                    CornerRadius="6" Padding="14,8">
+                <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}" />
+            </Border>
+
+            <!-- Nút Thêm mới -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                <Button Content="Làm mới" Command="{Binding LoadDanhSachCommand}" Classes="btn-secondary"/>
+                <Button Content="+ Thêm tài khoản" Command="{Binding MoDialogThemCommand}" Classes="btn-primary"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 2. Bảng Danh sách Người Dùng -->
+        <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding DanhSachNguoiDung}" AutoGenerateColumns="False" IsReadOnly="True"
+                      GridLinesVisibility="All" BorderThickness="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60" />
+                    <DataGridTextColumn Header="Tên đăng nhập" Binding="{Binding TenDangNhap}" Width="150" />
+                    <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" />
+                    <DataGridTextColumn Header="Mã GV" Binding="{Binding MaGV}" Width="110" />
+                    
+                    <!-- Role Badge -->
+                    <DataGridTemplateColumn Header="Vai trò (Role)" Width="150">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="entities:NguoiDung">
+                                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <!-- Admin: Đỏ/Tím -->
+                                    <Border Background="#6C5CE7" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding Role, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='Admin'}">
+                                        <TextBlock Text="Admin" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <!-- Trợ lý Giáo vụ: Xanh lá -->
+                                    <Border Background="#8CB450" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding Role, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='TroLyGiaoVu'}">
+                                        <TextBlock Text="Trợ lý Giáo vụ" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <!-- Giáo vụ Bộ môn: Xanh dương -->
+                                    <Border Background="#0984E3" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding Role, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='GiaoVuBoMon'}">
+                                        <TextBlock Text="Giáo vụ Bộ môn" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <!-- Giảng viên: Cam -->
+                                    <Border Background="#E67E22" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding Role, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='GiangVien'}">
+                                        <TextBlock Text="Giảng viên" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                </Panel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Trạng thái Badge -->
+                    <DataGridTemplateColumn Header="Trạng thái" Width="130">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="entities:NguoiDung">
+                                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Background="{DynamicResource BrushSuccess}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding TrangThai, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='HoatDong'}">
+                                        <TextBlock Text="Hoạt động" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource BrushDanger}" CornerRadius="4" Padding="6,2"
+                                            IsVisible="{Binding TrangThai, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter='HoatDong'}">
+                                        <TextBlock Text="Đã khóa" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                </Panel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Thao tác: Sửa, Đổi MK, Khóa/Mở khóa -->
+                    <DataGridTemplateColumn Header="Thao tác" Width="260">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="entities:NguoiDung">
+                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Button Content="Sửa" 
+                                            Classes="btn-secondary"
+                                            Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).MoDialogSuaCommand}"
+                                            CommandParameter="{Binding}"
+                                            Padding="6,2" FontSize="11"/>
+                                    
+                                    <Button Content="Đổi mật khẩu" 
+                                            Classes="btn-secondary"
+                                            Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).MoDialogDoiMatKhauCommand}"
+                                            CommandParameter="{Binding}"
+                                            Padding="6,2" FontSize="11"/>
+
+                                    <Button Content="Khóa" 
+                                            Classes="btn-secondary"
+                                            IsVisible="{Binding TrangThai, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='HoatDong'}"
+                                            Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).ToggleKhoaTaiKhoanCommand}"
+                                            CommandParameter="{Binding}"
+                                            Padding="6,2" FontSize="11"/>
+
+                                    <Button Content="Mở khóa" 
+                                            Classes="btn-primary"
+                                            IsVisible="{Binding TrangThai, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter='HoatDong'}"
+                                            Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).ToggleKhoaTaiKhoanCommand}"
+                                            CommandParameter="{Binding}"
+                                            Padding="6,2" FontSize="11"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- 3. DIALOG THÊM / SỬA TÀI KHOẢN -->
+        <Border Grid.Row="0" Grid.RowSpan="2" Background="#40000000" IsVisible="{Binding IsThemSuaDialogOpen}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
+            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+                    CornerRadius="8" Padding="24" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BoxShadow="0 8 24 0 #30000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="{Binding IsEditMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=True, StringFormat='CẬP NHẬT NGƯỜI DÙNG'}" 
+                               FontWeight="Bold" FontSize="16" Foreground="{DynamicResource BrushPrimaryDark}"
+                               IsVisible="{Binding IsEditMode}"/>
+                    <TextBlock Text="THÊM MỚI TÀI KHOẢN" 
+                               FontWeight="Bold" FontSize="16" Foreground="{DynamicResource BrushPrimaryDark}"
+                               IsVisible="{Binding !IsEditMode}"/>
+
+                    <!-- Tên đăng nhập -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Tên đăng nhập:" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding TenDangNhap, Mode=TwoWay}" 
+                                 IsReadOnly="{Binding IsEditMode}"
+                                 PlaceholderText="Nhập tên đăng nhập..." />
+                    </StackPanel>
+
+                    <!-- Mật khẩu ban đầu (chỉ hiện khi Thêm) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding !IsEditMode}">
+                        <TextBlock Text="Mật khẩu ban đầu:" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding MatKhauBanDau, Mode=TwoWay}" 
+                                 PasswordChar="●"
+                                 PlaceholderText="Nhập mật khẩu..." />
+                    </StackPanel>
+
+                    <!-- Họ tên -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Họ và tên:" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding HoTen, Mode=TwoWay}" 
+                                 PlaceholderText="Nhập họ và tên..." />
+                    </StackPanel>
+
+                    <!-- Vai trò (Role) -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Vai trò (Role):" FontWeight="SemiBold" FontSize="13"/>
+                        <ComboBox ItemsSource="{Binding DanhSachRole}" 
+                                  SelectedItem="{Binding SelectedRole}"
+                                  HorizontalAlignment="Stretch" />
+                    </StackPanel>
+
+                    <!-- Mã Giảng Viên (chỉ hiện khi Role = GiangVien) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding IsRoleGiangVien}">
+                        <TextBlock Text="Mã Giảng viên (để liên kết với LHP):" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding MaGV, Mode=TwoWay}" 
+                                 PlaceholderText="Nhập mã giảng viên (ví dụ: GV01)..." />
+                    </StackPanel>
+
+                    <!-- Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+                        <Button Content="Hủy" Command="{Binding DongDialogThemSuaCommand}" Classes="btn-secondary"/>
+                        <Button Content="Lưu" Command="{Binding LuuThemSuaCommand}" Classes="btn-primary"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- 4. DIALOG ĐỔI MẬT KHẨU -->
+        <Border Grid.Row="0" Grid.RowSpan="2" Background="#40000000" IsVisible="{Binding IsDoiMatKhauDialogOpen}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
+            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+                    CornerRadius="8" Padding="24" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BoxShadow="0 8 24 0 #30000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="ĐỔI MẬT KHẨU TÀI KHOẢN" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                    
+                    <TextBlock Text="{Binding DoiMatKhauUserName, StringFormat='Tài khoản: {0}'}" 
+                               FontWeight="SemiBold" Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
+
+                    <!-- Mật khẩu cũ -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Mật khẩu cũ:" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding MatKhauCu, Mode=TwoWay}" 
+                                 PasswordChar="●"
+                                 PlaceholderText="Nhập mật khẩu hiện tại..." />
+                    </StackPanel>
+
+                    <!-- Mật khẩu mới -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Mật khẩu mới:" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding MatKhauMoi, Mode=TwoWay}" 
+                                 PasswordChar="●"
+                                 PlaceholderText="Nhập mật khẩu mới..." />
+                    </StackPanel>
+
+                    <!-- Xác nhận mật khẩu mới -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Xác nhận mật khẩu mới:" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBox Text="{Binding XacNhanMatKhau, Mode=TwoWay}" 
+                                 PasswordChar="●"
+                                 PlaceholderText="Nhập lại mật khẩu mới..." />
+                    </StackPanel>
+
+                    <!-- Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+                        <Button Content="Hủy" Command="{Binding DongDialogDoiMatKhauCommand}" Classes="btn-secondary"/>
+                        <Button Content="Đổi mật khẩu" Command="{Binding LuuDoiMatKhauCommand}" Classes="btn-primary"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

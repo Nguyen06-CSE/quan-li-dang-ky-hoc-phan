@@ -18,16 +18,16 @@
 
             <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="120,*" RowSpacing="12" ColumnSpacing="8">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã sinh viên *:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaSV}" IsReadOnly="{Binding IsEditMode}" Watermark="Ví dụ: 20110001" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaSV}" IsReadOnly="{Binding IsEditMode}" PlaceholderText="Ví dụ: 20110001" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Họ và tên *:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HoTen}" Watermark="Nhập họ và tên đầy đủ..." />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HoTen}" PlaceholderText="Nhập họ và tên đầy đủ..." />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Lớp sinh hoạt:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LopSinhHoat}" Watermark="Ví dụ: 20TCLC_DT" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LopSinhHoat}" PlaceholderText="Ví dụ: 20TCLC_DT" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Khóa học:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding KhoaHoc}" Watermark="Ví dụ: 2020-2024" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding KhoaHoc}" PlaceholderText="Ví dụ: 2020-2024" />
             </Grid>
         </StackPanel>
 
