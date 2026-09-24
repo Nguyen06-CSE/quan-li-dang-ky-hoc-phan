@@ -53,6 +53,9 @@
 - PostgreSQL Database (hoặc tài khoản Neon PostgreSQL)
 
 ### 3.2. Cấu hình chuỗi kết nối Database
+---
+# LƯU Í HIỆN TẠI CHƯƠNG TRÌNH MẶC ĐỊNH DÙNG DB HOST TRÊN NEON NÊN TỐC ĐỘ RẤT THẤP BẠN HÃY TỰ TẠO DB THEO HƯỚNG DẪN TẠI ĐƯỜNG LINK DƯỚI ĐÂY
+[hướng dẫn cài đặt DB](/database-setup.md)
 Tạo hoặc cập nhật file `src/QuanLyDKHP.App/appsettings.Local.json` (hoặc `appsettings.json`):
 
 ```json
