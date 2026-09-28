@@ -49,7 +49,7 @@
                         <Popup IsOpen="{Binding IsGoiYOpen, Mode=TwoWay}" IsLightDismissEnabled="True" 
                                PlacementTarget="{Binding $parent[TextBox]}" Placement="Bottom"
                                Width="350" MaxHeight="220">
-                            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" BoxShadow="0 4 8 0 #20000000">
+                            <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" BoxShadow="0 4 8 0 #20000000">
                                 <ListBox ItemsSource="{Binding GoiYSinhVien}" SelectionMode="Single" Background="Transparent">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienDto">
@@ -71,7 +71,7 @@
                 </Grid>
 
                 <!-- Card thông tin SV + Tiến độ tín chỉ -->
-                <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" 
+                <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" 
                         BorderThickness="1" CornerRadius="6" Padding="14"
                         IsVisible="{Binding SinhVienDangChon, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <Grid ColumnDefinitions="*,Auto,380">
@@ -179,7 +179,7 @@
         </Border>
 
         <!-- 4. Bảng Học phần đã đăng ký -->
-        <Border Grid.Row="3" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="0" ClipToBounds="True">
+        <Border Grid.Row="3" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="0" ClipToBounds="True">
             <DataGrid ItemsSource="{Binding DsDaDangKy}" AutoGenerateColumns="False" IsReadOnly="True"
                       GridLinesVisibility="All" BorderThickness="0">
                 <DataGrid.Columns>

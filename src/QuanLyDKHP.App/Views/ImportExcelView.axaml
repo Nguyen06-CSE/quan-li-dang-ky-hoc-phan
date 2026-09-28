@@ -15,7 +15,7 @@
         </StackPanel>
 
         <!-- 2. Form Các bước Import -->
-        <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,16">
+        <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,16">
             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
                 <!-- Bước 1 & 2: Chọn Học Kỳ và File -->
                 <Grid Grid.Row="0" ColumnDefinitions="Auto,260,32,Auto,*,Auto" VerticalAlignment="Center">
@@ -100,7 +100,7 @@
         </Border>
 
         <!-- 3. Chi tiết bảng Log Import -->
-        <Border Grid.Row="2" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+        <Border Grid.Row="2" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
             <DataGrid ItemsSource="{Binding DanhSachLogHienThi}" AutoGenerateColumns="False" IsReadOnly="True"
                       GridLinesVisibility="All" BorderThickness="0">
                 <DataGrid.Columns>

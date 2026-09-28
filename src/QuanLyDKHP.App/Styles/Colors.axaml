@@ -1,28 +1,94 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Base Colors -->
-    <Color x:Key="ColorPrimary">#ACD26B</Color>
-    <Color x:Key="ColorPrimaryDark">#8CB450</Color>
-    <Color x:Key="ColorPrimaryLight">#E6F2D6</Color>
-    <Color x:Key="ColorBackground">#FFFFFF</Color>
-    <Color x:Key="ColorSurfaceAlt">#F7F9F5</Color>
-    <Color x:Key="ColorTextPrimary">#212521</Color>
-    <Color x:Key="ColorTextSecondary">#6E766E</Color>
-    <Color x:Key="ColorBorder">#E0E6DA</Color>
-    <Color x:Key="ColorDanger">#D64541</Color>
-    <Color x:Key="ColorWarning">#E0A83C</Color>
-    <Color x:Key="ColorSuccess">#60A358</Color>
+    <!-- Mỗi theme (Light/Dark) tự định nghĩa đủ Color + Brush bằng giá trị trực tiếp.
+         Toàn bộ view dùng DynamicResource nên đổi ThemeVariant là màu đổi theo. -->
+    <ResourceDictionary.ThemeDictionaries>
 
-    <!-- SolidColorBrushes -->
-    <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}" />
-    <SolidColorBrush x:Key="BrushPrimaryDark" Color="{StaticResource ColorPrimaryDark}" />
-    <SolidColorBrush x:Key="BrushPrimaryLight" Color="{StaticResource ColorPrimaryLight}" />
-    <SolidColorBrush x:Key="BrushBackground" Color="{StaticResource ColorBackground}" />
-    <SolidColorBrush x:Key="BrushSurfaceAlt" Color="{StaticResource ColorSurfaceAlt}" />
-    <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ColorTextPrimary}" />
-    <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ColorTextSecondary}" />
-    <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}" />
-    <SolidColorBrush x:Key="BrushDanger" Color="{StaticResource ColorDanger}" />
-    <SolidColorBrush x:Key="BrushWarning" Color="{StaticResource ColorWarning}" />
-    <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}" />
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="ColorPrimary">#ACD26B</Color>
+            <Color x:Key="ColorPrimaryDark">#8CB450</Color>
+            <Color x:Key="ColorPrimaryLight">#E6F2D6</Color>
+            <Color x:Key="ColorBackground">#FFFFFF</Color>
+            <Color x:Key="ColorSurfaceAlt">#F7F9F5</Color>
+            <Color x:Key="ColorTextPrimary">#212521</Color>
+            <Color x:Key="ColorTextSecondary">#6E766E</Color>
+            <Color x:Key="ColorBorder">#E0E6DA</Color>
+            <Color x:Key="ColorDanger">#D64541</Color>
+            <Color x:Key="ColorWarning">#E0A83C</Color>
+            <Color x:Key="ColorSuccess">#60A358</Color>
+
+            <SolidColorBrush x:Key="BrushPrimary" Color="#ACD26B" />
+            <SolidColorBrush x:Key="BrushPrimaryDark" Color="#8CB450" />
+            <SolidColorBrush x:Key="BrushPrimaryLight" Color="#E6F2D6" />
+            <SolidColorBrush x:Key="BrushBackground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="BrushSurfaceAlt" Color="#F7F9F5" />
+            <SolidColorBrush x:Key="BrushTextPrimary" Color="#212521" />
+            <SolidColorBrush x:Key="BrushTextSecondary" Color="#6E766E" />
+            <SolidColorBrush x:Key="BrushBorder" Color="#E0E6DA" />
+            <SolidColorBrush x:Key="BrushDanger" Color="#D64541" />
+            <SolidColorBrush x:Key="BrushWarning" Color="#E0A83C" />
+            <SolidColorBrush x:Key="BrushSuccess" Color="#60A358" />
+
+            <!-- Liquid glass tokens -->
+            <SolidColorBrush x:Key="BrushCanvas" Color="#F2F2F7" />
+            <SolidColorBrush x:Key="BrushGlass" Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="BrushGlassStrong" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="BrushGlassBorder" Color="#99FFFFFF" />
+            <SolidColorBrush x:Key="BrushOnHero" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="BrushOnHeroSoft" Color="#EBFFFFFF" />
+            <SolidColorBrush x:Key="BrushHeroBadge" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="BrushHeroLine" Color="#48FFFFFF" />
+            <SolidColorBrush x:Key="BrushOrbA" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="BrushOrbB" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="BrushOnPrimary" Color="#1F2A12" />
+            <LinearGradientBrush x:Key="BrushHero" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#C7E8A0" Offset="0" />
+                <GradientStop Color="#8FD1B0" Offset="1" />
+            </LinearGradientBrush>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="ColorPrimary">#ACD26B</Color>
+            <Color x:Key="ColorPrimaryDark">#8CB450</Color>
+            <Color x:Key="ColorPrimaryLight">#2B3A1F</Color>
+            <Color x:Key="ColorBackground">#16181A</Color>
+            <Color x:Key="ColorSurfaceAlt">#1E2124</Color>
+            <Color x:Key="ColorTextPrimary">#E8ECE6</Color>
+            <Color x:Key="ColorTextSecondary">#9AA39A</Color>
+            <Color x:Key="ColorBorder">#2E3338</Color>
+            <Color x:Key="ColorDanger">#E5635F</Color>
+            <Color x:Key="ColorWarning">#E6B457</Color>
+            <Color x:Key="ColorSuccess">#74B96C</Color>
+
+            <SolidColorBrush x:Key="BrushPrimary" Color="#ACD26B" />
+            <SolidColorBrush x:Key="BrushPrimaryDark" Color="#8CB450" />
+            <SolidColorBrush x:Key="BrushPrimaryLight" Color="#2B3A1F" />
+            <SolidColorBrush x:Key="BrushBackground" Color="#16181A" />
+            <SolidColorBrush x:Key="BrushSurfaceAlt" Color="#1E2124" />
+            <SolidColorBrush x:Key="BrushTextPrimary" Color="#E8ECE6" />
+            <SolidColorBrush x:Key="BrushTextSecondary" Color="#9AA39A" />
+            <SolidColorBrush x:Key="BrushBorder" Color="#2E3338" />
+            <SolidColorBrush x:Key="BrushDanger" Color="#E5635F" />
+            <SolidColorBrush x:Key="BrushWarning" Color="#E6B457" />
+            <SolidColorBrush x:Key="BrushSuccess" Color="#74B96C" />
+
+            <!-- Liquid glass tokens -->
+            <SolidColorBrush x:Key="BrushCanvas" Color="#0F1113" />
+            <SolidColorBrush x:Key="BrushGlass" Color="#8C24282C" />
+            <SolidColorBrush x:Key="BrushGlassStrong" Color="#CC2A2F33" />
+            <SolidColorBrush x:Key="BrushGlassBorder" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="BrushOnHero" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="BrushOnHeroSoft" Color="#DDFFFFFF" />
+            <SolidColorBrush x:Key="BrushHeroBadge" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="BrushHeroLine" Color="#33FFFFFF" />
+            <SolidColorBrush x:Key="BrushOrbA" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="BrushOrbB" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="BrushOnPrimary" Color="#1F2A12" />
+            <LinearGradientBrush x:Key="BrushHero" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#41602C" Offset="0" />
+                <GradientStop Color="#1F4238" Offset="1" />
+            </LinearGradientBrush>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

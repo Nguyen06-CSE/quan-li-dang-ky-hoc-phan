@@ -3,85 +3,271 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        mc:Ignorable="d" d:DesignWidth="1040" d:DesignHeight="640"
         x:Class="QuanLyDKHP.App.Views.LoginWindow"
         x:DataType="vm:LoginViewModel"
         Title="Đăng nhập - Hệ Thống Quản Lý Đăng Ký Học Phần"
-        Width="800" Height="600"
-        WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource BrushSurfaceAlt}">
+        Width="1040" Height="640"
+        MinWidth="720" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
 
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-        <!-- Login Card -->
-        <Border Width="380"
-                Background="{DynamicResource BrushBackground}"
-                CornerRadius="10"
-                BoxShadow="0 4 12 0 #20000000"
-                Padding="24,28">
-            <StackPanel Spacing="16">
-                <!-- Top Accent Line -->
-                <Border Height="4"
-                        Background="{DynamicResource BrushPrimary}"
-                        CornerRadius="2"
-                        Margin="0,-28,0,12" />
+    <!-- ============ TOÀN BỘ "LỚP ÁO" ĐỒ HỌA NẰM Ở ĐÂY (Liquid / iOS glass) ============ -->
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource BrushCanvas}" />
+        </Style>
 
-                <!-- Title & Logo Header -->
-                <StackPanel Spacing="8" HorizontalAlignment="Center">
-                    <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
-                              Width="48" Height="48"
-                              Foreground="{DynamicResource BrushPrimary}" />
-                    <TextBlock Text="ĐĂNG NHẬP HỆ THỐNG"
-                               Classes="h1"
-                               FontSize="18"
-                               HorizontalAlignment="Center" />
-                    <TextBlock Text="QUẢN LÝ ĐĂNG KÝ HỌC PHẦN"
-                               Classes="caption"
+        <!-- Hero (nửa trái): tấm kính pastel bo góc lớn, nổi trên nền canvas -->
+        <Style Selector="Border.hero">
+            <Setter Property="Background" Value="{DynamicResource BrushHero}" />
+            <Setter Property="CornerRadius" Value="32" />
+            <Setter Property="Margin" Value="16,16,8,16" />
+            <Setter Property="BoxShadow" Value="0 20 48 0 #26000000" />
+        </Style>
+        <Style Selector="Ellipse.orb-a">
+            <Setter Property="Fill" Value="{DynamicResource BrushOrbA}" />
+        </Style>
+        <Style Selector="Ellipse.orb-b">
+            <Setter Property="Fill" Value="{DynamicResource BrushOrbB}" />
+        </Style>
+        <Style Selector="Border.logo-badge">
+            <Setter Property="Background" Value="{DynamicResource BrushHeroBadge}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushHeroLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="26" />
+            <Setter Property="BoxShadow" Value="0 10 24 0 #1F000000" />
+        </Style>
+        <Style Selector="TextBlock.logo-text">
+            <Setter Property="FontSize" Value="32" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnHero}" />
+        </Style>
+        <Style Selector="TextBlock.hero-title">
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnHero}" />
+        </Style>
+        <Style Selector="TextBlock.hero-sub">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnHeroSoft}" />
+        </Style>
+        <Style Selector="Border.hero-divider">
+            <Setter Property="Background" Value="{DynamicResource BrushHeroLine}" />
+            <Setter Property="CornerRadius" Value="1" />
+        </Style>
+        <Style Selector="Ellipse.hero-dot">
+            <Setter Property="Fill" Value="{DynamicResource BrushOnHero}" />
+        </Style>
+        <Style Selector="TextBlock.hero-point">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnHeroSoft}" />
+        </Style>
+
+        <!-- Form (nửa phải): thẻ kính + hiệu ứng hiện dần khi mở cửa sổ -->
+        <Style Selector="Border.form-card">
+            <Setter Property="Padding" Value="32" />
+            <Style.Animations>
+                <Animation Duration="0:0:0.6" Easing="CubicEaseOut" FillMode="Forward">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="TextBlock.form-title">
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}" />
+        </Style>
+        <Style Selector="TextBlock.form-sub">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}" />
+        </Style>
+        <Style Selector="TextBlock.field-label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}" />
+        </Style>
+        <Style Selector="TextBlock.error-text">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushDanger}" />
+        </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}" />
+        </Style>
+        <Style Selector="Button.btn-primary.submit">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+        <Style Selector="Ellipse.eye">
+            <Setter Property="Stroke" Value="{DynamicResource BrushTextSecondary}" />
+        </Style>
+        <Style Selector="Line.eye">
+            <Setter Property="Stroke" Value="{DynamicResource BrushTextSecondary}" />
+        </Style>
+        <Style Selector="Ellipse.eye-pupil">
+            <Setter Property="Fill" Value="{DynamicResource BrushTextSecondary}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="1.05*,1*">
+
+        <!-- ===================== BÊN TRÁI: Hero / Branding ===================== -->
+        <Border Grid.Column="0" Classes="hero" ClipToBounds="True">
+            <Grid>
+                <!-- Vòng tròn trang trí mờ, tạo chiều sâu thay vì ảnh tĩnh -->
+                <Ellipse Classes="orb-a" Width="420" Height="420"
+                          HorizontalAlignment="Right" VerticalAlignment="Top"
+                          Margin="0,-160,-160,0" />
+                <Ellipse Classes="orb-b" Width="300" Height="300"
+                          HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                          Margin="-120,0,0,-120" />
+
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Spacing="20" Margin="48">
+                    <Border Classes="logo-badge" Width="84" Height="84"
+                            HorizontalAlignment="Center">
+                        <TextBlock Classes="logo-text" Text="ĐL"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <TextBlock Classes="hero-title" Text="TRƯỜNG ĐẠI HỌC ĐÀ LẠT"
                                HorizontalAlignment="Center"
-                               FontWeight="SemiBold" />
-                </StackPanel>
+                               TextAlignment="Center" />
+                    <TextBlock Classes="hero-sub" Text="Hệ thống Quản lý Đăng ký Học phần"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
 
-                <!-- Input Form -->
-                <StackPanel Spacing="12" Margin="0,12,0,0">
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Tên đăng nhập" Classes="body" FontWeight="Medium" />
-                        <TextBox Text="{Binding TenDangNhap, Mode=TwoWay}"
-                                 PlaceholderText="Nhập tên đăng nhập"
-                                 IsEnabled="{Binding !DangXuLy}" />
+                    <Border Classes="hero-divider" Height="2" Width="220" Margin="0,8" />
+
+                    <StackPanel Spacing="10" Width="280">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Classes="hero-dot" Width="6" Height="6" VerticalAlignment="Center" />
+                            <TextBlock Classes="hero-point" Text="Đăng ký học phần nhanh, trực quan" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Classes="hero-dot" Width="6" Height="6" VerticalAlignment="Center" />
+                            <TextBlock Classes="hero-point" Text="Theo dõi thời khóa biểu &amp; học phí tức thời" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Classes="hero-dot" Width="6" Height="6" VerticalAlignment="Center" />
+                            <TextBlock Classes="hero-point" Text="Dữ liệu bảo mật, phân quyền rõ ràng" />
+                        </StackPanel>
                     </StackPanel>
-
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Mật khẩu" Classes="body" FontWeight="Medium" />
-                        <TextBox Text="{Binding MatKhau, Mode=TwoWay}"
-                                 PlaceholderText="Nhập mật khẩu"
-                                 PasswordChar="●"
-                                 IsEnabled="{Binding !DangXuLy}" />
-                    </StackPanel>
-
-                    <!-- Error Message -->
-                    <TextBlock Text="{Binding LoiThongBao}"
-                               Foreground="{DynamicResource BrushDanger}"
-                               Classes="caption"
-                               TextWrapping="Wrap"
-                               IsVisible="{Binding LoiThongBao, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-                    <!-- Submit Button -->
-                    <Button Classes="btn-primary"
-                            Command="{Binding DangNhapCommand}"
-                            IsDefault="True"
-                            IsEnabled="{Binding !DangXuLy}"
-                            Margin="0,8,0,0">
-                        <Grid>
-                            <TextBlock Text="ĐĂNG NHẬP"
-                                       IsVisible="{Binding !DangXuLy}"
-                                       HorizontalAlignment="Center" />
-                            <ProgressBar IsIndeterminate="True"
-                                         Width="24" Height="24"
-                                         IsVisible="{Binding DangXuLy}" />
-                        </Grid>
-                    </Button>
                 </StackPanel>
-
-            </StackPanel>
+            </Grid>
         </Border>
+
+        <!-- ===================== BÊN PHẢI: Form đăng nhập ===================== -->
+        <Grid Grid.Column="1">
+            <!-- Border.glass-card + form-card là lớp bọc DUY NHẤT thêm vào để có tấm kính; không ảnh hưởng chức năng -->
+            <Border Classes="glass-card form-card"
+                    VerticalAlignment="Center" HorizontalAlignment="Center">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Width="340" Spacing="6">
+
+                <TextBlock Text="Đăng nhập" Classes="form-title" Margin="0,0,0,2" />
+                <TextBlock Text="Nhập thông tin tài khoản để tiếp tục"
+                           Classes="form-sub" Margin="0,0,0,22" />
+
+                <!-- Mã số sinh viên -->
+                <StackPanel Spacing="6" Margin="0,0,0,14">
+                    <TextBlock Text="Mã số sinh viên" Classes="field-label" />
+                    <TextBox x:Name="TenDangNhapBox"
+                             Classes="input-login"
+                             Text="{Binding TenDangNhap, Mode=TwoWay}"
+                             PlaceholderText="Nhập mã số sinh viên"
+                             IsEnabled="{Binding !DangXuLy}" />
+                </StackPanel>
+
+                <!-- Mật khẩu -->
+                <StackPanel Spacing="6" Margin="0,0,0,4">
+                    <TextBlock Text="Mật khẩu" Classes="field-label" />
+                    <Border x:Name="PasswordShakeTarget">
+                        <Grid>
+                            <TextBox x:Name="PasswordHiddenBox"
+                                     Classes="input-login"
+                                     Text="{Binding MatKhau, Mode=TwoWay}"
+                                     PlaceholderText="Nhập mật khẩu"
+                                     PasswordChar="●"
+                                     IsVisible="{Binding !HienMatKhau}"
+                                     IsEnabled="{Binding !DangXuLy}"
+                                     Padding="14,12,44,12" />
+                            <TextBox x:Name="PasswordVisibleBox"
+                                     Classes="input-login"
+                                     Text="{Binding MatKhau, Mode=TwoWay}"
+                                     PlaceholderText="Nhập mật khẩu"
+                                     IsVisible="{Binding HienMatKhau}"
+                                     IsEnabled="{Binding !DangXuLy}"
+                                     Padding="14,12,44,12" />
+
+                            <!-- Nút con mắt bật/tắt hiển thị mật khẩu -->
+                            <Button Classes="btn-icon-ghost"
+                                    Command="{Binding ToggleHienMatKhauCommand}"
+                                    ToolTip.Tip="Hiện/ẩn mật khẩu"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Margin="0,0,4,0">
+                                <Grid Width="18" Height="14">
+                                    <!-- Trạng thái: đang ẩn -> icon con mắt mở -->
+                                    <Grid IsVisible="{Binding !HienMatKhau}">
+                                        <Ellipse Classes="eye" Width="18" Height="12" StrokeThickness="1.4" />
+                                        <Ellipse Classes="eye-pupil" Width="6" Height="6" />
+                                    </Grid>
+                                    <!-- Trạng thái: đang hiện -> icon con mắt gạch chéo -->
+                                    <Grid IsVisible="{Binding HienMatKhau}">
+                                        <Ellipse Classes="eye" Width="18" Height="12" StrokeThickness="1.4" />
+                                        <Ellipse Classes="eye-pupil" Width="6" Height="6" />
+                                        <Line Classes="eye" StartPoint="1,1" EndPoint="17,13" StrokeThickness="1.6" />
+                                    </Grid>
+                                </Grid>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Remember me -->
+                <CheckBox Content="Lưu đăng nhập"
+                          IsChecked="{Binding GhiNhoDangNhap, Mode=TwoWay}"
+                          IsEnabled="{Binding !DangXuLy}"
+                          ToolTip.Tip="Chỉ ghi nhớ mã số sinh viên cho lần sau, không lưu mật khẩu."
+                          Margin="0,4,0,4" />
+
+                <!-- Error Message (fade-in) -->
+                <TextBlock Text="{Binding LoiThongBao}"
+                           Classes="error-fade error-text"
+                           Classes.visible="{Binding LoiThongBao, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           TextWrapping="Wrap"
+                           Margin="0,2,0,0" />
+
+                <!-- Submit Button -->
+                <Button Classes="btn-primary submit"
+                        Command="{Binding DangNhapCommand}"
+                        IsDefault="True"
+                        IsEnabled="{Binding !DangXuLy}"
+                        HorizontalAlignment="Stretch"
+                        Height="46"
+                        Margin="0,14,0,0">
+                    <Grid>
+                        <TextBlock Text="ĐĂNG NHẬP"
+                                   IsVisible="{Binding !DangXuLy}"
+                                   HorizontalAlignment="Center" />
+                        <ProgressBar IsIndeterminate="True"
+                                     Width="22" Height="22"
+                                     IsVisible="{Binding DangXuLy}" />
+                    </Grid>
+                </Button>
+
+                <TextBlock Text="Quên mật khẩu? Liên hệ phòng Đào tạo để được hỗ trợ."
+                           Classes="hint"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="0,16,0,0" />
+            </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

@@ -3,105 +3,266 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="750"
         x:Class="QuanLyDKHP.App.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Hệ Thống Quản Lý Đăng Ký Học Phần"
-        Width="1200" Height="750"
-        WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource BrushBackground}">
+        Width="1280" Height="780"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
 
-    <Grid RowDefinitions="56, 36, *">
-        <!-- Row 0: Header -->
-        <Grid Grid.Row="0" Background="{DynamicResource BrushPrimary}" ColumnDefinitions="Auto, *, Auto, Auto">
-            <!-- App Logo + Title -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" Margin="16,0,0,0" VerticalAlignment="Center">
-                <PathIcon Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
-                          Width="28" Height="28" Foreground="White" />
-                <TextBlock Text="QUẢN LÝ ĐĂNG KÝ HỌC PHẦN"
-                           Foreground="White"
-                           FontSize="16"
-                           FontWeight="Bold"
-                           VerticalAlignment="Center" />
-            </StackPanel>
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource BrushCanvas}" />
+        </Style>
 
-            <!-- User Info -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,16,0">
-                <TextBlock Text="{Binding CurrentUserDisplayName}"
-                           Foreground="White"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center" />
-                <TextBlock Text="|" Foreground="#D0E6AD" VerticalAlignment="Center" />
-                <Border Background="#20FFFFFF" CornerRadius="4" Padding="6,2">
-                    <TextBlock Text="{Binding CurrentUserRole}"
-                               Foreground="White"
-                               FontSize="12"
-                               VerticalAlignment="Center" />
-                </Border>
-            </StackPanel>
+        <!-- ===== Liquid glass cho khung ứng dụng ===== -->
+        <Style Selector="Border.logo-mark">
+            <Setter Property="Background" Value="{DynamicResource BrushHero}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BoxShadow" Value="0 6 16 0 #26000000" />
+        </Style>
+        <Style Selector="TextBlock.logo-mark-text">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnHero}" />
+        </Style>
+        <Style Selector="TextBlock.brand">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}" />
+        </Style>
+        <Style Selector="Border.nav-indicator">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryDark}" />
+            <Setter Property="CornerRadius" Value="0,4,4,0" />
+        </Style>
+        <Style Selector="Border.avatar">
+            <Setter Property="Background" Value="{DynamicResource BrushHero}" />
+            <Setter Property="CornerRadius" Value="17" />
+            <Setter Property="BoxShadow" Value="0 4 10 0 #26000000" />
+        </Style>
+        <Style Selector="TextBlock.avatar-text">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnHero}" />
+        </Style>
+        <Style Selector="Border.v-divider">
+            <Setter Property="Background" Value="{DynamicResource BrushGlassBorder}" />
+        </Style>
+        <Style Selector="TextBox.search-pill">
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Background" Value="{DynamicResource BrushGlassStrong}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
+        </Style>
 
-            <!-- Logout Button -->
-            <Button Grid.Column="3"
-                    Classes="btn-secondary"
-                    Command="{Binding DangXuatCommand}"
-                    Margin="0,0,16,0"
-                    VerticalAlignment="Center"
-                    Padding="12,6"
-                    BorderBrush="#8CB450"
-                    Foreground="White">
-                <TextBlock Text="Đăng xuất" Foreground="White" FontSize="13" />
-            </Button>
-        </Grid>
+        <!-- ===== Sidebar nav: mỗi mục cao đúng 44px (khớp NavItemHeight trong ViewModel) ===== -->
+        <Style Selector="ListBox.nav-list ListBoxItem">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="CornerRadius" Value="14" />
+        </Style>
+        <Style Selector="ListBox.nav-list ListBoxItem:pointerover:not(:selected) /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushBorder}" />
+        </Style>
+        <Style Selector="ListBox.nav-list ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}" />
+        </Style>
 
-        <!-- Row 1: Menu Strip -->
-        <Border Grid.Row="1" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
-            <Menu VerticalAlignment="Center" Margin="8,0">
-                <MenuItem Header="Tệp">
-                    <MenuItem Header="Import Excel" Command="{Binding NavigateToCommand}" />
-                    <Separator />
-                    <MenuItem Header="Đăng xuất" Command="{Binding DangXuatCommand}" />
-                </MenuItem>
-                <MenuItem Header="Danh mục">
-                    <MenuItem Header="Sinh viên" />
-                    <MenuItem Header="Môn học" />
-                    <MenuItem Header="Học kỳ / Lớp học phần" />
-                </MenuItem>
-                <MenuItem Header="Đăng ký">
-                    <MenuItem Header="Đăng ký học phần" />
-                    <MenuItem Header="Học phí" />
-                </MenuItem>
-                <MenuItem Header="Báo cáo">
-                    <MenuItem Header="Báo cáo &amp; Thống kê" />
-                </MenuItem>
-                <MenuItem Header="Trợ giúp">
-                    <MenuItem Header="Giới thiệu" />
-                </MenuItem>
-            </Menu>
+        <!-- Icon: mục chưa chọn mờ (kiểu "nét"), mục đang chọn đậm rõ (kiểu "mảng") -->
+        <Style Selector="ListBox.nav-list TextBlock.nav-icon">
+            <Setter Property="Opacity" Value="0.5" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.nav-list ListBoxItem:selected TextBlock.nav-icon">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="ListBox.nav-list TextBlock.nav-title">
+            <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}" />
+        </Style>
+        <Style Selector="ListBox.nav-list ListBoxItem:selected TextBlock.nav-title">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="Auto,*">
+
+        <!-- ===================== SIDEBAR ===================== -->
+        <Border Grid.Column="0"
+                Width="{Binding SidebarWidth}"
+                Classes="glass-side"
+                ClipToBounds="True">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Width" Duration="0:0:0.25" Easing="CubicEaseOut" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Grid RowDefinitions="64,*,Auto">
+
+                <!-- Logo -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12"
+                            Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Border Classes="logo-mark" Width="36" Height="36">
+                        <TextBlock Classes="logo-mark-text" Text="ĐL"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Classes="brand" Text="Đăng ký học phần"
+                               VerticalAlignment="Center"
+                               TextWrapping="NoWrap" />
+                </StackPanel>
+
+                <!-- Danh sách menu + dải màu trượt -->
+                <Grid Grid.Row="1" Margin="8,4,8,0">
+                    <ListBox Classes="nav-list"
+                             ItemsSource="{Binding FilteredMenuItems}"
+                             SelectedItem="{Binding SelectedMenuItem}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VerticalAlignment="Top">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MenuItemViewModel">
+                                <Grid ColumnDefinitions="52,*"
+                                      Background="Transparent"
+                                      ToolTip.Tip="{Binding Title}">
+                                    <TextBlock Grid.Column="0" Classes="nav-icon"
+                                               Text="{Binding Icon}" FontSize="18"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Classes="nav-title"
+                                               Text="{Binding Title}" FontSize="14"
+                                               VerticalAlignment="Center"
+                                               TextWrapping="NoWrap" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Indicator: trượt mượt tới mục đang chọn nhờ ThicknessTransition trên Margin -->
+                    <Border Classes="nav-indicator" Width="4" Height="24"
+                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="{Binding IndicatorMargin}"
+                            IsVisible="{Binding IsIndicatorVisible}"
+                            IsHitTestVisible="False">
+                        <Border.Transitions>
+                            <Transitions>
+                                <ThicknessTransition Property="Margin" Duration="0:0:0.28" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
+                </Grid>
+
+                <!-- Nút thu gọn / mở rộng -->
+                <Button Grid.Row="2" Classes="btn-icon-ghost"
+                        Command="{Binding ToggleSidebarCommand}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Height="44" Margin="8,4,8,12" Padding="0"
+                        ToolTip.Tip="Thu gọn / Mở rộng thanh bên">
+                    <Grid ColumnDefinitions="52,*">
+                        <Grid Grid.Column="0">
+                            <TextBlock Text="«" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       IsVisible="{Binding IsSidebarExpanded}" />
+                            <TextBlock Text="»" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       IsVisible="{Binding !IsSidebarExpanded}" />
+                        </Grid>
+                        <TextBlock Grid.Column="1" Text="Thu gọn" FontSize="13"
+                                   VerticalAlignment="Center" TextWrapping="NoWrap" />
+                    </Grid>
+                </Button>
+            </Grid>
         </Border>
 
-        <!-- Row 2: Content Body (Sidebar + View Content) -->
-        <Grid Grid.Row="2" ColumnDefinitions="220, *">
-            <!-- Sidebar Navigation -->
-            <Border Grid.Column="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,1,0">
-                <ListBox ItemsSource="{Binding FilteredMenuItems}"
-                         SelectedItem="{Binding SelectedMenuItem}"
-                         Background="Transparent"
-                         Margin="4">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,6">
-                                <TextBlock Text="{Binding Icon}" FontSize="16" Width="20" TextAlignment="Center" />
-                                <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+        <!-- ===================== CỘT PHẢI: TOP BAR + NỘI DUNG ===================== -->
+        <Grid Grid.Column="1" RowDefinitions="60,*">
+
+            <!-- Top bar -->
+            <Border Grid.Row="0" Classes="glass-bar">
+                <Grid ColumnDefinitions="*,320,*" Margin="24,0">
+
+                    <!-- Breadcrumb -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Trang chủ" Classes="caption" FontSize="13" VerticalAlignment="Center" />
+                        <TextBlock Text="›" Classes="caption" FontSize="14" VerticalAlignment="Center"
+                                   IsVisible="{Binding ShowBreadcrumbTail}" />
+                        <TextBlock Text="{Binding BreadcrumbCurrent}" Classes="body" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{Binding ShowBreadcrumbTail}" />
+                    </StackPanel>
+
+                    <!-- Tìm nhanh màn hình -->
+                    <TextBox Grid.Column="1"
+                             Text="{Binding SearchText, Mode=TwoWay}"
+                             PlaceholderText="Tìm nhanh màn hình… (Enter)"
+                             Classes="search-pill"
+                             Height="36"
+                             Padding="16,0"
+                             VerticalAlignment="Center"
+                             VerticalContentAlignment="Center">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding QuickSearchCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+
+                    <!-- Cụm bên phải -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                                HorizontalAlignment="Right" VerticalAlignment="Center">
+
+                        <!-- Đổi giao diện Sáng / Tối -->
+                        <Button Classes="btn-icon-ghost" Command="{Binding ToggleThemeCommand}"
+                                ToolTip.Tip="Chuyển giao diện Sáng / Tối">
+                            <Grid>
+                                <TextBlock Text="🌙" FontSize="16" IsVisible="{Binding !IsDarkMode}" />
+                                <TextBlock Text="☀️" FontSize="16" IsVisible="{Binding IsDarkMode}" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Thông báo (chưa có hệ thống thông báo nên chưa hiện số) -->
+                        <Button Classes="btn-icon-ghost" ToolTip.Tip="Chưa có thông báo mới">
+                            <TextBlock Text="🔔" FontSize="16" />
+                        </Button>
+
+                        <Border Classes="v-divider" Width="1" Height="24" Margin="6,0" />
+
+                        <!-- Avatar + tên -->
+                        <Border Classes="avatar" Width="34" Height="34">
+                            <TextBlock Classes="avatar-text" Text="{Binding UserInitials}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Margin="4,0,8,0">
+                            <TextBlock Text="{Binding CurrentUserDisplayName}" Classes="body"
+                                       FontWeight="SemiBold" FontSize="13" />
+                            <TextBlock Text="{Binding CurrentUserRole}" Classes="caption" FontSize="11" />
+                        </StackPanel>
+
+                        <Button Classes="btn-icon-ghost" Command="{Binding DangXuatCommand}"
+                                Padding="10,6" ToolTip.Tip="Đăng xuất khỏi hệ thống">
+                            <TextBlock Text="Đăng xuất" FontSize="13" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- Main Workspace Area -->
-            <Grid Grid.Column="1" Background="{DynamicResource BrushBackground}" Margin="24">
-                <ContentControl Content="{Binding CurrentViewModel}" />
-            </Grid>
+            <!-- Vùng làm việc: chuyển màn hình bằng cross-fade, không tải lại cả app -->
+            <TransitioningContentControl Grid.Row="1"
+                                         Margin="24"
+                                         Content="{Binding CurrentViewModel}">
+                <TransitioningContentControl.PageTransition>
+                    <CrossFade Duration="0:0:0.18" />
+                </TransitioningContentControl.PageTransition>
+            </TransitioningContentControl>
         </Grid>
+
+        <!-- Lớp phủ dùng cho hiệu ứng chuyển theme mượt (điều khiển ở code-behind) -->
+        <Border x:Name="ThemeFadeOverlay"
+                Grid.ColumnSpan="2"
+                Opacity="0"
+                IsHitTestVisible="False" />
     </Grid>
 </Window>

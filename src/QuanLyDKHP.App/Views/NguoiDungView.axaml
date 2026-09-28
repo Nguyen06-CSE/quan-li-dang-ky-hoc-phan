@@ -31,7 +31,7 @@
         </Grid>
 
         <!-- 2. Bảng Danh sách Người Dùng -->
-        <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+        <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
             <DataGrid ItemsSource="{Binding DanhSachNguoiDung}" AutoGenerateColumns="False" IsReadOnly="True"
                       GridLinesVisibility="All" BorderThickness="0">
                 <DataGrid.Columns>
@@ -129,7 +129,7 @@
         <!-- 3. DIALOG THÊM / SỬA TÀI KHOẢN -->
         <Border Grid.Row="0" Grid.RowSpan="2" Background="#40000000" IsVisible="{Binding IsThemSuaDialogOpen}"
                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
-            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+            <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
                     CornerRadius="8" Padding="24" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BoxShadow="0 8 24 0 #30000000">
                 <StackPanel Spacing="16">
@@ -190,7 +190,7 @@
         <!-- 4. DIALOG ĐỔI MẬT KHẨU -->
         <Border Grid.Row="0" Grid.RowSpan="2" Background="#40000000" IsVisible="{Binding IsDoiMatKhauDialogOpen}"
                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
-            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+            <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
                     CornerRadius="8" Padding="24" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BoxShadow="0 8 24 0 #30000000">
                 <StackPanel Spacing="16">

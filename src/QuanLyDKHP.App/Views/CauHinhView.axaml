@@ -26,7 +26,7 @@
                 </Border>
 
                 <!-- Card Form -->
-                <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="24">
+                <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="24">
                     <StackPanel Spacing="20">
                         <TextBlock Text="GIỚI HẠN TÍN CHỈ HỌC KỲ" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource BrushPrimaryDark}" Margin="0,0,0,4"/>
 
@@ -97,7 +97,7 @@
         <!-- Overlay Dialog hỏi tính lại học phí -->
         <Border Background="#40000000" IsVisible="{Binding HienThiHoiTinhLaiHocPhi}"
                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
-            <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+            <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
                     CornerRadius="8" Padding="24" MaxWidth="500" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BoxShadow="0 8 24 0 #30000000">
                 <StackPanel Spacing="16">

@@ -85,7 +85,7 @@
                     </Border>
 
                     <!-- Bảng DS Sinh viên -->
-                    <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                    <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
                         <DataGrid ItemsSource="{Binding Tab1DsSinhVien}" AutoGenerateColumns="False" IsReadOnly="True"
                                   GridLinesVisibility="All" BorderThickness="0">
                             <DataGrid.Columns>
@@ -164,7 +164,7 @@
                     </Border>
 
                     <!-- Bảng Danh sách thi -->
-                    <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                    <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
                         <DataGrid ItemsSource="{Binding Tab2DsThi}" AutoGenerateColumns="False" IsReadOnly="True"
                                   GridLinesVisibility="All" BorderThickness="0">
                             <DataGrid.Columns>
@@ -198,7 +198,7 @@
                     </Border>
 
                     <!-- Bảng Thống kê -->
-                    <Border Grid.Row="1" Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                    <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
                         <DataGrid ItemsSource="{Binding Tab3DsThongKe}" AutoGenerateColumns="False" IsReadOnly="True"
                                   GridLinesVisibility="All" BorderThickness="0">
                             <DataGrid.Columns>
@@ -230,7 +230,7 @@
                                 <Popup IsOpen="{Binding Tab4IsGoiYOpen, Mode=TwoWay}" IsLightDismissEnabled="True" 
                                        PlacementTarget="{Binding $parent[TextBox]}" Placement="Bottom"
                                        Width="350" MaxHeight="220">
-                                    <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" BoxShadow="0 4 8 0 #20000000">
+                                    <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" BoxShadow="0 4 8 0 #20000000">
                                         <ListBox ItemsSource="{Binding Tab4GoiYSinhVien}" SelectionMode="Single" Background="Transparent">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate DataType="coreDtos:SinhVienDto">
@@ -259,7 +259,7 @@
 
                     <!-- Preview phiếu mô phỏng khổ A4 -->
                     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                        <Border Background="White" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+                        <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
                                 CornerRadius="4" Padding="32" Margin="0,0,0,24" MaxWidth="820" HorizontalAlignment="Center"
                                 BoxShadow="0 4 16 0 #15000000">
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">

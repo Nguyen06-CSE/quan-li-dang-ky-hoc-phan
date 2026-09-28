@@ -28,16 +28,28 @@
     <!-- Button Primary -->
     <Style Selector="Button.btn-primary">
         <Setter Property="Background" Value="{DynamicResource BrushPrimary}" />
-        <Setter Property="Foreground" Value="White" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Foreground" Value="{DynamicResource BrushOnPrimary}" />
+        <Setter Property="CornerRadius" Value="14" />
         <Setter Property="Padding" Value="16,10" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="RenderTransform" Value="scale(1)" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.btn-primary:pointerover">
+        <Setter Property="RenderTransform" Value="scale(1.03)" />
+    </Style>
+    <Style Selector="Button.btn-primary:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.97)" />
     </Style>
     <Style Selector="Button.btn-primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource BrushPrimaryDark}" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource BrushOnPrimary}" />
     </Style>
 
     <!-- Button Secondary -->
@@ -46,7 +58,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="16,10" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -59,7 +71,7 @@
     <Style Selector="Button.btn-danger">
         <Setter Property="Background" Value="{DynamicResource BrushDanger}" />
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="16,10" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -70,12 +82,94 @@
     <Style Selector="TextBox">
         <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="10,8" />
+    </Style>
+    <Style Selector="TextBox /template/ Border#PART_BorderElement">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.22" />
+                <ThicknessTransition Property="BorderThickness" Duration="0:0:0.22" />
+            </Transitions>
+        </Setter>
     </Style>
     <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
         <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
         <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- Login-style large TextBox (Module 1) -->
+    <Style Selector="TextBox.input-login">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="14,12" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Background" Value="{DynamicResource BrushGlassStrong}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
+    </Style>
+    <!-- Ô nhập báo lỗi bằng viền đỏ (thêm class "invalid") -->
+    <Style Selector="TextBox.invalid /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushDanger}" />
+    </Style>
+
+    <!-- ===== Liquid glass: dùng lại cho mọi màn hình ===== -->
+    <Style Selector="Border.glass-card">
+        <Setter Property="Background" Value="{DynamicResource BrushGlass}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="BoxShadow" Value="0 16 40 0 #1F000000" />
+    </Style>
+    <Style Selector="Border.glass-bar">
+        <Setter Property="Background" Value="{DynamicResource BrushGlass}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <Style Selector="Border.glass-side">
+        <Setter Property="Background" Value="{DynamicResource BrushGlass}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
+        <Setter Property="BorderThickness" Value="0,0,1,0" />
+    </Style>
+
+    <!-- CheckBox Styling -->
+    <Style Selector="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="CheckBox /template/ Border#NormalRectangle">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
+    </Style>
+    <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+        <Setter Property="Background" Value="{DynamicResource BrushPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
+    </Style>
+
+    <!-- Icon-only ghost button (dùng cho nút con mắt hiện/ẩn mật khẩu) -->
+    <Style Selector="Button.btn-icon-ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}" />
+    </Style>
+    <Style Selector="Button.btn-icon-ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}" />
+    </Style>
+
+    <!-- Fade cho text lỗi (Module 1 - error feedback) -->
+    <Style Selector="TextBlock.error-fade">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.35" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="TextBlock.error-fade.visible">
+        <Setter Property="IsVisible" Value="True" />
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
 </Styles>

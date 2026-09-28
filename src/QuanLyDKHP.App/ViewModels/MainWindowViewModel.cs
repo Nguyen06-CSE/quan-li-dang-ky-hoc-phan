@@ -1,6 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
+using System.Text;
+using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.Core.Authorization;
@@ -41,6 +44,91 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _currentUserRole = string.Empty;
+
+    // ===== App Shell (Module 2) =====
+
+    /// <summary>Chiều cao 1 mục menu — phải khớp style ListBoxItem.nav-item trong MainWindow.axaml.</summary>
+    private const double NavItemHeight = 44;
+    private const double SidebarExpandedWidth = 232;
+    private const double SidebarCollapsedWidth = 68;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SidebarWidth))]
+    private bool _isSidebarExpanded = true;
+
+    public double SidebarWidth => IsSidebarExpanded ? SidebarExpandedWidth : SidebarCollapsedWidth;
+
+    [ObservableProperty]
+    private bool _isDarkMode;
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    /// <summary>Chữ cái đầu của họ tên để vẽ avatar tròn.</summary>
+    public string UserInitials
+    {
+        get
+        {
+            var parts = (CurrentUserDisplayName ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "?";
+            if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+            return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+        }
+    }
+
+    /// <summary>Vị trí dải màu (indicator) trượt theo mục đang chọn.</summary>
+    public Thickness IndicatorMargin
+    {
+        get
+        {
+            var idx = SelectedMenuItem == null ? 0 : FilteredMenuItems.IndexOf(SelectedMenuItem);
+            if (idx < 0) idx = 0;
+            return new Thickness(0, idx * NavItemHeight + (NavItemHeight - 24) / 2, 0, 0);
+        }
+    }
+
+    public bool IsIndicatorVisible => SelectedMenuItem != null && FilteredMenuItems.Contains(SelectedMenuItem);
+
+    public string BreadcrumbCurrent => SelectedMenuItem?.Title ?? string.Empty;
+
+    /// <summary>Đang ở Trang chủ thì breadcrumb chỉ hiện "Trang chủ", không lặp "Trang chủ > Trang chủ".</summary>
+    public bool ShowBreadcrumbTail => SelectedMenuItem != null && SelectedMenuItem.ChucNang != ChucNang.XemDashboard;
+
+    [RelayCommand]
+    private void ToggleSidebar() => IsSidebarExpanded = !IsSidebarExpanded;
+
+    [RelayCommand]
+    private void ToggleTheme() => IsDarkMode = !IsDarkMode;
+
+    /// <summary>
+    /// Tìm nhanh: gõ tên màn hình (không cần dấu) rồi Enter để nhảy tới mục đầu tiên khớp.
+    /// Chỉ tìm trong các màn hình user có quyền — không tìm dữ liệu bên trong từng màn hình.
+    /// </summary>
+    [RelayCommand]
+    private void QuickSearch()
+    {
+        var key = RemoveDiacritics(SearchText?.Trim() ?? string.Empty);
+        if (key.Length == 0) return;
+
+        var match = FilteredMenuItems.FirstOrDefault(m => RemoveDiacritics(m.Title).Contains(key));
+        if (match != null)
+        {
+            SelectedMenuItem = match;
+            SearchText = string.Empty;
+        }
+    }
+
+    private static string RemoveDiacritics(string text)
+    {
+        var sb = new StringBuilder();
+        foreach (var c in text.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+        return sb.ToString().Replace('đ', 'd').Replace('Đ', 'D').ToLowerInvariant();
+    }
 
     /// <summary>
     /// Danh sách menu đã lọc theo quyền của user đang đăng nhập.
@@ -110,8 +198,8 @@ public partial class MainWindowViewModel : ObservableObject
         var homeMenu = FilteredMenuItems.FirstOrDefault(m => m.ChucNang == ChucNang.XemDashboard);
         if (homeMenu != null)
         {
+            // Đổi SelectedMenuItem sẽ kích hoạt OnSelectedMenuItemChanged -> NavigateTo (chỉ tạo Dashboard 1 lần)
             SelectedMenuItem = homeMenu;
-            CurrentViewModel = _dashboardViewModelFactory();
         }
     }
 
@@ -128,6 +216,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         CurrentUserDisplayName = user.HoTen;
         CurrentUserRole = user.Role.ToString();
+        OnPropertyChanged(nameof(UserInitials));
 
         foreach (var item in AllMenuItems)
         {
@@ -140,6 +229,10 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IndicatorMargin))]
+    [NotifyPropertyChangedFor(nameof(IsIndicatorVisible))]
+    [NotifyPropertyChangedFor(nameof(BreadcrumbCurrent))]
+    [NotifyPropertyChangedFor(nameof(ShowBreadcrumbTail))]
     private MenuItemViewModel? _selectedMenuItem;
 
     partial void OnSelectedMenuItemChanged(MenuItemViewModel? value)
@@ -165,6 +258,8 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void NavigateTo(MenuItemViewModel menuItem)
     {
+        if (menuItem == null) return; // Chặn NullReferenceException khi command được gọi không có tham số
+
         if (menuItem.ChucNang == ChucNang.XemDashboard)
         {
             CurrentViewModel = _dashboardViewModelFactory();
