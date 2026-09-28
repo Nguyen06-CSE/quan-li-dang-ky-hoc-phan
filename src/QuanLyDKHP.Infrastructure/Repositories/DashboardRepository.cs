@@ -10,15 +10,16 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class DashboardRepository : IDashboardRepository
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public DashboardRepository(AppDbContext dbContext)
+    public DashboardRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _dbContext = dbContext;
+        _contextFactory = contextFactory;
     }
 
     public async Task<List<HocKy>> GetAllHocKyAsync()
     {
+        await using var _dbContext = await _contextFactory.CreateDbContextAsync();
         return await _dbContext.HocKys
             .OrderByDescending(h => h.NgayBatDau)
             .ToListAsync();
@@ -26,6 +27,7 @@ public class DashboardRepository : IDashboardRepository
 
     public async Task<HocKy?> GetHocKyMacDinhAsync()
     {
+        await using var _dbContext = await _contextFactory.CreateDbContextAsync();
         var hk = await _dbContext.HocKys.FirstOrDefaultAsync(h => h.DangMo);
         if (hk != null) return hk;
 
@@ -34,6 +36,8 @@ public class DashboardRepository : IDashboardRepository
 
     public async Task<DashboardStatsDto> GetStatsAsync(string? maHocKy)
     {
+        await using var _dbContext = await _contextFactory.CreateDbContextAsync();
+
         var tongSV = await _dbContext.SinhViens.CountAsync(s => !s.IsDeleted);
         var tongMH = await _dbContext.MonHocs.CountAsync(m => !m.IsDeleted);
 
@@ -66,6 +70,8 @@ public class DashboardRepository : IDashboardRepository
     public async Task<List<GiangVienLhpDto>> GetLhpByGiangVienAsync(string maGV, string? maHocKy)
     {
         if (string.IsNullOrEmpty(maGV)) return new List<GiangVienLhpDto>();
+
+        await using var _dbContext = await _contextFactory.CreateDbContextAsync();
 
         var query = _dbContext.LopHocPhans
             .Where(l => l.MaGV == maGV && !l.IsDeleted);

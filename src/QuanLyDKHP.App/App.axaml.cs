@@ -51,7 +51,10 @@ public partial class App : Application
             ?? throw new InvalidOperationException("Không tìm thấy chuỗi kết nối 'DefaultConnection' trong appsettings.json.");
 
         // 2. Đăng ký AppDbContext sử dụng PostgreSQL (Npgsql)
-        services.AddDbContext<AppDbContext>(options =>
+        // Dùng DbContextFactory: mỗi thao tác DB tạo 1 DbContext riêng rồi hủy ngay.
+        // Không dùng AddDbContext vì app desktop không có "request scope" -> DbContext sẽ bị
+        // dùng chung cho toàn app và gây lỗi "A second operation was started on this context...".
+        services.AddDbContextFactory<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
         // Repositories

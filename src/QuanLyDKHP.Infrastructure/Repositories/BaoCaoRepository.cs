@@ -10,17 +10,19 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class BaoCaoRepository : IBaoCaoRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public BaoCaoRepository(AppDbContext context)
+    public BaoCaoRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<List<SinhVienTheoMonDto>> LayDsSvTheoMonAsync(string maMon, string maHocKy)
     {
         if (string.IsNullOrWhiteSpace(maMon) || string.IsNullOrWhiteSpace(maHocKy))
             return new List<SinhVienTheoMonDto>();
+
+        await using var _context = await _contextFactory.CreateDbContextAsync();
 
         var query = from dk in _context.DangKyHocPhans.AsNoTracking()
                     join lhp in _context.LopHocPhans.AsNoTracking() on dk.MaLHP equals lhp.MaLHP
@@ -44,6 +46,8 @@ public class BaoCaoRepository : IBaoCaoRepository
     {
         if (string.IsNullOrWhiteSpace(maMon) || string.IsNullOrWhiteSpace(maHocKy))
             return new List<DanhSachThiDto>();
+
+        await using var _context = await _contextFactory.CreateDbContextAsync();
 
         var query = from dk in _context.DangKyHocPhans.AsNoTracking()
                     join lhp in _context.LopHocPhans.AsNoTracking() on dk.MaLHP equals lhp.MaLHP
@@ -84,6 +88,8 @@ public class BaoCaoRepository : IBaoCaoRepository
         if (string.IsNullOrWhiteSpace(maHocKy))
             return new List<ThongKeMonDto>();
 
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         // Lấy tất cả môn học có LHP trong học kỳ này hoặc tất cả môn học
         var lhps = await _context.LopHocPhans.AsNoTracking()
             .Where(l => l.MaHocKy == maHocKy)
@@ -112,6 +118,8 @@ public class BaoCaoRepository : IBaoCaoRepository
     {
         if (string.IsNullOrWhiteSpace(maSV) || string.IsNullOrWhiteSpace(maHocKy))
             return null;
+
+        await using var _context = await _contextFactory.CreateDbContextAsync();
 
         var sv = await _context.SinhViens.AsNoTracking()
             .FirstOrDefaultAsync(s => s.MaSV == maSV);

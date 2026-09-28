@@ -11,15 +11,16 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class HocKyRepository : IHocKyRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public HocKyRepository(AppDbContext context)
+    public HocKyRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<List<HocKy>> LayTatCaAsync()
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.HocKys
             .OrderByDescending(hk => hk.MaHocKy)
             .ToListAsync();
@@ -27,23 +28,27 @@ public class HocKyRepository : IHocKyRepository
 
     public async Task<HocKy?> GetByIdAsync(string maHocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.HocKys.FirstOrDefaultAsync(hk => hk.MaHocKy == maHocKy);
     }
 
     public async Task ThemAsync(HocKy hocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.HocKys.Add(hocKy);
         await _context.SaveChangesAsync();
     }
 
     public async Task CapNhatAsync(HocKy hocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.HocKys.Update(hocKy);
         await _context.SaveChangesAsync();
     }
 
     public async Task DatHocKyHienHanhAsync(string maHocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var tatCaHocKy = await _context.HocKys.ToListAsync();
         foreach (var hk in tatCaHocKy)
         {
@@ -54,6 +59,7 @@ public class HocKyRepository : IHocKyRepository
 
     public async Task<bool> TonTaiAsync(string maHocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.HocKys.AnyAsync(hk => hk.MaHocKy == maHocKy);
     }
 }

@@ -10,15 +10,16 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class DangKyHocPhanRepository : IDangKyHocPhanRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public DangKyHocPhanRepository(AppDbContext context)
+    public DangKyHocPhanRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<List<DangKyHocPhan>> LayTheoMaSVVaMaHocKyAsync(string maSV, string maHocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans
             .Include(dk => dk.SinhVien)
             .Include(dk => dk.LopHocPhan)
@@ -32,6 +33,7 @@ public class DangKyHocPhanRepository : IDangKyHocPhanRepository
 
     public async Task<DangKyHocPhan?> LayTheoMaSVVaMaLHPAsync(string maSV, string maLHP)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans
             .Include(dk => dk.SinhVien)
             .Include(dk => dk.LopHocPhan)
@@ -43,6 +45,7 @@ public class DangKyHocPhanRepository : IDangKyHocPhanRepository
 
     public async Task<DangKyHocPhan?> LayDangKyCungMonDangHocAsync(string maSV, string maMon, string maHocKy)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans
             .Include(dk => dk.LopHocPhan)
                 .ThenInclude(l => l.MonHoc)
@@ -54,18 +57,21 @@ public class DangKyHocPhanRepository : IDangKyHocPhanRepository
 
     public async Task<int> DemSiSoDangKyAsync(string maLHP)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans
             .CountAsync(dk => dk.MaLHP == maLHP && dk.TrangThai == "DangHoc");
     }
 
     public async Task ThemAsync(DangKyHocPhan dk)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.DangKyHocPhans.Add(dk);
         await _context.SaveChangesAsync();
     }
 
     public async Task CapNhatAsync(DangKyHocPhan dk)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.DangKyHocPhans.Update(dk);
         await _context.SaveChangesAsync();
     }

@@ -12,15 +12,16 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class CauHinhRepository : ICauHinhRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public CauHinhRepository(AppDbContext context)
+    public CauHinhRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<Dictionary<string, string>> LayTatCaAsync()
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.CauHinhHeThongs
             .AsNoTracking()
             .ToDictionaryAsync(c => c.Key, c => c.Value);
@@ -28,6 +29,7 @@ public class CauHinhRepository : ICauHinhRepository
 
     public async Task<string?> LayGiaTriAsync(string key)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var config = await _context.CauHinhHeThongs
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Key == key);
@@ -56,6 +58,7 @@ public class CauHinhRepository : ICauHinhRepository
 
     public async Task CapNhatAsync(Dictionary<string, string> cauHinhMoi)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         foreach (var kvp in cauHinhMoi)
         {
             var item = await _context.CauHinhHeThongs.FirstOrDefaultAsync(c => c.Key == kvp.Key);

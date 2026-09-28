@@ -12,15 +12,17 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class LopHocPhanRepository : ILopHocPhanRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public LopHocPhanRepository(AppDbContext context)
+    public LopHocPhanRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<List<LopHocPhan>> LayTheoHocKyAsync(string maHocKy, string? tuKhoa, string? maMon)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var query = _context.LopHocPhans
             .Include(l => l.MonHoc)
             .Include(l => l.HocKy)
@@ -44,6 +46,7 @@ public class LopHocPhanRepository : ILopHocPhanRepository
 
     public async Task<LopHocPhan?> GetByIdAsync(string maLHP)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.LopHocPhans
             .Include(l => l.MonHoc)
             .Include(l => l.HocKy)
@@ -52,25 +55,33 @@ public class LopHocPhanRepository : ILopHocPhanRepository
 
     public async Task<int> DemSiSoDangKyAsync(string maLHP)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans
             .CountAsync(dk => dk.MaLHP == maLHP && dk.TrangThai == "DangHoc");
     }
 
     public async Task ThemAsync(LopHocPhan lhp)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.LopHocPhans.Add(lhp);
         await _context.SaveChangesAsync();
     }
 
     public async Task CapNhatAsync(LopHocPhan lhp)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.LopHocPhans.Update(lhp);
         await _context.SaveChangesAsync();
     }
 
     public async Task XoaAsync(string maLHP)
     {
-        var lhp = await GetByIdAsync(maLHP);
+        // Không gọi GetByIdAsync ở đây vì nó sẽ dùng 1 DbContext KHÁC (tạo rồi hủy riêng) ->
+        // entity trả về sẽ "detached" khỏi context của SaveChangesAsync bên dưới, khiến
+        // việc set IsDeleted không được lưu xuống DB. Phải tự truy vấn bằng CHÍNH context
+        // sẽ dùng để lưu thay đổi.
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+        var lhp = await _context.LopHocPhans.FirstOrDefaultAsync(l => l.MaLHP == maLHP && !l.IsDeleted);
         if (lhp != null)
         {
             lhp.IsDeleted = true;
@@ -80,11 +91,13 @@ public class LopHocPhanRepository : ILopHocPhanRepository
 
     public async Task<bool> TonTaiAsync(string maLHP)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.LopHocPhans.AnyAsync(l => l.MaLHP == maLHP && !l.IsDeleted);
     }
 
     public async Task<bool> CoDangKyHocPhanAsync(string maLHP)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans.AnyAsync(dk => dk.MaLHP == maLHP);
     }
 }

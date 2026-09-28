@@ -17,6 +17,7 @@ public partial class SinhVienViewModel : ObservableObject
     private readonly ISinhVienService _sinhVienService;
     private readonly ICurrentUserService _currentUserService;
     private readonly Timer _debounceTimer;
+    private bool _dangKhoiTao = true;
 
     [ObservableProperty]
     private string? _tuKhoa;
@@ -93,8 +94,13 @@ public partial class SinhVienViewModel : ObservableObject
             DsKhoaHoc.Add("Tất cả");
             foreach (var k in khoas) DsKhoaHoc.Add(k);
 
+            // Gán 2 filter này sẽ kích hoạt OnLopFilterChanged/OnKhoaHocFilterChanged bên dưới —
+            // 2 hàm đó gọi LoadDataAsync() không await. Nếu không chặn bằng _dangKhoiTao,
+            // ta sẽ có 2-3 lệnh gọi DB chạy song song trên cùng 1 AppDbContext -> crash
+            // "A second operation was started on this context instance...".
             LopFilter = "Tất cả";
             KhoaHocFilter = "Tất cả";
+            _dangKhoiTao = false;
 
             await LoadDataAsync();
         }
@@ -112,12 +118,14 @@ public partial class SinhVienViewModel : ObservableObject
 
     partial void OnLopFilterChanged(string? value)
     {
+        if (_dangKhoiTao) return;
         CurrentPage = 1;
         _ = LoadDataAsync();
     }
 
     partial void OnKhoaHocFilterChanged(string? value)
     {
+        if (_dangKhoiTao) return;
         CurrentPage = 1;
         _ = LoadDataAsync();
     }

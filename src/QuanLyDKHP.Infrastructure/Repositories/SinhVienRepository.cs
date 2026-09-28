@@ -12,15 +12,17 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class SinhVienRepository : ISinhVienRepository
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public SinhVienRepository(AppDbContext context)
+    public SinhVienRepository(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<PagedResult<SinhVienDto>> TimKiemAsync(string? tuKhoa, string? lop, string? khoaHoc, int page, int pageSize)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var query = _context.SinhViens.AsNoTracking().Where(s => !s.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(tuKhoa))
@@ -74,6 +76,8 @@ public class SinhVienRepository : ISinhVienRepository
 
     public async Task<List<SinhVien>> LayDanhSachAsync(string? tuKhoa = null, string? lop = null, string? khoaHoc = null)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var query = _context.SinhViens.AsNoTracking().Where(s => !s.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(tuKhoa))
@@ -97,6 +101,7 @@ public class SinhVienRepository : ISinhVienRepository
 
     public async Task<List<string>> GetDanhSachLopSinhHoatAsync()
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.SinhViens
             .AsNoTracking()
             .Where(s => !s.IsDeleted && !string.IsNullOrEmpty(s.LopSinhHoat))
@@ -108,6 +113,7 @@ public class SinhVienRepository : ISinhVienRepository
 
     public async Task<List<string>> GetDanhSachKhoaHocAsync()
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.SinhViens
             .AsNoTracking()
             .Where(s => !s.IsDeleted && !string.IsNullOrEmpty(s.KhoaHoc))
@@ -119,23 +125,27 @@ public class SinhVienRepository : ISinhVienRepository
 
     public async Task<SinhVien?> GetByIdAsync(string maSV)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.SinhViens.FirstOrDefaultAsync(s => s.MaSV == maSV && !s.IsDeleted);
     }
 
     public async Task ThemAsync(SinhVien sv)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.SinhViens.Add(sv);
         await _context.SaveChangesAsync();
     }
 
     public async Task CapNhatAsync(SinhVien sv)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.SinhViens.Update(sv);
         await _context.SaveChangesAsync();
     }
 
     public async Task XoaMoiAsync(string maSV)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var sv = await _context.SinhViens.FirstOrDefaultAsync(s => s.MaSV == maSV);
         if (sv != null)
         {
@@ -146,11 +156,13 @@ public class SinhVienRepository : ISinhVienRepository
 
     public async Task<bool> TonTaiAsync(string maSV)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.SinhViens.AnyAsync(s => s.MaSV == maSV && !s.IsDeleted);
     }
 
     public async Task<bool> CoDangKyHocPhanDangHocAsync(string maSV)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         return await _context.DangKyHocPhans.AnyAsync(dk => dk.MaSV == maSV && dk.TrangThai == "DangHoc");
     }
 }

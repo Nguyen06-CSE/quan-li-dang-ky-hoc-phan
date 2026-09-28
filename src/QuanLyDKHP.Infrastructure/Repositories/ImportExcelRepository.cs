@@ -16,12 +16,12 @@ namespace QuanLyDKHP.Infrastructure.Repositories;
 
 public class ImportExcelRepository : IImportExcelService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IHocPhiService _hocPhiService;
 
-    public ImportExcelRepository(AppDbContext context, IHocPhiService hocPhiService)
+    public ImportExcelRepository(IDbContextFactory<AppDbContext> contextFactory, IHocPhiService hocPhiService)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _hocPhiService = hocPhiService;
     }
 
@@ -77,6 +77,9 @@ public class ImportExcelRepository : IImportExcelService
         ketQua.TongSoDong = dataRows.Count;
 
         var danhSachMaSvCanTinhHocPhi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Mỗi lần import dùng 1 DbContext riêng (unit of work), không dùng chung với màn hình khác
+        await using var _context = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
         // Preload cache để tăng tốc độ kiểm tra và upsert
         var svCache = await _context.SinhViens.ToDictionaryAsync(s => s.MaSV.Trim().ToUpper(), s => s, cancellationToken);
