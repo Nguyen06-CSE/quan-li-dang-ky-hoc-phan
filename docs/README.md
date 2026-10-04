@@ -48,6 +48,7 @@ docs/
   - [Sơ đồ ERD](00-architecture/ERD.md)
   - [Ma trận Phân quyền Hệ thống](00-architecture/PHAN-QUYEN.md)
 - **[Đặc tả Chức năng](01-features/)**: Chi tiết yêu cầu UI/UX và logic nghiệp vụ.
+  - [Tổng quan chức năng](01-features/README.md)
 - **[Tiến độ hằng ngày](02-daily-logs/)**: Cập nhật công việc, task hoàn thành theo ngày.
 - **[Sửa lỗi & Tồn đọng](03-troubleshooting/)**:
   - [Nhật ký lỗi đã xử lý (FIX.md)](03-troubleshooting/FIX.md)
