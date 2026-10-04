@@ -1,3 +1,5 @@
+<!-- src/QuanLyDKHP.App/Views/SinhVienView.axaml -->
+
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:QuanLyDKHP.App.ViewModels"
@@ -35,29 +37,40 @@
         </Grid>
 
         <!-- 3. DataGrid -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding DanhSach}" AutoGenerateColumns="False" IsReadOnly="True"
-                  GridLinesVisibility="All" BorderThickness="1" BorderBrush="{DynamicResource BrushBorder}" CornerRadius="6">
+        <DataGrid Grid.Row="2" 
+                  x:Name="SinhVienDataGrid"
+                  ItemsSource="{Binding DanhSach}" 
+                  AutoGenerateColumns="False" 
+                  IsReadOnly="True"
+                  GridLinesVisibility="All" 
+                  BorderThickness="1" 
+                  BorderBrush="{DynamicResource BrushBorder}" 
+                  CornerRadius="6"
+                  SelectionMode="Single">
+            <DataGrid.Styles>
+                <!-- ContextMenu cho từng row -->
+                <Style Selector="DataGridRow">
+                    <Setter Property="ContextMenu">
+                        <ContextMenu>
+                            <MenuItem Header="Sửa" 
+                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).SuaCommand}"
+                                      CommandParameter="{Binding}"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}" />
+                            <MenuItem Header="Xóa" 
+                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).XoaCommand}"
+                                      CommandParameter="{Binding}"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}" />
+                        </ContextMenu>
+                    </Setter>
+                </Style>
+            </DataGrid.Styles>
+            
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Mã SV" Binding="{Binding MaSV}" Width="140" />
                 <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" />
                 <DataGridTextColumn Header="Lớp sinh hoạt" Binding="{Binding LopSinhHoat}" Width="160" />
                 <DataGridTextColumn Header="Khóa học" Binding="{Binding KhoaHoc}" Width="140" />
                 <DataGridTextColumn Header="Số TC ĐK (HK hiện tại)" Binding="{Binding SoTinChiDangKy}" Width="180" />
-                
-                <DataGridTemplateColumn Header="Thao tác" Width="120" IsVisible="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate x:DataType="dtos:SinhVienDto">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
-                                <Button Content="✏️" ToolTip.Tip="Sửa" 
-                                        Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).SuaCommand}" 
-                                        CommandParameter="{Binding}" Padding="6,4" />
-                                <Button Content="🗑️" ToolTip.Tip="Xóa" 
-                                        Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).XoaCommand}" 
-                                        CommandParameter="{Binding}" Padding="6,4" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 
