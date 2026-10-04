@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -36,6 +37,12 @@ public partial class MenuItemViewModel : ObservableObject
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly ICurrentUserService _currentUserService;
+
+    /// <summary>
+    /// Cache các ViewModel đã khởi tạo theo mã chức năng.
+    /// Giúp điều hướng quay lại màn hình cũ gần như tức thời (0ms) thay vì tạo mới.
+    /// </summary>
+    private readonly Dictionary<string, ObservableObject> _viewModelCache = new();
 
     [ObservableProperty]
     private ObservableObject? _currentViewModel;
@@ -252,54 +259,46 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void DangXuat()
     {
+        _viewModelCache.Clear();
         _currentUserService.ClearCurrentUser();
         LogoutRequested?.Invoke(this, System.EventArgs.Empty);
     }
 
-    [RelayCommand]
+    /// <summary>
+    /// Điều hướng tới màn hình tương ứng với mục menu.
+    /// Sử dụng cache để tái sử dụng ViewModel đã khởi tạo — điều hướng quay lại gần như tức thời.
+    /// </summary>
     private void NavigateTo(MenuItemViewModel menuItem)
     {
-        if (menuItem == null) return; // Chặn NullReferenceException khi command được gọi không có tham số
+        if (menuItem == null) return;
 
-        if (menuItem.ChucNang == ChucNang.XemDashboard)
+        // Kiểm tra nếu đã có trong cache thì lấy ra dùng lại ngay (0ms)
+        if (_viewModelCache.TryGetValue(menuItem.ChucNang, out var cachedVm))
         {
-            CurrentViewModel = _dashboardViewModelFactory();
+            CurrentViewModel = cachedVm;
+            return;
         }
-        else if (menuItem.ChucNang == ChucNang.CrudSinhVien)
+
+        // Nếu chưa có, tạo lần đầu tiên và nhét vào cache
+        ObservableObject? newVm = menuItem.ChucNang switch
         {
-            CurrentViewModel = _sinhVienViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.CrudMonHoc)
+            ChucNang.XemDashboard         => _dashboardViewModelFactory(),
+            ChucNang.CrudSinhVien         => _sinhVienViewModelFactory(),
+            ChucNang.CrudMonHoc           => _monHocViewModelFactory(),
+            ChucNang.CrudHocKyLopHocPhan  => _hocKyLopHocPhanViewModelFactory(),
+            ChucNang.DangKyHocPhan        => _dangKyHocPhanViewModelFactory(),
+            ChucNang.XemHocPhi            => _hocPhiViewModelFactory(),
+            ChucNang.ThongKeSvTheoMon     => _baoCaoViewModelFactory(),
+            ChucNang.ImportExcel          => _importExcelViewModelFactory(),
+            ChucNang.CauHinhHeThong       => _cauHinhViewModelFactory(),
+            ChucNang.QuanLyNguoiDung      => _nguoiDungViewModelFactory(),
+            _ => null
+        };
+
+        if (newVm != null)
         {
-            CurrentViewModel = _monHocViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.CrudHocKyLopHocPhan)
-        {
-            CurrentViewModel = _hocKyLopHocPhanViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.DangKyHocPhan)
-        {
-            CurrentViewModel = _dangKyHocPhanViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.XemHocPhi)
-        {
-            CurrentViewModel = _hocPhiViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.ThongKeSvTheoMon)
-        {
-            CurrentViewModel = _baoCaoViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.CauHinhHeThong)
-        {
-            CurrentViewModel = _cauHinhViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.QuanLyNguoiDung)
-        {
-            CurrentViewModel = _nguoiDungViewModelFactory();
-        }
-        else if (menuItem.ChucNang == ChucNang.ImportExcel)
-        {
-            CurrentViewModel = _importExcelViewModelFactory();
+            _viewModelCache[menuItem.ChucNang] = newVm;
+            CurrentViewModel = newVm;
         }
     }
 }

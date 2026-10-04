@@ -1,4 +1,6 @@
-﻿using Avalonia;
+﻿// src/QuanLyDKHP.App/Program.cs
+
+using Avalonia;
 using System;
 
 namespace QuanLyDKHP.App;

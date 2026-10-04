@@ -23,6 +23,7 @@ public partial class BaoCaoViewModel : ObservableObject
     private readonly ISinhVienService _sinhVienService;
     private readonly IPdfExportService _pdfExportService;
     private readonly IExcelExportService _excelExportService;
+    private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _svSearchDebounceTimer;
 
     // --- DỮ LIỆU DÙNG CHUNG ---
@@ -95,7 +96,8 @@ public partial class BaoCaoViewModel : ObservableObject
         ILopHocPhanService lopHocPhanService,
         ISinhVienService sinhVienService,
         IPdfExportService pdfExportService,
-        IExcelExportService excelExportService)
+        IExcelExportService excelExportService,
+        IMemoryCacheStore cacheStore)
     {
         _baoCaoService = baoCaoService;
         _hocKyService = hocKyService;
@@ -104,6 +106,7 @@ public partial class BaoCaoViewModel : ObservableObject
         _sinhVienService = sinhVienService;
         _pdfExportService = pdfExportService;
         _excelExportService = excelExportService;
+        _cacheStore = cacheStore;
 
         _svSearchDebounceTimer = new Timer(300) { AutoReset = false };
         _svSearchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYTab4Async);
@@ -120,6 +123,7 @@ public partial class BaoCaoViewModel : ObservableObject
         _sinhVienService = null!;
         _pdfExportService = null!;
         _excelExportService = null!;
+        _cacheStore = null!;
         _svSearchDebounceTimer = new Timer(300);
     }
 
@@ -129,19 +133,29 @@ public partial class BaoCaoViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            var hks = await _hocKyService.LayTatCaAsync();
+            if (!_cacheStore.IsInitialized)
+            {
+                await _cacheStore.InitializeAsync();
+            }
+
             DsHocKy.Clear();
-            foreach (var hk in hks)
+            foreach (var hk in _cacheStore.DanhSachHocKy)
             {
                 DsHocKy.Add(hk);
             }
-            HocKyDangChon = hks.FirstOrDefault(h => h.DangMo) ?? hks.FirstOrDefault();
+            HocKyDangChon = DsHocKy.FirstOrDefault(h => h.DangMo) ?? DsHocKy.FirstOrDefault();
 
-            var mons = await _monHocService.LayDanhSachDtoAsync(null);
             DsMonHoc.Clear();
-            foreach (var m in mons)
+            foreach (var m in _cacheStore.DanhSachMonHoc)
             {
-                DsMonHoc.Add(m);
+                DsMonHoc.Add(new MonHocDto
+                {
+                    MaMon = m.MaMon,
+                    TenMon = m.TenMon,
+                    SoTinChiLT = m.SoTinChiLT,
+                    SoTinChiTH = m.SoTinChiTH,
+                    BacDaoTao = m.BacDaoTao
+                });
             }
 
             Tab1MonDangChon = DsMonHoc.FirstOrDefault();

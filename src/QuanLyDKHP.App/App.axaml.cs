@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -12,6 +13,7 @@ using QuanLyDKHP.Core.Interfaces;
 using QuanLyDKHP.Infrastructure.Data;
 using QuanLyDKHP.Infrastructure.Repositories;
 using QuanLyDKHP.Services;
+using QuanLyDKHP.App.Services;
 
 namespace QuanLyDKHP.App;
 
@@ -30,6 +32,21 @@ public partial class App : Application
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
 
+        // 🚀 CHẠY NỀN: Ngay khi app vừa mở lên, kích hoạt Task kéo dữ liệu ngầm vào RAM
+        var cacheStore = ServiceProvider.GetRequiredService<IMemoryCacheStore>();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await cacheStore.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log nếu cần, không chặn luồng UI của Login
+                System.Diagnostics.Debug.WriteLine($"[Cache Preload Error]: {ex.Message}");
+            }
+        });
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             ShowLoginWindow(desktop);
@@ -37,7 +54,6 @@ public partial class App : Application
 
         base.OnFrameworkInitializationCompleted();
     }
-
     private static void ConfigureServices(IServiceCollection services)
     {
         // 1. Khởi tạo Configuration để đọc file appsettings.json từ thư mục chạy ứng dụng
@@ -47,7 +63,7 @@ public partial class App : Application
             .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
             .Build();
 
-        string connectionString = configuration.GetConnectionString("DefaultConnection") 
+        string connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Không tìm thấy chuỗi kết nối 'DefaultConnection' trong appsettings.json.");
 
         // 2. Đăng ký AppDbContext sử dụng PostgreSQL (Npgsql)
@@ -121,6 +137,8 @@ public partial class App : Application
         services.AddTransient<CauHinhView>();
         services.AddTransient<NguoiDungView>();
         services.AddTransient<ImportExcelView>();
+
+        services.AddSingleton<IMemoryCacheStore, MemoryCacheStore>();
     }
 
     private static void ShowLoginWindow(IClassicDesktopStyleApplicationLifetime desktop)
@@ -130,6 +148,9 @@ public partial class App : Application
 
         loginViewModel.LoginSuccess += (sender, args) =>
         {
+            var cacheStore = ServiceProvider!.GetRequiredService<IMemoryCacheStore>();
+            _ = Task.Run(() => cacheStore.InitializeAsync());
+
             var mainViewModel = ServiceProvider!.GetRequiredService<MainWindowViewModel>();
             mainViewModel.RefreshMenuForCurrentUser();
 

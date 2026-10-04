@@ -22,6 +22,7 @@ public partial class DangKyHocPhanViewModel : ObservableObject
     private readonly ILopHocPhanService _lopHocPhanService;
     private readonly ICauHinhService _cauHinhService;
     private readonly INguoiDungRepository _nguoiDungRepository;
+    private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _searchDebounceTimer;
 
     [ObservableProperty]
@@ -84,7 +85,8 @@ public partial class DangKyHocPhanViewModel : ObservableObject
         IMonHocService monHocService,
         ILopHocPhanService lopHocPhanService,
         ICauHinhService cauHinhService,
-        INguoiDungRepository nguoiDungRepository)
+        INguoiDungRepository nguoiDungRepository,
+        IMemoryCacheStore cacheStore)
     {
         _dangKyService = dangKyService;
         _hocKyService = hocKyService;
@@ -93,6 +95,7 @@ public partial class DangKyHocPhanViewModel : ObservableObject
         _lopHocPhanService = lopHocPhanService;
         _cauHinhService = cauHinhService;
         _nguoiDungRepository = nguoiDungRepository;
+        _cacheStore = cacheStore;
 
         _searchDebounceTimer = new Timer(300) { AutoReset = false };
         _searchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYAsync);
@@ -109,6 +112,7 @@ public partial class DangKyHocPhanViewModel : ObservableObject
         _lopHocPhanService = null!;
         _cauHinhService = null!;
         _nguoiDungRepository = null!;
+        _cacheStore = null!;
         _searchDebounceTimer = new Timer(300);
     }
 
@@ -117,9 +121,14 @@ public partial class DangKyHocPhanViewModel : ObservableObject
         if (_hocKyService == null) return;
         try
         {
-            await LoadHocKyHienHanhAsync();
+            if (!_cacheStore.IsInitialized)
+            {
+                await _cacheStore.InitializeAsync();
+            }
+
+            LoadHocKyHienHanh();
             await LoadCauHinhTinChiAsync();
-            await LoadDanhSachMonHocAsync();
+            LoadDanhSachMonHoc();
         }
         catch (Exception ex)
         {
@@ -127,9 +136,9 @@ public partial class DangKyHocPhanViewModel : ObservableObject
         }
     }
 
-    private async Task LoadHocKyHienHanhAsync()
+    private void LoadHocKyHienHanh()
     {
-        var hks = await _hocKyService.LayTatCaAsync();
+        var hks = _cacheStore.DanhSachHocKy;
         HocKyHienHanh = hks.FirstOrDefault(hk => hk.DangMo) ?? hks.FirstOrDefault();
     }
 
@@ -142,11 +151,10 @@ public partial class DangKyHocPhanViewModel : ObservableObject
         if (TinChiToiThieu <= 0) TinChiToiThieu = 10;
     }
 
-    private async Task LoadDanhSachMonHocAsync()
+    private void LoadDanhSachMonHoc()
     {
-        var mons = await _monHocService.LayDanhSachAsync(null, "TenMon");
         DsMonHoc.Clear();
-        foreach (var m in mons)
+        foreach (var m in _cacheStore.DanhSachMonHoc)
         {
             DsMonHoc.Add(m);
         }

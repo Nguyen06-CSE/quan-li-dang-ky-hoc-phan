@@ -1,3 +1,5 @@
+// src/QuanLyDKHP.App/ViewModels/HocPhiViewModel.cs
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,6 +21,7 @@ public partial class HocPhiViewModel : ObservableObject
     private readonly ISinhVienService _sinhVienService;
     private readonly IPdfExportService _pdfExportService;
     private readonly IExcelExportService _excelExportService;
+    private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _searchDebounceTimer;
 
     [ObservableProperty]
@@ -88,13 +91,16 @@ public partial class HocPhiViewModel : ObservableObject
         IHocKyService hocKyService,
         ISinhVienService sinhVienService,
         IPdfExportService pdfExportService,
-        IExcelExportService excelExportService)
+        IExcelExportService excelExportService,
+        IMemoryCacheStore cacheStore)
+        
     {
         _hocPhiService = hocPhiService;
         _hocKyService = hocKyService;
         _sinhVienService = sinhVienService;
         _pdfExportService = pdfExportService;
         _excelExportService = excelExportService;
+        _cacheStore = cacheStore;
 
         _searchDebounceTimer = new Timer(300) { AutoReset = false };
         _searchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYAsync);
@@ -109,49 +115,55 @@ public partial class HocPhiViewModel : ObservableObject
         _sinhVienService = null!;
         _pdfExportService = null!;
         _excelExportService = null!;
+        _cacheStore = null!;
         _searchDebounceTimer = new Timer(300);
     }
 
-    private async Task InitDataAsync()
+private async Task InitDataAsync()
+{
+    if (_hocKyService == null) return;
+
+    try
     {
-        if (_hocKyService == null) return;
-        try
-        {
-            IsLoading = true;
-            var hks = await _hocKyService.LayTatCaAsync();
-            DsHocKy.Clear();
-            foreach (var hk in hks)
-            {
-                DsHocKy.Add(hk);
-            }
-            HocKyDangChon = hks.FirstOrDefault(h => h.DangMo) ?? hks.FirstOrDefault();
+        IsLoading = true;
 
-            var lops = await _sinhVienService.GetDanhSachLopSinhHoatAsync();
-            DsLopSinhHoat.Clear();
-            foreach (var l in lops)
-            {
-                DsLopSinhHoat.Add(l);
-            }
-            LopDangChon = DsLopSinhHoat.FirstOrDefault();
+        // Đảm bảo cache đã sẵn sàng (nếu người dùng login quá nhanh)
+        if (!_cacheStore.IsInitialized)
+        {
+            await _cacheStore.InitializeAsync();
+        }
 
-            var khoas = await _sinhVienService.GetDanhSachKhoaHocAsync();
-            DsKhoaHoc.Clear();
-            foreach (var k in khoas)
-            {
-                DsKhoaHoc.Add(k);
-            }
-            KhoaDangChon = DsKhoaHoc.FirstOrDefault();
-        }
-        catch (Exception ex)
+        // ĐỌC THẲNG TỪ RAM (0ms - Không tốn 1 request nào lên Neon)
+        DsHocKy.Clear();
+        foreach (var hk in _cacheStore.DanhSachHocKy)
         {
-            ShowMessage(ex.Message, true);
+            DsHocKy.Add(hk);
         }
-        finally
+        HocKyDangChon = DsHocKy.FirstOrDefault(h => h.DangMo) ?? DsHocKy.FirstOrDefault();
+
+        DsLopSinhHoat.Clear();
+        foreach (var l in _cacheStore.DanhSachLopSinhHoat)
         {
-            IsLoading = false;
+            DsLopSinhHoat.Add(l);
         }
+        LopDangChon = DsLopSinhHoat.FirstOrDefault();
+
+        DsKhoaHoc.Clear();
+        foreach (var k in _cacheStore.DanhSachKhoaHoc)
+        {
+            DsKhoaHoc.Add(k);
+        }
+        KhoaDangChon = DsKhoaHoc.FirstOrDefault();
     }
-
+    catch (Exception ex)
+    {
+        ShowMessage(ex.Message, true);
+    }
+    finally
+    {
+        IsLoading = false;
+    }
+}
     partial void OnPhamViChanged(string value)
     {
         IsTheoSinhVien = value == "SinhVien";

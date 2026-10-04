@@ -20,6 +20,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
     private readonly IMonHocService _monHocService;
     private readonly INguoiDungRepository _nguoiDungRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _debounceTimer;
 
     [ObservableProperty]
@@ -49,13 +50,15 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         ILopHocPhanService lhpService,
         IMonHocService monHocService,
         INguoiDungRepository nguoiDungRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IMemoryCacheStore cacheStore)
     {
         _hocKyService = hocKyService;
         _lhpService = lhpService;
         _monHocService = monHocService;
         _nguoiDungRepository = nguoiDungRepository;
         _currentUserService = currentUserService;
+        _cacheStore = cacheStore;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudHocKyLopHocPhan, _currentUserService.CurrentUser.Role);
@@ -73,6 +76,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         _monHocService = null!;
         _nguoiDungRepository = null!;
         _currentUserService = null!;
+        _cacheStore = null!;
         _debounceTimer = new Timer(300);
     }
 
@@ -81,8 +85,13 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         if (_hocKyService == null) return;
         try
         {
-            await LoadDanhSachHocKyAsync();
-            await LoadDanhSachMonFilterAsync();
+            if (!_cacheStore.IsInitialized)
+            {
+                await _cacheStore.InitializeAsync();
+            }
+
+            LoadDanhSachHocKyFromCache();
+            LoadDanhSachMonFilterFromCache();
         }
         catch (Exception ex)
         {
@@ -92,7 +101,13 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
 
     public async Task LoadDanhSachHocKyAsync()
     {
-        var hks = await _hocKyService.LayTatCaAsync();
+        await _cacheStore.InitializeAsync(forceReload: true);
+        LoadDanhSachHocKyFromCache();
+    }
+
+    private void LoadDanhSachHocKyFromCache()
+    {
+        var hks = _cacheStore.DanhSachHocKy;
         DanhSachHocKy.Clear();
         foreach (var hk in hks)
         {
@@ -106,9 +121,9 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         }
     }
 
-    private async Task LoadDanhSachMonFilterAsync()
+    private void LoadDanhSachMonFilterFromCache()
     {
-        var mons = await _monHocService.LayDanhSachAsync(null, "TenMon");
+        var mons = _cacheStore.DanhSachMonHoc;
         DanhSachMonHocFilter.Clear();
         // Item rỗng để chọn "Tất cả môn học"
         DanhSachMonHocFilter.Add(new MonHoc { MaMon = string.Empty, TenMon = "-- Tất cả môn học --" });

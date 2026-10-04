@@ -54,14 +54,16 @@ public partial class SinhVienViewModel : ObservableObject
     public ObservableCollection<string> DsKhoaHoc { get; } = new();
 
     private readonly IExcelExportService _excelExportService;
+    private readonly IMemoryCacheStore _cacheStore;
 
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
 
-    public SinhVienViewModel(ISinhVienService sinhVienService, ICurrentUserService currentUserService, IExcelExportService excelExportService)
+    public SinhVienViewModel(ISinhVienService sinhVienService, ICurrentUserService currentUserService, IExcelExportService excelExportService, IMemoryCacheStore cacheStore)
     {
         _sinhVienService = sinhVienService;
         _currentUserService = currentUserService;
         _excelExportService = excelExportService;
+        _cacheStore = cacheStore;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudSinhVien, _currentUserService.CurrentUser.Role);
@@ -84,6 +86,7 @@ public partial class SinhVienViewModel : ObservableObject
         _sinhVienService = null!;
         _currentUserService = null!;
         _excelExportService = null!;
+        _cacheStore = null!;
         _debounceTimer = new Timer(300);
     }
 
@@ -91,15 +94,18 @@ public partial class SinhVienViewModel : ObservableObject
     {
         try
         {
-            var lops = await _sinhVienService.GetDanhSachLopSinhHoatAsync();
+            if (!_cacheStore.IsInitialized)
+            {
+                await _cacheStore.InitializeAsync();
+            }
+
             DsLopSinhHoat.Clear();
             DsLopSinhHoat.Add("Tất cả");
-            foreach (var l in lops) DsLopSinhHoat.Add(l);
+            foreach (var l in _cacheStore.DanhSachLopSinhHoat) DsLopSinhHoat.Add(l);
 
-            var khoas = await _sinhVienService.GetDanhSachKhoaHocAsync();
             DsKhoaHoc.Clear();
             DsKhoaHoc.Add("Tất cả");
-            foreach (var k in khoas) DsKhoaHoc.Add(k);
+            foreach (var k in _cacheStore.DanhSachKhoaHoc) DsKhoaHoc.Add(k);
 
             // Gán 2 filter này sẽ kích hoạt OnLopFilterChanged/OnKhoaHocFilterChanged bên dưới —
             // 2 hàm đó gọi LoadDataAsync() không await. Nếu không chặn bằng _dangKhoiTao,

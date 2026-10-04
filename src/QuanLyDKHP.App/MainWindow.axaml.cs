@@ -1,3 +1,5 @@
+// src/QuanLyDKHP.App/MainWindow.axaml.cs
+
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
