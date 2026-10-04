@@ -69,6 +69,13 @@ public partial class SinhVienViewModel : ObservableObject
         _debounceTimer = new Timer(300) { AutoReset = false };
         _debounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => LoadDataAsync());
 
+        DsLopSinhHoat = new ObservableCollection<string> { "Tất cả" };
+        DsKhoaHoc = new ObservableCollection<string> { "Tất cả" };
+
+        LopFilter = "Tất cả";
+        KhoaHocFilter = "Tất cả";
+
+
         _ = InitFiltersAndLoadAsync();
     }
 
@@ -103,6 +110,11 @@ public partial class SinhVienViewModel : ObservableObject
             _dangKhoiTao = false;
 
             await LoadDataAsync();
+
+            if (string.IsNullOrEmpty(LopFilter))
+                LopFilter = "Tất cả";
+            if (string.IsNullOrEmpty(KhoaHocFilter))
+                KhoaHocFilter = "Tất cả";
         }
         catch (Exception ex)
         {

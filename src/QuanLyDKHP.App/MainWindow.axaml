@@ -10,7 +10,8 @@
         Title="Hệ Thống Quản Lý Đăng Ký Học Phần"
         Width="1280" Height="780"
         MinWidth="900" MinHeight="600"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
 
     <Window.Styles>
         <Style Selector="Window">
