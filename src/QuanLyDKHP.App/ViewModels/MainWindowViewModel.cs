@@ -7,6 +7,8 @@ using System.Text;
 using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Interfaces;
 using Material.Icons;
@@ -34,7 +36,7 @@ public partial class MenuItemViewModel : ObservableObject
 /// ViewModel chính cho MainWindow — quản lý điều hướng và lọc menu theo quyền.
 /// Dùng ViewModel-first navigation: thay đổi CurrentViewModel → ContentControl hiển thị View tương ứng.
 /// </summary>
-public partial class MainWindowViewModel : ObservableObject
+public partial class MainWindowViewModel : ObservableObject, IRecipient<NavigateToRegistrationMessage>
 {
     private readonly ICurrentUserService _currentUserService;
 
@@ -197,8 +199,28 @@ public partial class MainWindowViewModel : ObservableObject
         _cauHinhViewModelFactory = cauHinhViewModelFactory;
         _nguoiDungViewModelFactory = nguoiDungViewModelFactory;
         _importExcelViewModelFactory = importExcelViewModelFactory;
+        
+        // Đăng ký nhận message điều hướng liên module
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
         RefreshMenuForCurrentUser();
         NavigateToHome();
+    }
+
+    /// <summary>
+    /// Xử lý message điều hướng từ tab Sinh Viên sang tab Đăng Ký Học Phần.
+    /// </summary>
+    public void Receive(NavigateToRegistrationMessage message)
+    {
+        var regMenu = FilteredMenuItems.FirstOrDefault(m => m.ChucNang == ChucNang.DangKyHocPhan);
+        if (regMenu != null)
+        {
+            SelectedMenuItem = regMenu;
+            if (CurrentViewModel is DangKyHocPhanViewModel dkVm)
+            {
+                _ = dkVm.ChonSinhVienTheoMaAsync(message.MaSV);
+            }
+        }
     }
 
     private void NavigateToHome()

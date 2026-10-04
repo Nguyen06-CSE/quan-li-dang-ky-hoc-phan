@@ -1,24 +1,70 @@
+// src/QuanLyDKHP.App/Views/DangKyHocPhanView.axaml.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using QuanLyDKHP.App.ViewModels;
+using QuanLyDKHP.Core.Dtos;
 
 namespace QuanLyDKHP.App.Views;
 
 public partial class DangKyHocPhanView : UserControl
 {
+    private bool _isSyncingSelection;
+
     public DangKyHocPhanView()
     {
         InitializeComponent();
     }
 
-    protected override void OnDataContextChanged(System.EventArgs e)
+    protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
         if (DataContext is DangKyHocPhanViewModel vm)
         {
             vm.ShowConfirmFunc = ShowConfirmDialogAsync;
             vm.ShowWarningConfirmFunc = ShowWarningDialogAsync;
+            vm.RequestSelectStudents = SyncListBoxSelection;
+        }
+    }
+
+    /// <summary>
+    /// Đồng bộ lựa chọn sinh viên từ ViewModel xuống ListBox (ví dụ khi nhận NavigateToRegistrationMessage)
+    /// </summary>
+    private void SyncListBoxSelection(List<SinhVienDto> students)
+    {
+        var lb = this.FindControl<ListBox>("SinhVienListBox");
+        if (lb == null) return;
+
+        _isSyncingSelection = true;
+        try
+        {
+            lb.SelectedItems?.Clear();
+            foreach (var sv in students)
+            {
+                lb.SelectedItems?.Add(sv);
+            }
+        }
+        finally
+        {
+            _isSyncingSelection = false;
+        }
+    }
+
+    /// <summary>
+    /// Xử lý sự kiện thay đổi lựa chọn trên ListBox (hỗ trợ cả Single và Multi-select)
+    /// </summary>
+    private void OnSinhVienListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingSelection) return;
+
+        if (sender is ListBox lb && DataContext is DangKyHocPhanViewModel vm)
+        {
+            var selected = lb.SelectedItems?.Cast<SinhVienDto>().ToList() ?? [];
+            _ = vm.HandleSelectionChanged(selected);
         }
     }
 

@@ -60,13 +60,18 @@
                   BorderThickness="1" 
                   BorderBrush="{DynamicResource BrushBorder}" 
                   CornerRadius="6"
-                  SelectionMode="Single">
+                  SelectionMode="Single"
+                  DoubleTapped="OnDataGridDoubleTapped">
             
-            <!-- ContextMenu cho từng row: click chuột phải để Sửa/Xóa -->
+            <!-- ContextMenu cho từng row: click chuột phải để ĐKHP/Sửa/Xóa -->
             <DataGrid.Styles>
                 <Style Selector="DataGridRow">
                     <Setter Property="ContextMenu">
                         <ContextMenu>
+                            <MenuItem Header="Đăng ký học phần" 
+                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).DangKyHocPhanCommand}"
+                                      CommandParameter="{Binding}" />
+                            <Separator />
                             <MenuItem Header="Sửa" 
                                       Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).SuaCommand}"
                                       CommandParameter="{Binding}"

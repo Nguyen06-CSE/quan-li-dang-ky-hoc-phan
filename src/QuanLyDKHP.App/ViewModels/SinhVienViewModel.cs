@@ -9,6 +9,8 @@ using System.Timers;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
@@ -298,6 +300,13 @@ public partial class SinhVienViewModel : ObservableObject
         {
             ShowMessage("Mô-đun Import Excel đang được tích hợp (015-Spec).", false);
         }
+    }
+
+    [RelayCommand]
+    private void DangKyHocPhan(SinhVienDto? sv)
+    {
+        if (sv == null) return;
+        WeakReferenceMessenger.Default.Send(new NavigateToRegistrationMessage(sv.MaSV));
     }
 
     private void ShowMessage(string msg, bool isError)

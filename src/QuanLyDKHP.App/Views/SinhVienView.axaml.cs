@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using QuanLyDKHP.App.ViewModels;
+using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 
 namespace QuanLyDKHP.App.Views;
@@ -11,6 +13,14 @@ public partial class SinhVienView : UserControl
     public SinhVienView()
     {
         InitializeComponent();
+    }
+
+    private void OnDataGridDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is DataGrid dg && dg.SelectedItem is SinhVienDto sv && DataContext is SinhVienViewModel vm)
+        {
+            vm.DangKyHocPhanCommand.Execute(sv);
+        }
     }
 
     protected override void OnDataContextChanged(System.EventArgs e)
