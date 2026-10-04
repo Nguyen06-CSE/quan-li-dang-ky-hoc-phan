@@ -1,3 +1,5 @@
+<!-- src/QuanLyDKHP.App/Views/HocKyLopHocPhanView.axaml -->
+
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:QuanLyDKHP.App.ViewModels"
@@ -6,7 +8,9 @@
              x:Class="QuanLyDKHP.App.Views.HocKyLopHocPhanView"
              x:DataType="vm:HocKyLopHocPhanViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24">
+    <!-- ✅ ĐỔI MỚI: thêm 1 row Auto cho ProgressBar → tổng 5 rows -->
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="24">
+        
         <!-- 1. Header -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
             <TextBlock Grid.Column="0" Text="Học kỳ / Lớp học phần" Classes="h1" VerticalAlignment="Center" />
@@ -57,8 +61,9 @@
         </Border>
 
         <!-- 3. Thanh công cụ LHP (Middle toolbar) -->
-        <Grid Grid.Row="2" ColumnDefinitions="280,260,*,Auto" Margin="0,0,0,16">
-            <TextBox Grid.Column="0" Text="{Binding TuKhoaLHP, Mode=TwoWay}" PlaceholderText="Tìm theo Mã LHP hoặc Tên môn..." Margin="0,0,8,0"/>
+        <Grid Grid.Row="2" ColumnDefinitions="280,260,*,Auto" Margin="0,0,0,8">
+            <TextBox Grid.Column="0" Text="{Binding TuKhoaLHP, Mode=TwoWay}" 
+                     PlaceholderText="Tìm theo Mã LHP hoặc Tên môn..." Margin="0,0,8,0"/>
 
             <ComboBox Grid.Column="1" 
                       ItemsSource="{Binding DanhSachMonHocFilter}" 
@@ -78,9 +83,44 @@
                     Classes="primary"/>
         </Grid>
 
-        <!-- 4. DataGrid LHP (Bottom main table) -->
-        <DataGrid Grid.Row="3" ItemsSource="{Binding DanhSachLHP}" AutoGenerateColumns="False" IsReadOnly="True"
-                  GridLinesVisibility="All" BorderThickness="1" BorderBrush="{DynamicResource BrushBorder}" CornerRadius="6">
+        <!-- ✅ THÊM MỚI: Thanh loading chạy vô tận khi đang lọc dữ liệu -->
+        <ProgressBar Grid.Row="3" 
+                     Height="2" 
+                     HorizontalAlignment="Stretch" 
+                     IsIndeterminate="True" 
+                     IsVisible="{Binding IsLoading}" 
+                     Margin="0,0,0,8"/>
+
+        <!-- 4. DataGrid LHP (nằm ở Row * → Avalonia tự bật UI Virtualization / Infinite Scrolling) -->
+        <DataGrid Grid.Row="4" 
+                  x:Name="LhpDataGrid"
+                  ItemsSource="{Binding DanhSachLHP}" 
+                  AutoGenerateColumns="False" 
+                  IsReadOnly="True"
+                  GridLinesVisibility="All" 
+                  BorderThickness="1" 
+                  BorderBrush="{DynamicResource BrushBorder}" 
+                  CornerRadius="6"
+                  SelectionMode="Single">
+            
+            <!-- ContextMenu hiển thị khi click chuột trái vào row -->
+            <DataGrid.Styles>
+                <Style Selector="DataGridRow">
+                    <Setter Property="ContextMenu">
+                        <ContextMenu>
+                            <MenuItem Header="✏️ Sửa LHP" 
+                                      Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).SuaLhpCommand}"
+                                      CommandParameter="{Binding}"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).CanThemSuaXoa}" />
+                            <MenuItem Header="🗑️ Xóa LHP" 
+                                      Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).XoaLhpCommand}"
+                                      CommandParameter="{Binding}"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).CanThemSuaXoa}" />
+                        </ContextMenu>
+                    </Setter>
+                </Style>
+            </DataGrid.Styles>
+            
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="130" />
                 <DataGridTextColumn Header="Môn học" Binding="{Binding TenMon}" Width="*" />
@@ -121,22 +161,6 @@
                             <TextBlock Text="✓" HorizontalAlignment="Center" VerticalAlignment="Center" 
                                        Foreground="{DynamicResource BrushSuccess}" FontWeight="Bold"
                                        IsVisible="{Binding GiangDayOnline}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <!-- Thao tác -->
-                <DataGridTemplateColumn Header="Thao tác" Width="110" IsVisible="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).CanThemSuaXoa}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
-                                <Button Content="✏️" ToolTip.Tip="Sửa LHP" 
-                                        Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).SuaLhpCommand}" 
-                                        CommandParameter="{Binding}" Padding="6,4" />
-                                <Button Content="🗑️" ToolTip.Tip="Xóa LHP" 
-                                        Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).XoaLhpCommand}" 
-                                        CommandParameter="{Binding}" Padding="6,4" />
-                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

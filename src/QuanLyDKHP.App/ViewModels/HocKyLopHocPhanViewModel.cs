@@ -1,9 +1,12 @@
+// src/QuanLyDKHP.App/ViewModels/HocKyLopHocPhanViewModel.cs
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using Avalonia.Threading;                       // ✅ THÊM MỚI
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.App.Dtos;
@@ -23,6 +26,12 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
     private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _debounceTimer;
 
+    // ✅ THÊM MỚI: chặn debounce trong lúc khởi tạo
+    private bool _dangKhoiTao = true;
+
+    // ✅ THÊM MỚI: cache TOÀN BỘ LHP của TẤT CẢ học kỳ (dạng display DTO đã enrich)
+    private List<LopHocPhanDisplayDto> _masterLhpList = new();
+
     [ObservableProperty]
     private bool _canThemSuaXoa;
 
@@ -41,9 +50,17 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
     [ObservableProperty]
     private bool _isStatusError;
 
+    // ✅ THÊM MỚI: cờ loading cho ProgressBar
+    [ObservableProperty]
+    private bool _isLoading;
+
     public ObservableCollection<HocKy> DanhSachHocKy { get; } = new();
-    public ObservableCollection<LopHocPhanDisplayDto> DanhSachLHP { get; } = new();
     public ObservableCollection<MonHoc> DanhSachMonHocFilter { get; } = new();
+
+    // ✅ ĐỔI MỚI QUAN TRỌNG: chuyển từ { get; } sang [ObservableProperty]
+    //    → cho phép gán mới TOÀN BỘ collection 1 lần (nhanh hơn .Clear()/.Add() từng dòng)
+    [ObservableProperty]
+    private ObservableCollection<LopHocPhanDisplayDto> _danhSachLHP = new();
 
     public HocKyLopHocPhanViewModel(
         IHocKyService hocKyService,
@@ -63,8 +80,9 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudHocKyLopHocPhan, _currentUserService.CurrentUser.Role);
 
+        // ✅ ĐỔI MỚI: timer giờ gọi hàm lọc in-memory, KHÔNG query DB nữa
         _debounceTimer = new Timer(300) { AutoReset = false };
-        _debounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => LoadLopHocPhanAsync());
+        _debounceTimer.Elapsed += (s, e) => ApplyLhpFiltersInMemory();
 
         _ = InitDataAsync();
     }
@@ -80,22 +98,32 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         _debounceTimer = new Timer(300);
     }
 
+    // ✅ THÊM MỚI: Init data load 1 lần duy nhất (học kỳ + môn filter + master LHP)
     private async Task InitDataAsync()
     {
         if (_hocKyService == null) return;
         try
         {
+            IsLoading = true;
+
             if (!_cacheStore.IsInitialized)
-            {
                 await _cacheStore.InitializeAsync();
-            }
 
             LoadDanhSachHocKyFromCache();
             LoadDanhSachMonFilterFromCache();
+
+            // ✅ THÊM MỚI: load toàn bộ LHP 1 lần vào cache
+            await LoadMasterLhpAsync();
+
+            _dangKhoiTao = false;
+
+            // Áp dụng filter ngay lần đầu
+            ApplyLhpFiltersInMemory();
         }
         catch (Exception ex)
         {
             ShowMessage(ex.Message, true);
+            IsLoading = false;
         }
     }
 
@@ -103,6 +131,11 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
     {
         await _cacheStore.InitializeAsync(forceReload: true);
         LoadDanhSachHocKyFromCache();
+
+        // ✅ ĐỔI MỚI: sau khi reload học kỳ, cũng phải reload master LHP
+        //             (vì có thể có HK mới được thêm)
+        await LoadMasterLhpAsync();
+        ApplyLhpFiltersInMemory();
     }
 
     private void LoadDanhSachHocKyFromCache()
@@ -134,44 +167,34 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         SelectedMonFilter = DanhSachMonHocFilter.First();
     }
 
-    partial void OnSelectedHocKyChanged(HocKy? value)
+    // ✅ THÊM MỚI: Load TOÀN BỘ LHP của mọi học kỳ vào cache 1 lần
+    // - Enrich sẵn: tên giảng viên, sĩ số đăng ký, tên môn
+    private async Task LoadMasterLhpAsync()
     {
-        _ = LoadLopHocPhanAsync();
-    }
-
-    partial void OnTuKhoaLHPChanged(string? value)
-    {
-        _debounceTimer.Stop();
-        _debounceTimer.Start();
-    }
-
-    partial void OnSelectedMonFilterChanged(MonHoc? value)
-    {
-        _ = LoadLopHocPhanAsync();
-    }
-
-    [RelayCommand]
-    public async Task LoadLopHocPhanAsync()
-    {
-        if (_lhpService == null || SelectedHocKy == null) return;
-
         try
         {
-            string? maMon = string.IsNullOrWhiteSpace(SelectedMonFilter?.MaMon) ? null : SelectedMonFilter.MaMon;
-            var lhps = await _lhpService.LayTheoHocKyAsync(SelectedHocKy.MaHocKy, TuKhoaLHP, maMon);
-
+            // 1. Load giảng viên 1 lần, build dictionary
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
             var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
 
-            DanhSachLHP.Clear();
-            foreach (var lhp in lhps)
+            // 2. Load ALL LHP của tất cả học kỳ
+            var allLhps = new List<LopHocPhan>();
+            foreach (var hk in DanhSachHocKy)
             {
-                int siSoRealtime = await _lhpService.DemSiSoDangKyAsync(lhp.MaLHP);
+                var lhps = await _lhpService.LayTheoHocKyAsync(hk.MaHocKy, null, null);
+                allLhps.AddRange(lhps);
+            }
+
+            // 3. Build display list (enrich 1 lần duy nhất, không lặp lại khi filter)
+            var displayList = new List<LopHocPhanDisplayDto>(allLhps.Count);
+            foreach (var lhp in allLhps)
+            {
+                int siSo = await _lhpService.DemSiSoDangKyAsync(lhp.MaLHP);
                 string gvName = !string.IsNullOrEmpty(lhp.MaGV) && gvDict.TryGetValue(lhp.MaGV, out var name)
                     ? $"{name} ({lhp.MaGV})"
                     : "Chưa phân công";
 
-                DanhSachLHP.Add(new LopHocPhanDisplayDto
+                displayList.Add(new LopHocPhanDisplayDto
                 {
                     MaLHP = lhp.MaLHP,
                     MaMon = lhp.MaMon,
@@ -180,16 +203,77 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
                     TenGiangVien = gvName,
                     LoaiHinhDT = lhp.LoaiHinhDT,
                     SiSoToiDa = lhp.SiSoToiDa,
-                    SiSoDangKy = siSoRealtime,
+                    SiSoDangKy = siSo,
                     GiangDayOnline = lhp.GiangDayOnline,
                     Entity = lhp
                 });
             }
+
+            _masterLhpList = displayList;
         }
         catch (Exception ex)
         {
-            ShowMessage(ex.Message, true);
+            ShowMessage($"Lỗi tải danh sách LHP: {ex.Message}", true);
         }
+    }
+
+    // ✅ ĐỔI MỚI: các partial method giờ chỉ trigger debounce, KHÔNG query DB
+    partial void OnSelectedHocKyChanged(HocKy? value) => TriggerDebounce();
+    partial void OnTuKhoaLHPChanged(string? value) => TriggerDebounce();
+    partial void OnSelectedMonFilterChanged(MonHoc? value) => TriggerDebounce();
+
+    private void TriggerDebounce()
+    {
+        if (_dangKhoiTao) return;
+        _debounceTimer.Stop();
+        _debounceTimer.Start();
+    }
+
+    // ✅ THÊM MỚI: hàm lọc in-memory chạy trên Background Thread
+    private void ApplyLhpFiltersInMemory()
+    {
+        Task.Run(() =>
+        {
+            Dispatcher.UIThread.Invoke(() => IsLoading = true);
+
+            // Nếu chưa chọn học kỳ → trả về list rỗng
+            if (SelectedHocKy == null)
+            {
+                Dispatcher.UIThread.Invoke(() =>
+                {
+                    DanhSachLHP = new ObservableCollection<LopHocPhanDisplayDto>();
+                    IsLoading = false;
+                });
+                return;
+            }
+
+            var maHocKy = SelectedHocKy.MaHocKy;
+            var query = _masterLhpList.Where(x => x.Entity?.MaHocKy == maHocKy);
+
+            // --- Lọc theo từ khóa (Mã LHP HOẶC Tên môn) ---
+            if (!string.IsNullOrWhiteSpace(TuKhoaLHP))
+            {
+                var key = TuKhoaLHP.Trim().ToLower();
+                query = query.Where(x =>
+                    (x.MaLHP ?? string.Empty).ToLower().Contains(key) ||
+                    (x.TenMon ?? string.Empty).ToLower().Contains(key));
+            }
+
+            // --- Lọc theo môn học ---
+            if (SelectedMonFilter != null && !string.IsNullOrWhiteSpace(SelectedMonFilter.MaMon))
+            {
+                query = query.Where(x => x.MaMon == SelectedMonFilter.MaMon);
+            }
+
+            var resultList = query.ToList();
+
+            // --- Cập nhật UI trên Main Thread (gán mới 1 lần, siêu mượt) ---
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                DanhSachLHP = new ObservableCollection<LopHocPhanDisplayDto>(resultList);
+                IsLoading = false;
+            });
+        });
     }
 
     public Func<HocKy?, Task<HocKy?>>? ShowHocKyEditDialogFunc { get; set; }
@@ -207,6 +291,8 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             {
                 await _hocKyService.ThemAsync(newHk);
                 ShowMessage($"Đã thêm học kỳ {newHk.TenHocKy} ({newHk.MaHocKy}) thành công.", false);
+
+                // ✅ ĐỔI MỚI: reload học kỳ + master LHP + filter
                 await LoadDanhSachHocKyAsync();
             }
             catch (Exception ex)
@@ -247,7 +333,10 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             {
                 await _lhpService.ThemAsync(newLhp);
                 ShowMessage($"Đã thêm lớp học phần {newLhp.MaLHP} thành công.", false);
-                await LoadLopHocPhanAsync();
+
+                // ✅ ĐỔI MỚI: reload master LHP + filter (không query lại per-item)
+                await LoadMasterLhpAsync();
+                ApplyLhpFiltersInMemory();
             }
         }
         catch (Exception ex)
@@ -271,7 +360,10 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             {
                 await _lhpService.CapNhatAsync(updatedLhp);
                 ShowMessage($"Đã cập nhật lớp học phần {updatedLhp.MaLHP} thành công.", false);
-                await LoadLopHocPhanAsync();
+
+                // ✅ ĐỔI MỚI
+                await LoadMasterLhpAsync();
+                ApplyLhpFiltersInMemory();
             }
         }
         catch (Exception ex)
@@ -292,7 +384,10 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             {
                 await _lhpService.XoaAsync(dto.MaLHP);
                 ShowMessage($"Đã xóa lớp học phần {dto.MaLHP} thành công.", false);
-                await LoadLopHocPhanAsync();
+
+                // ✅ ĐỔI MỚI
+                await LoadMasterLhpAsync();
+                ApplyLhpFiltersInMemory();
             }
             catch (Exception ex)
             {

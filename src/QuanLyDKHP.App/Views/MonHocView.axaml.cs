@@ -1,5 +1,9 @@
+// src/QuanLyDKHP.App/Views/MonHocView.axaml.cs
+
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using QuanLyDKHP.App.ViewModels;
 using QuanLyDKHP.Core.Entities;
@@ -11,6 +15,51 @@ public partial class MonHocView : UserControl
     public MonHocView()
     {
         InitializeComponent();
+
+        // Đăng ký sự kiện click chuột trái lên DataGrid để mở context menu Sửa/Xóa
+        var dataGrid = this.FindControl<DataGrid>("MonHocDataGrid");
+        if (dataGrid != null)
+        {
+            dataGrid.AddHandler(PointerPressedEvent, OnDataGridPointerPressed, RoutingStrategies.Tunnel);
+        }
+    }
+
+    /// <summary>
+    /// Xử lý khi user click chuột TRÁI vào 1 row → mở ContextMenu (Sửa/Xóa) tại vị trí con trỏ.
+    /// </summary>
+    private void OnDataGridPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        // Chỉ xử lý chuột trái
+        var point = e.GetCurrentPoint(this);
+        if (!point.Properties.IsLeftButtonPressed) return;
+
+        // Không mở menu nếu click vào header (để không phá chức năng sort cột)
+        if (e.Source is DataGridColumnHeader) return;
+
+        // Tìm DataGridRow chứa control được click
+        var source = e.Source as Control;
+        var row = FindParent<DataGridRow>(source);
+        if (row == null) return;
+
+        // Mở ContextMenu của row (đã định nghĩa trong XAML)
+        if (row.ContextMenu != null)
+        {
+            row.ContextMenu.Open(row);
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Duyệt ngược visual tree để tìm control cha thuộc kiểu T.
+    /// </summary>
+    private static T? FindParent<T>(Control? control) where T : Control
+    {
+        while (control != null)
+        {
+            if (control is T typed) return typed;
+            control = control.Parent as Control;
+        }
+        return null;
     }
 
     protected override void OnDataContextChanged(System.EventArgs e)

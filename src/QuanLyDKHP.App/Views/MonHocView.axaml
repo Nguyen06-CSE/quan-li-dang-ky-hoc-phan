@@ -1,3 +1,5 @@
+<!-- src/QuanLyDKHP.App/Views/MonHocView.axaml -->
+
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:QuanLyDKHP.App.ViewModels"
@@ -5,7 +7,9 @@
              x:Class="QuanLyDKHP.App.Views.MonHocView"
              x:DataType="vm:MonHocViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,*" Margin="24">
+    <!-- ✅ ĐỔI MỚI: RowDefinitions = Auto (Header), Auto (Toolbar), Auto (ProgressBar), * (DataGrid cuộn vô tận) -->
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24">
+        
         <!-- 1. Header -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="0,0,0,16">
             <TextBlock Text="Môn học" Classes="h1" />
@@ -19,10 +23,14 @@
         </Border>
 
         <!-- 2. Toolbar -->
-        <Grid Grid.Row="1" ColumnDefinitions="280,200,*,Auto" Margin="0,0,0,16">
-            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" PlaceholderText="Tìm theo Mã môn hoặc Tên môn..." Margin="0,0,8,0" />
+        <Grid Grid.Row="1" ColumnDefinitions="280,200,*,Auto" Margin="0,0,0,8">
+            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" 
+                     PlaceholderText="Tìm theo Mã môn hoặc Tên môn..." Margin="0,0,8,0" />
 
-            <ComboBox Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch" Margin="0,0,8,0">
+            <!-- ✅ ĐỔI MỚI: ComboBox giờ bind SelectedIndex (TwoWay) với ViewModel → sort thực sự hoạt động -->
+            <ComboBox Grid.Column="1" 
+                      SelectedIndex="{Binding SelectedSortIndex, Mode=TwoWay}" 
+                      HorizontalAlignment="Stretch" Margin="0,0,8,0">
                 <ComboBoxItem Content="Tên môn A → Z" />
                 <ComboBoxItem Content="Tên môn Z → A" />
                 <ComboBoxItem Content="Mã môn" />
@@ -34,9 +42,44 @@
             </StackPanel>
         </Grid>
 
-        <!-- 3. DataGrid -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding DanhSach}" AutoGenerateColumns="False" IsReadOnly="True"
-                  GridLinesVisibility="All" BorderThickness="1" BorderBrush="{DynamicResource BrushBorder}" CornerRadius="6">
+        <!-- ✅ THÊM MỚI: Thanh loading chạy vô tận khi đang lọc dữ liệu -->
+        <ProgressBar Grid.Row="2" 
+                     Height="2" 
+                     HorizontalAlignment="Stretch" 
+                     IsIndeterminate="True" 
+                     IsVisible="{Binding IsLoading}" 
+                     Margin="0,0,0,8"/>
+
+        <!-- 3. DataGrid (nằm ở Row * → Avalonia tự động bật UI Virtualization / Infinite Scrolling) -->
+        <DataGrid Grid.Row="3" 
+                  x:Name="MonHocDataGrid"
+                  ItemsSource="{Binding DanhSach}" 
+                  AutoGenerateColumns="False" 
+                  IsReadOnly="True"
+                  GridLinesVisibility="All" 
+                  BorderThickness="1" 
+                  BorderBrush="{DynamicResource BrushBorder}" 
+                  CornerRadius="6"
+                  SelectionMode="Single">
+            
+            <!-- ContextMenu hiển thị khi click chuột trái vào row (giữ nguyên từ trước) -->
+            <DataGrid.Styles>
+                <Style Selector="DataGridRow">
+                    <Setter Property="ContextMenu">
+                        <ContextMenu>
+                            <MenuItem Header="✏️ Sửa" 
+                                      Command="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).SuaCommand}"
+                                      CommandParameter="{Binding}"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).CanThemSuaXoa}" />
+                            <MenuItem Header="🗑️ Xóa" 
+                                      Command="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).XoaCommand}"
+                                      CommandParameter="{Binding}"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).CanThemSuaXoa}" />
+                        </ContextMenu>
+                    </Setter>
+                </Style>
+            </DataGrid.Styles>
+            
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Mã môn" Binding="{Binding MaMon}" Width="140" />
                 <DataGridTextColumn Header="Tên môn" Binding="{Binding TenMon}" Width="*" />
@@ -45,21 +88,6 @@
                 <DataGridTextColumn Header="Tổng TC" Binding="{Binding TongTinChi}" Width="110" />
                 <DataGridTextColumn Header="Bậc ĐT" Binding="{Binding BacDaoTao}" Width="130" />
                 <DataGridTextColumn Header="Số LHP đang mở" Binding="{Binding SoLhpDangMo}" Width="150" />
-                
-                <DataGridTemplateColumn Header="Thao tác" Width="120" IsVisible="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).CanThemSuaXoa}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate x:DataType="dtos:MonHocDto">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
-                                <Button Content="✏️" ToolTip.Tip="Sửa" 
-                                        Command="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).SuaCommand}" 
-                                        CommandParameter="{Binding}" Padding="6,4" />
-                                <Button Content="🗑️" ToolTip.Tip="Xóa" 
-                                        Command="{Binding $parent[UserControl].((vm:MonHocViewModel)DataContext).XoaCommand}" 
-                                        CommandParameter="{Binding}" Padding="6,4" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
