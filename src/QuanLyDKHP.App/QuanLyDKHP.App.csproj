@@ -17,6 +17,7 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Material.Icons.Avalonia" Version="3.0.2" />
     
     <!-- Cập nhật EF Core Design lên 8.0.11 đồng bộ với EF Core -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">

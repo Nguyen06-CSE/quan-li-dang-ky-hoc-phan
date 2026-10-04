@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
+        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="750"
         x:Class="QuanLyDKHP.App.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -70,8 +71,8 @@
             <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}" />
         </Style>
 
-        <!-- Icon: mục chưa chọn mờ (kiểu "nét"), mục đang chọn đậm rõ (kiểu "mảng") -->
-        <Style Selector="ListBox.nav-list TextBlock.nav-icon">
+        <!-- Icon: mục chưa chọn mờ (kiểu "nét"), mục đang chọn đậm rõ -->
+        <Style Selector="ListBox.nav-list materialIcons|MaterialIcon.nav-icon">
             <Setter Property="Opacity" Value="0.5" />
             <Setter Property="Transitions">
                 <Transitions>
@@ -79,7 +80,7 @@
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="ListBox.nav-list ListBoxItem:selected TextBlock.nav-icon">
+        <Style Selector="ListBox.nav-list ListBoxItem:selected materialIcons|MaterialIcon.nav-icon">
             <Setter Property="Opacity" Value="1" />
         </Style>
         <Style Selector="ListBox.nav-list TextBlock.nav-title">
@@ -132,9 +133,11 @@
                                 <Grid ColumnDefinitions="52,*"
                                       Background="Transparent"
                                       ToolTip.Tip="{Binding Title}">
-                                    <TextBlock Grid.Column="0" Classes="nav-icon"
-                                               Text="{Binding Icon}" FontSize="18"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <!-- ✅ Dùng MaterialIcon thay cho TextBlock -->
+                                    <materialIcons:MaterialIcon Grid.Column="0" Classes="nav-icon"
+                                                                Kind="{Binding Icon}"
+                                                                Width="20" Height="20"
+                                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Classes="nav-title"
                                                Text="{Binding Title}" FontSize="14"
                                                VerticalAlignment="Center"
@@ -249,7 +252,7 @@
                 </Grid>
             </Border>
 
-            <!-- Vùng làm việc: chuyển màn hình bằng cross-fade, không tải lại cả app -->
+            <!-- Vùng làm việc: chuyển màn hình bằng cross-fade -->
             <TransitioningContentControl Grid.Row="1"
                                          Margin="24"
                                          Content="{Binding CurrentViewModel}">

@@ -8,6 +8,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Interfaces;
+using Material.Icons;
+
 
 namespace QuanLyDKHP.App.ViewModels;
 
@@ -18,9 +20,8 @@ public partial class MenuItemViewModel : ObservableObject
 {
     public string Title { get; }
     public string ChucNang { get; }
-    public string? Icon { get; }
-
-    public MenuItemViewModel(string title, string chucNang, string? icon = null)
+    public MaterialIconKind Icon { get; }
+    public MenuItemViewModel(string title, string chucNang, MaterialIconKind icon)
     {
         Title = title;
         ChucNang = chucNang;
@@ -140,19 +141,19 @@ public partial class MainWindowViewModel : ObservableObject
     /// Toàn bộ menu khả dụng — mỗi mục map tới 1 chức năng trong PermissionMatrix.
     /// Thêm mục mới ở đây khi có màn hình mới.
     /// </summary>
-    private static readonly (string Title, string ChucNang, string? Icon)[] AllMenuItems =
-    {
-        ("Trang chủ",            ChucNang.XemDashboard,         "🏠"),
-        ("Sinh viên",            ChucNang.CrudSinhVien,         "🎓"),
-        ("Môn học",              ChucNang.CrudMonHoc,           "📚"),
-        ("Học kỳ / LHP",         ChucNang.CrudHocKyLopHocPhan,  "🗓️"),
-        ("Đăng ký học phần",     ChucNang.DangKyHocPhan,        "📝"),
-        ("Học phí",              ChucNang.XemHocPhi,            "💰"),
-        ("Báo cáo & Thống kê",  ChucNang.ThongKeSvTheoMon,     "📊"),
-        ("Import Excel",        ChucNang.ImportExcel,           "📥"),
-        ("Cấu hình hệ thống",   ChucNang.CauHinhHeThong,       "⚙️"),
-        ("Quản lý người dùng",  ChucNang.QuanLyNguoiDung,      "👥"),
-    };
+    private static readonly (string Title, string ChucNang, MaterialIconKind Icon)[] AllMenuItems =
+{
+    ("Trang chủ",           ChucNang.XemDashboard,        MaterialIconKind.HomeOutline),
+    ("Sinh viên",           ChucNang.CrudSinhVien,        MaterialIconKind.SchoolOutline),
+    ("Môn học",             ChucNang.CrudMonHoc,          MaterialIconKind.BookOpenPageVariantOutline),
+    ("Học kỳ / LHP",        ChucNang.CrudHocKyLopHocPhan, MaterialIconKind.CalendarMonthOutline),
+    ("Đăng ký học phần",    ChucNang.DangKyHocPhan,       MaterialIconKind.ClipboardEditOutline),
+    ("Học phí",             ChucNang.XemHocPhi,           MaterialIconKind.CashMultiple),
+    ("Báo cáo & Thống kê", ChucNang.ThongKeSvTheoMon,    MaterialIconKind.ChartBar),
+    ("Import Excel",       ChucNang.ImportExcel,          MaterialIconKind.FileExcelOutline),
+    ("Cấu hình hệ thống",  ChucNang.CauHinhHeThong,      MaterialIconKind.CogOutline),
+    ("Quản lý người dùng", ChucNang.QuanLyNguoiDung,     MaterialIconKind.AccountGroupOutline),
+};
 
     private readonly Func<DashboardViewModel> _dashboardViewModelFactory;
     private readonly Func<SinhVienViewModel> _sinhVienViewModelFactory;
