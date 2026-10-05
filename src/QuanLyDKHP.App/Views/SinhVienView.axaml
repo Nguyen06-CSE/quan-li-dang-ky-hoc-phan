@@ -26,7 +26,7 @@
         <Border Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" 
                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                 Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12,6">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{Binding IsStatusError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="status" Classes.error="{Binding IsStatusError}" />
         </Border>
 
         <!-- 2. Toolbar -->

@@ -61,10 +61,15 @@ public partial class App : Application
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+            // Biến môi trường ConnectionStrings__DefaultConnection có ưu tiên cao nhất
+            .AddEnvironmentVariables()
             .Build();
 
-        string connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Không tìm thấy chuỗi kết nối 'DefaultConnection' trong appsettings.json.");
+        string? connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException(
+                "Chưa cấu hình chuỗi kết nối CSDL. Hãy tạo file appsettings.Local.json (sao chép từ " +
+                "appsettings.Local.example.json) hoặc đặt biến môi trường ConnectionStrings__DefaultConnection.");
 
         // 2. Đăng ký AppDbContext sử dụng PostgreSQL (Npgsql)
         // Dùng DbContextFactory: mỗi thao tác DB tạo 1 DbContext riêng rồi hủy ngay.
@@ -96,7 +101,8 @@ public partial class App : Application
         services.AddScoped<ICauHinhService, CauHinhService>();
         services.AddScoped<IHocPhiService, HocPhiService>();
         services.AddScoped<IDangKyHocPhanService, DangKyHocPhanService>();
-        services.AddScoped<IImportExcelService, QuanLyDKHP.Infrastructure.Repositories.ImportExcelRepository>();
+        services.AddScoped<IImportExcelRepository, QuanLyDKHP.Infrastructure.Repositories.ImportExcelRepository>();
+        services.AddScoped<IImportExcelService, ImportExcelService>();
         services.AddScoped<IPdfExportService, QuanLyDKHP.Infrastructure.Export.PdfExportService>();
         services.AddScoped<IExcelExportService, QuanLyDKHP.Infrastructure.Export.ExcelExportService>();
 

@@ -172,4 +172,14 @@
         <Setter Property="Opacity" Value="1" />
     </Style>
 
+    <!-- Dòng trạng thái (StatusMessage) — dùng Classes="status" Classes.error="{Binding IsStatusError}"
+         thay vì gán thẳng Foreground="{Binding IsStatusError, Converter=...}" (converter trả bool/object,
+         không gán thẳng được vào IBrush). -->
+    <Style Selector="TextBlock.status">
+        <Setter Property="Foreground" Value="{DynamicResource BrushSuccess}" />
+    </Style>
+    <Style Selector="TextBlock.status.error">
+        <Setter Property="Foreground" Value="{DynamicResource BrushDanger}" />
+    </Style>
+
 </Styles>

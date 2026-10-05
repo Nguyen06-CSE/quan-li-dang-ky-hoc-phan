@@ -34,4 +34,19 @@ public class LopHocPhanDisplayDto
 
     public bool GiangDayOnline { get; set; }
     public LopHocPhan Entity { get; set; } = null!;
+
+    private static readonly string[] TenThu =
+        { "", "", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN" };
+
+    /// <summary>Hiển thị gọn lịch học trên danh sách LHP. Rỗng nếu lớp chưa được nhập lịch (xem db/2026-10-01_them-lich-hoc-LopHocPhan.sql).</summary>
+    public string LichHocHienThi
+    {
+        get
+        {
+            if (Entity?.Thu is not int thu || thu < 2 || thu > 8 || Entity.TietBatDau == null || Entity.SoTiet == null)
+                return "Chưa xếp lịch";
+            string phong = string.IsNullOrWhiteSpace(Entity.Phong) ? "" : $" - {Entity.Phong}";
+            return $"{TenThu[thu]}, tiết {Entity.TietBatDau}-{Entity.TietBatDau + Entity.SoTiet - 1}{phong}";
+        }
+    }
 }

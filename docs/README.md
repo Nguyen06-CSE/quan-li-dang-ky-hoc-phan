@@ -32,9 +32,15 @@ docs/
 │   ├── known-bugs.md              # Danh sách lỗi tồn đọng (Blockers / Backlog)
 │   └── macos-issues.md            # Các lỗi đặc thù theo OS (Quarantine, Gatekeeper)
 │
-└── 04-scripts/                    # Tool phụ trợ, script sinh DB, sinh Context
-    ├── generate_db.py             # Script khởi tạo các file Entity Core
-    └── generate_dbcontext.py      # Script khởi tạo AppDbContext
+├── 04-scripts/                    # Tool phụ trợ, script sinh DB, sinh Context
+│   ├── generate_db.py             # Script khởi tạo các file Entity Core
+│   └── generate_dbcontext.py      # Script khởi tạo AppDbContext
+│
+└── 05-modules/                    # Tiến độ 4 Module UI/UX (Login, App Shell, ĐKHP, TKB)
+    ├── M1-dang-nhap.md            # Module 1 — Đăng nhập
+    ├── M2-app-shell.md            # Module 2 — App Shell / Navigation / Liquid glass
+    ├── M3-dang-ky-hoc-phan.md     # Module 3 — Đăng ký học phần (check trùng lịch)
+    └── M4-thoi-khoa-bieu.md       # Module 4 — Thời khóa biểu
 ```
 
 ---
@@ -55,6 +61,9 @@ docs/
   - [Danh sách lỗi chưa sửa (known-bugs.md)](03-troubleshooting/known-bugs.md)
   - [Sửa lỗi đặc thù macOS](03-troubleshooting/macos-issues.md)
 - **[Script phụ trợ](04-scripts/)**: Công cụ sinh code DB tự động.
+- **[Module UI/UX](05-modules/)**: Tiến độ triển khai thực tế theo 4 Module (Login, App Shell, Đăng ký học phần,
+  Thời khóa biểu) — khác với đặc tả nghiệp vụ gốc ở `01-features/`.
+  - [Tổng quan 4 Module](05-modules/README.md)
 
 ---
 

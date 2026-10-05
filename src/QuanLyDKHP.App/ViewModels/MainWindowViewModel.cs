@@ -304,7 +304,7 @@ public partial class MainWindowViewModel : ObservableObject, IRecipient<Navigate
         // Nếu chưa có, tạo lần đầu tiên và nhét vào cache
         ObservableObject? newVm = menuItem.ChucNang switch
         {
-            ChucNang.XemDashboard         => _dashboardViewModelFactory(),
+            ChucNang.XemDashboard         => CreateDashboardViewModel(),
             ChucNang.CrudSinhVien         => _sinhVienViewModelFactory(),
             ChucNang.CrudMonHoc           => _monHocViewModelFactory(),
             ChucNang.CrudHocKyLopHocPhan  => _hocKyLopHocPhanViewModelFactory(),
@@ -322,5 +322,23 @@ public partial class MainWindowViewModel : ObservableObject, IRecipient<Navigate
             _viewModelCache[menuItem.ChucNang] = newVm;
             CurrentViewModel = newVm;
         }
+    }
+
+    /// <summary>
+    /// Tạo DashboardViewModel và nối sự kiện "Thao tác nhanh" (NavigationRequested) vào đúng
+    /// luồng điều hướng hiện có bằng cách đổi SelectedMenuItem — trước đây sự kiện này không có
+    /// nơi nào lắng nghe nên bấm nút ở Trang chủ không có phản ứng gì (xem FIX.md mục 16).
+    /// </summary>
+    private DashboardViewModel CreateDashboardViewModel()
+    {
+        var vm = _dashboardViewModelFactory();
+        vm.NavigationRequested += OnDashboardNavigationRequested;
+        return vm;
+    }
+
+    private void OnDashboardNavigationRequested(object? sender, string chucNang)
+    {
+        var target = FilteredMenuItems.FirstOrDefault(m => m.ChucNang == chucNang);
+        if (target != null) SelectedMenuItem = target;
     }
 }

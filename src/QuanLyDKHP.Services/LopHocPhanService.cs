@@ -89,6 +89,12 @@ public class LopHocPhanService : ILopHocPhanService
         existing.LoaiHinhDT = lhp.LoaiHinhDT;
         existing.SiSoToiDa = lhp.SiSoToiDa;
         existing.GiangDayOnline = lhp.GiangDayOnline;
+        // Lịch học (xem db/2026-10-01_them-lich-hoc-LopHocPhan.sql) — trước đây bị thiếu ở đây nên
+        // dù dialog Sửa LHP đã có đủ ô nhập Thứ/Tiết/Phòng, bấm Lưu vẫn không ghi xuống DB được gì.
+        existing.Thu = lhp.Thu;
+        existing.TietBatDau = lhp.TietBatDau;
+        existing.SoTiet = lhp.SoTiet;
+        existing.Phong = lhp.Phong;
 
         await _lhpRepository.CapNhatAsync(existing);
     }

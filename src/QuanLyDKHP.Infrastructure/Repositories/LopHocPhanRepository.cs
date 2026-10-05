@@ -69,6 +69,13 @@ public class LopHocPhanRepository : ILopHocPhanRepository
 
     public async Task CapNhatAsync(LopHocPhan lhp)
     {
+        // Cùng rủi ro như DangKyHocPhanRepository.CapNhatAsync: LayTheoHocKyAsync Include MonHoc
+        // và HocKy, nên entity người gọi truyền vào (ví dụ dto.Entity trong màn sửa LHP) có thể
+        // mang theo 2 navigation đó. Cắt trước khi Update() để tránh ghi đè nhầm bảng MonHoc/HocKy
+        // bằng dữ liệu cũ đã tải từ context khác.
+        lhp.MonHoc = null!;
+        lhp.HocKy = null!;
+
         await using var _context = await _contextFactory.CreateDbContextAsync();
         _context.LopHocPhans.Update(lhp);
         await _context.SaveChangesAsync();

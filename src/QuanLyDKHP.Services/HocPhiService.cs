@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -46,6 +47,37 @@ public class HocPhiService : IHocPhiService
                 dk.SoTienPhaiDong = 0;
             }
             await _dangKyRepo.CapNhatAsync(dk);
+        }
+    }
+
+    public async Task TinhLaiHocPhiHangLoatAsync(IEnumerable<string> dsMaSV, string maHocKy)
+    {
+        var danhSach = dsMaSV.Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
+        if (danhSach.Count == 0) return;
+
+        // Đọc đơn giá 1 lần cho cả lô (thay vì mỗi sinh viên 1 lần)
+        decimal donGiaLT = await _cauHinhService.GetDecimal("DonGiaTinChiLT");
+        decimal donGiaTH = await _cauHinhService.GetDecimal("DonGiaTinChiTH");
+
+        const int kichThuocLo = 500;
+        for (int i = 0; i < danhSach.Count; i += kichThuocLo)
+        {
+            var lo = danhSach.Skip(i).Take(kichThuocLo).ToList();
+            var dangKys = await _dangKyRepo.LayTheoDanhSachMaSVVaMaHocKyAsync(lo, maHocKy);
+
+            var capNhat = new List<(Guid Id, decimal SoTien)>(dangKys.Count);
+            foreach (var dk in dangKys)
+            {
+                decimal soTien = 0;
+                if (dk.TrangThai == "DangHoc" && dk.LopHocPhan?.MonHoc != null)
+                {
+                    var mon = dk.LopHocPhan.MonHoc;
+                    soTien = (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                }
+                capNhat.Add((dk.Id, soTien));
+            }
+
+            await _dangKyRepo.CapNhatSoTienPhaiDongAsync(capNhat);
         }
     }
 

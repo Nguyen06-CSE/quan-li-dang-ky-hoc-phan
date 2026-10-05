@@ -19,7 +19,7 @@
             <Border Grid.Column="1" VerticalAlignment="Center" 
                     IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                     Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12,6">
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{Binding IsStatusError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Text="{Binding StatusMessage}" Classes="status" Classes.error="{Binding IsStatusError}" />
             </Border>
         </Grid>
 
@@ -49,14 +49,14 @@
                             Command="{Binding DatHocKyHienHanhCommand}" 
                             CommandParameter="{Binding SelectedHocKy}"
                             IsVisible="{Binding CanThemSuaXoa}" 
-                            Classes="secondary" />
+                            Classes="btn-secondary" />
                 </StackPanel>
 
                 <Button Grid.Column="2" 
                         Content="+ Thêm học kỳ" 
                         Command="{Binding ThemHocKyCommand}" 
                         IsVisible="{Binding CanThemSuaXoa}" 
-                        Classes="primary"/>
+                        Classes="btn-primary"/>
             </Grid>
         </Border>
 
@@ -80,7 +80,7 @@
                     Content="+ Thêm LHP" 
                     Command="{Binding ThemLhpCommand}" 
                     IsVisible="{Binding CanThemSuaXoa}" 
-                    Classes="primary"/>
+                    Classes="btn-primary"/>
         </Grid>
 
         <!-- ✅ THÊM MỚI: Thanh loading chạy vô tận khi đang lọc dữ liệu -->
@@ -141,6 +141,7 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTextColumn Header="Loại hình ĐT" Binding="{Binding LoaiHinhDT}" Width="120" />
+                <DataGridTextColumn Header="Lịch học" Binding="{Binding LichHocHienThi}" Width="170" />
                 
                 <!-- Sĩ số đk / Sĩ số tối đa + Progress bar -->
                 <DataGridTemplateColumn Header="Sĩ số (ĐK / Tối đa)" Width="190">

@@ -43,6 +43,7 @@ Desktop.ini
 # --- Các file cấu hình môi trường (như secrets) ---
 .env
 *.local
+appsettings.Local.json
 
 # --- Các file script tạm (nếu bạn không muốn commit các script này) ---
 # Lưu ý: Nếu đây là script cần thiết cho dự án, hãy xóa hoặc comment các dòng dưới đây

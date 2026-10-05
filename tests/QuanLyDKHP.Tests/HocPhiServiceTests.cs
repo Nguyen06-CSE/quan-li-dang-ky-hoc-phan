@@ -229,4 +229,45 @@ public class HocPhiServiceTests
         Assert.False(result[1].DaDongDu);
         Assert.Equal("Còn nợ", result[1].TrangThaiText);
     }
+
+    [Fact]
+    public async Task TinhLaiHocPhiHangLoatAsync_TinhDungChoNhieuSinhVien_VaCapNhatDungSoTien()
+    {
+        // Arrange
+        string maHK = "HK1_2026_2027";
+        var dsMaSV = new List<string> { "SV001", "SV002" };
+
+        var dkSv1 = CreateDangKy("LHP01", "CSDL", "Cơ sở dữ liệu", 3, 0, trangThai: "DangHoc");
+        dkSv1.MaSV = "SV001";
+        var dkSv2 = CreateDangKy("LHP02", "OOP", "Lập trình hướng đối tượng", 2, 1, trangThai: "DangHoc");
+        dkSv2.MaSV = "SV002";
+        var dkSv2Huy = CreateDangKy("LHP03", "HUY", "Môn hủy", 3, 0, trangThai: "DaHuy");
+        dkSv2Huy.MaSV = "SV002";
+
+        _mockDangKyRepo
+            .Setup(r => r.LayTheoDanhSachMaSVVaMaHocKyAsync(
+                It.Is<IEnumerable<string>>(ds => ds.OrderBy(x => x).SequenceEqual(dsMaSV)), maHK))
+            .ReturnsAsync(new List<DangKyHocPhan> { dkSv1, dkSv2, dkSv2Huy });
+
+        List<(Guid Id, decimal SoTien)>? daCapNhat = null;
+        _mockDangKyRepo
+            .Setup(r => r.CapNhatSoTienPhaiDongAsync(It.IsAny<IEnumerable<(Guid, decimal)>>()))
+            .Callback<IEnumerable<(Guid, decimal)>>(x => daCapNhat = x.ToList())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _service.TinhLaiHocPhiHangLoatAsync(dsMaSV, maHK);
+
+        // Assert: chỉ gọi LayTheoDanhSachMaSVVaMaHocKyAsync 1 lần cho cả lô (không phải N lần theo N sinh viên)
+        _mockDangKyRepo.Verify(r => r.LayTheoDanhSachMaSVVaMaHocKyAsync(It.IsAny<IEnumerable<string>>(), maHK), Times.Once);
+        // Đơn giá chỉ đọc 1 lần cho cả lô
+        _mockCauHinhService.Verify(c => c.GetDecimal("DonGiaTinChiLT"), Times.Once);
+        _mockCauHinhService.Verify(c => c.GetDecimal("DonGiaTinChiTH"), Times.Once);
+
+        Assert.NotNull(daCapNhat);
+        Assert.Equal(3, daCapNhat!.Count);
+        Assert.Equal(1500000m, daCapNhat.Single(x => x.Id == dkSv1.Id).SoTien);
+        Assert.Equal(1700000m, daCapNhat.Single(x => x.Id == dkSv2.Id).SoTien);
+        Assert.Equal(0m, daCapNhat.Single(x => x.Id == dkSv2Huy.Id).SoTien);
+    }
 }

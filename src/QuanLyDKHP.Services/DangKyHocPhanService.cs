@@ -168,11 +168,17 @@ public class DangKyHocPhanService : IDangKyHocPhanService
             throw new InvalidOperationException("Không tìm thấy đăng ký học phần đang học để hủy.");
         }
 
+        // Lấy MaHocKy TRƯỚC khi gọi CapNhatAsync: CapNhatAsync sẽ gán dk.LopHocPhan = null
+        // (cắt navigation để tránh ghi đè nhầm bảng LopHocPhan — xem comment trong
+        // DangKyHocPhanRepository.CapNhatAsync) ngay trên CHÍNH tham chiếu "dk" này, nên nếu đọc
+        // dk.LopHocPhan SAU khi gọi CapNhatAsync thì luôn luôn là null, dẫn tới việc phải truy vấn
+        // lại LHP một cách không cần thiết (không sai kết quả nhờ fallback bên dưới, nhưng dư 1
+        // lần query DB và dễ gây nhầm lẫn khi đọc code).
+        string maHocKy = dk.LopHocPhan?.MaHocKy ?? string.Empty;
+
         dk.TrangThai = "DaHuy";
         await _dangKyRepo.CapNhatAsync(dk);
 
-        // Cập nhật lại học phí sau khi hủy
-        string maHocKy = dk.LopHocPhan?.MaHocKy ?? string.Empty;
         if (string.IsNullOrEmpty(maHocKy))
         {
             var lhp = await _lopHocPhanRepo.GetByIdAsync(maLHP);

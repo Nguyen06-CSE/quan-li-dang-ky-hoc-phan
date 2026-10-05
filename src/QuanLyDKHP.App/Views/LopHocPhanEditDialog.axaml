@@ -4,11 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
         xmlns:entities="using:QuanLyDKHP.Core.Entities"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="420"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="560"
         x:Class="QuanLyDKHP.App.Views.LopHocPhanEditDialog"
         x:DataType="vm:LopHocPhanEditDialogViewModel"
         Title="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='Chỉnh sửa Lớp học phần', FallbackValue='Thêm Lớp học phần'}"
-        Width="500" Height="420"
+        Width="500" Height="560"
         WindowStartupLocation="CenterOwner"
         CanResize="False">
 
@@ -25,7 +25,7 @@
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"/>
             </Border>
 
-            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã LHP:" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaLHP}" IsReadOnly="{Binding IsEditMode}"/>
 
@@ -60,12 +60,30 @@
                 <NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding SiSoToiDa}" Minimum="1" Maximum="500" ParsingNumberStyle="Integer"/>
 
                 <CheckBox Grid.Row="5" Grid.Column="1" Content="Giảng dạy Online" IsChecked="{Binding GiangDayOnline}"/>
+
+                <!-- Lịch học — nhập tay vì file Excel import thật không có cột lịch học
+                     (xem db/2026-10-01_them-lich-hoc-LopHocPhan.sql). Để trống = chưa xếp lịch. -->
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="Lịch học:" VerticalAlignment="Center"/>
+                <Grid Grid.Row="6" Grid.Column="1" ColumnDefinitions="*,Auto,70,Auto,70" ColumnSpacing="6">
+                    <ComboBox Grid.Column="0" HorizontalAlignment="Stretch"
+                              ItemsSource="{Binding DanhSachThu}"
+                              SelectedItem="{Binding SelectedThu}"/>
+                    <TextBlock Grid.Column="1" Text="Tiết:" VerticalAlignment="Center" Margin="4,0"/>
+                    <NumericUpDown Grid.Column="2" Value="{Binding TietBatDau}" Minimum="1" Maximum="16" ParsingNumberStyle="Integer"
+                                   PlaceholderText="BĐ"/>
+                    <TextBlock Grid.Column="3" Text="SL:" VerticalAlignment="Center" Margin="4,0"/>
+                    <NumericUpDown Grid.Column="4" Value="{Binding SoTiet}" Minimum="1" Maximum="10" ParsingNumberStyle="Integer"
+                                   PlaceholderText="Số"/>
+                </Grid>
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="Phòng học:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Phong}" PlaceholderText="Ví dụ: A1.03"/>
             </Grid>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,15,0,0">
-            <Button Content="Hủy" Command="{Binding CancelCommand}" Classes="secondary"/>
-            <Button Content="Lưu" Command="{Binding SaveCommand}" Classes="primary"/>
+            <Button Content="Hủy" Command="{Binding CancelCommand}" Classes="btn-secondary"/>
+            <Button Content="Lưu" Command="{Binding SaveCommand}" Classes="btn-primary"/>
         </StackPanel>
     </Grid>
 </Window>

@@ -89,6 +89,8 @@ public class AppDbContext : DbContext
             b.Property(e => e.MaGV).HasColumnType("varchar(20)");
             b.Property(e => e.LoaiHinhDT).HasColumnType("varchar(10)");
             b.Property(e => e.GiangDayOnline).HasDefaultValue(false);
+            // Lịch học (có thể NULL với lớp chưa nhập lịch) — xem db/2026-10-01_them-lich-hoc-LopHocPhan.sql
+            b.Property(e => e.Phong).HasColumnType("varchar(20)");
             b.Property(e => e.IsDeleted).HasDefaultValue(false);
 
             b.HasIndex(e => new { e.MaMon, e.MaHocKy });

@@ -27,6 +27,7 @@
 
     <!-- Hạ Microsoft.Extensions.Configuration.Json về bản 8.0.0 khớp với TargetFramework net8.0 -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
 
     <!-- Nâng DependencyInjection lên 8.0.1 để sửa lỗi NU1605 -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
@@ -41,6 +42,9 @@
   <!-- Đảm bảo copy appsettings.json ra thư mục bin khi build -->
   <ItemGroup>
     <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Local.json" Condition="Exists('appsettings.Local.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

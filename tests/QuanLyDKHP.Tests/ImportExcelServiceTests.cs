@@ -12,12 +12,12 @@ namespace QuanLyDKHP.Tests;
 
 public class ImportExcelServiceTests
 {
-    private readonly Mock<IImportExcelService> _mockRepo;
+    private readonly Mock<IImportExcelRepository> _mockRepo;
     private readonly ImportExcelService _service;
 
     public ImportExcelServiceTests()
     {
-        _mockRepo = new Mock<IImportExcelService>();
+        _mockRepo = new Mock<IImportExcelRepository>();
         _service = new ImportExcelService(_mockRepo.Object);
     }
 

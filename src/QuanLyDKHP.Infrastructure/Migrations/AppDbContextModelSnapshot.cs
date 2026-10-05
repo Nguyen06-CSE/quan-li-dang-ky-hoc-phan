@@ -187,6 +187,18 @@ namespace QuanLyDKHP.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("Phong")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int?>("SoTiet")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Thu")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TietBatDau")
+                        .HasColumnType("integer");
+
                     b.Property<string>("LoaiHinhDT")
                         .HasColumnType("varchar(10)");
 
