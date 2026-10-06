@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using QuanLyDKHP.App.ViewModels;
 using QuanLyDKHP.Core.Dtos;
 
@@ -32,7 +34,8 @@ public partial class DangKyHocPhanView : UserControl
     }
 
     /// <summary>
-    /// Đồng bộ lựa chọn sinh viên từ ViewModel xuống ListBox (ví dụ khi nhận NavigateToRegistrationMessage)
+    /// Đồng bộ lựa chọn sinh viên từ ViewModel xuống ListBox 
+    /// (ví dụ khi nhận NavigateToRegistrationMessage)
     /// </summary>
     private void SyncListBoxSelection(List<SinhVienDto> students)
     {
@@ -55,19 +58,48 @@ public partial class DangKyHocPhanView : UserControl
     }
 
     /// <summary>
-    /// Xử lý sự kiện thay đổi lựa chọn trên ListBox (hỗ trợ cả Single và Multi-select)
+    /// Xử lý sự kiện thay đổi lựa chọn trên ListBox (hỗ trợ Single & Multi-select).
     /// </summary>
     private void OnSinhVienListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isSyncingSelection) return;
-
-        if (sender is ListBox lb && DataContext is DangKyHocPhanViewModel vm)
+        if (DataContext is DangKyHocPhanViewModel vm && sender is ListBox listBox)
         {
-            var selected = lb.SelectedItems?.Cast<SinhVienDto>().ToList() ?? [];
+            var selected = listBox.SelectedItems?.Cast<SinhVienDto>().ToList() ?? [];
             _ = vm.HandleSelectionChanged(selected);
         }
     }
 
+    /// <summary>
+    /// Xử lý Toggle bỏ chọn khi click vào chính sinh viên đang chọn duy nhất.
+    /// </summary>
+    private void OnSinhVienItemPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        // Lấy đối tượng SinhVienDto từ DataContext của Border
+        if (sender is Control control && control.DataContext is SinhVienDto clickedSv)
+        {
+            var listBox = this.FindControl<ListBox>("SinhVienListBox");
+            if (listBox == null) return;
+
+            // Nếu đang chọn duy nhất sinh viên này và click lại vào chính nó -> Toggle bỏ chọn
+            if (listBox.SelectedItems != null && 
+                listBox.SelectedItems.Count == 1 && 
+                listBox.SelectedItems.Contains(clickedSv))
+            {
+                e.Handled = true;
+
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    listBox.SelectedItems.Clear();
+
+                    if (DataContext is DangKyHocPhanViewModel vm)
+                    {
+                        await vm.HandleSelectionChanged(Array.Empty<SinhVienDto>());
+                    }
+                });
+            }
+        }
+    }
     private async Task<bool> ShowConfirmDialogAsync(string message)
     {
         var topLevel = TopLevel.GetTopLevel(this) as Window;

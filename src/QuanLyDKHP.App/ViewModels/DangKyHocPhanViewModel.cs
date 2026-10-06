@@ -189,6 +189,16 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
 
     [ObservableProperty]
     private string _kieuSapXep = "Tên (A-Z)";
+    [ObservableProperty]
+    private bool _isDataReady;
+
+    [ObservableProperty]
+    private double _loadingPercent;
+
+    [ObservableProperty]
+    private string _loadingMessage = "Đang khởi tạo...";
+
+    private string? _pendingMaSvToSelect;
 
     public ObservableCollection<string> DsKieuSapXep { get; } =
     [
@@ -212,7 +222,7 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
     public Func<string, Task<bool>>? ShowWarningConfirmFunc { get; set; }
     public Action<List<SinhVienDto>>? RequestSelectStudents { get; set; }
 
-    public DangKyHocPhanViewModel(
+public DangKyHocPhanViewModel(
         IDangKyHocPhanService dangKyService,
         IHocKyService hocKyService,
         ISinhVienService sinhVienService,
@@ -231,7 +241,30 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
         _lopHocPhanService = lopHocPhanService;
         _cauHinhService = cauHinhService;
         _nguoiDungRepository = nguoiDungRepository;
+        
+        // GÁN THAM SỐ VÀO BIẾN TRƯỜNG TRƯỚC TIÊN
         _cacheStore = cacheStore;
+
+        _cacheStore.ProgressChanged += (percent, msg) =>
+        {
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                LoadingPercent = percent;
+                LoadingMessage = msg;
+                if (percent >= 100)
+                {
+                    IsDataReady = true;
+                    // Nếu có sinh viên đang đợi load từ double-click lúc chưa xong cache
+                    if (!string.IsNullOrEmpty(_pendingMaSvToSelect))
+                    {
+                        _ = ChonSinhVienTheoMaAsync(_pendingMaSvToSelect);
+                        _pendingMaSvToSelect = null;
+                    }
+                }
+            });
+        };
+        IsDataReady = _cacheStore.IsInitialized;
+
         _currentUserService = currentUserService;
         _baoCaoService = baoCaoService;
 
@@ -247,9 +280,7 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
         _debounceTimer.Elapsed += (s, e) => ApplyFiltersInMemory();
 
         _ = InitDataAsync();
-    }
-
-    public DangKyHocPhanViewModel()
+    }    public DangKyHocPhanViewModel()
     {
         _dangKyService = null!;
         _hocKyService = null!;
@@ -261,6 +292,7 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
         _cacheStore = null!;
         _currentUserService = null!;
         _debounceTimer = new System.Timers.Timer(300);
+
     }
 
     /// <summary>
@@ -268,6 +300,15 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
     /// </summary>
     public void Receive(NavigateToRegistrationMessage message)
     {
+        if (!_cacheStore.IsInitialized)
+        {
+            // Cache chưa xong -> lưu lại, chờ ProgressChanged 100% sẽ tự chọn
+            _pendingMaSvToSelect = message.MaSV;
+            IsDataReady = false;
+            _ = _cacheStore.InitializeAsync();   // đảm bảo cache đang chạy
+            return;
+        }
+
         _ = ChonSinhVienTheoMaAsync(message.MaSV);
     }
 
@@ -569,6 +610,7 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
     {
         SelectedStudents = new ObservableCollection<SinhVienDto>(selectedList);
 
+        // State 0: Bảng rỗng
         if (SelectedStudents.Count == 0)
         {
             SinhVienDangChon = null;
@@ -576,22 +618,25 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
             DsDaDangKy = [];
             StudentComparisonList = [];
             _rawComparisonItems.Clear();
+            return;
         }
-        else if (SelectedStudents.Count == 1)
+
+        // State 2: Xem chi tiết 1 SV
+        if (SelectedStudents.Count == 1)
         {
             SinhVienDangChon = SelectedStudents[0];
             CurrentState = DetailState.View;
             StudentComparisonList = [];
             _rawComparisonItems.Clear();
             await LoadDangKyCuaSinhVienAsync(SinhVienDangChon.MaSV);
+            return;
         }
-        else
-        {
-            SinhVienDangChon = null;
-            CurrentState = DetailState.Compare;
-            DsDaDangKy = [];
-            await LoadDuLieuSoSanhAsync(SelectedStudents.ToList());
-        }
+
+        // State 1: So sánh nhiều SV
+        SinhVienDangChon = null;
+        CurrentState = DetailState.Compare;
+        DsDaDangKy = [];
+        await LoadDuLieuSoSanhAsync(SelectedStudents.ToList());
     }
 
     /// <summary>
@@ -994,6 +1039,25 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
         catch (Exception ex)
         {
             ShowMessage(ex.Message, true);
+        }
+    }
+    [RelayCommand]
+    public async Task RefreshDataAsync()
+    {
+        try
+        {
+            IsDataReady = false;
+            await _cacheStore.InitializeAsync(forceReload: true);
+            await InitDataAsync();                 // hoặc InitFiltersAndLoadMasterDataAsync nếu bạn đổi tên
+            ShowMessage("Đã làm mới dữ liệu thành công.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi làm mới dữ liệu: {ex.Message}", true);
+        }
+        finally
+        {
+            IsDataReady = true;
         }
     }
 

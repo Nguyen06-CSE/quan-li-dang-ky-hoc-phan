@@ -16,6 +16,10 @@ public class MemoryCacheStore : IMemoryCacheStore
     public IReadOnlyList<string> DanhSachKhoaHoc { get; private set; } = Array.Empty<string>();
     public IReadOnlyList<MonHoc> DanhSachMonHoc { get; private set; } = Array.Empty<MonHoc>();
 
+    public double LoadingProgress { get; private set; }
+    public string LoadingStatus { get; private set; } = string.Empty;
+    public event Action<double, string>? ProgressChanged;
+
     public bool IsInitialized { get; private set; }
 
     public MemoryCacheStore(IServiceProvider serviceProvider)
@@ -23,32 +27,76 @@ public class MemoryCacheStore : IMemoryCacheStore
         _serviceProvider = serviceProvider;
     }
 
+    private void ReportProgress(double percent, string status)
+    {
+        LoadingProgress = percent;
+        LoadingStatus = status;
+        ProgressChanged?.Invoke(percent, status);
+    }
+
+    /// <summary>
+    /// Trả về list gốc nếu khác null, ngược lại trả về mảng rỗng.
+    /// Ép về IReadOnlyList&lt;T&gt; để tránh lỗi CS0019 khi dùng toán tử ??.
+    /// </summary>
+    private static IReadOnlyList<T> OrEmpty<T>(List<T>? list)
+        => list ?? (IReadOnlyList<T>)Array.Empty<T>();
+
     public async Task InitializeAsync(bool forceReload = false)
     {
         if (IsInitialized && !forceReload) return;
 
-        using var scope = _serviceProvider.CreateScope();
-        var hocKyService = scope.ServiceProvider.GetRequiredService<IHocKyService>();
-        var sinhVienService = scope.ServiceProvider.GetRequiredService<ISinhVienService>();
-        var monHocService = scope.ServiceProvider.GetRequiredService<IMonHocService>();
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var hocKyService    = scope.ServiceProvider.GetRequiredService<IHocKyService>();
+            var sinhVienService = scope.ServiceProvider.GetRequiredService<ISinhVienService>();
+            var monHocService   = scope.ServiceProvider.GetRequiredService<IMonHocService>();
 
-        var taskHocKy = hocKyService.LayTatCaAsync();
-        var taskLop = sinhVienService.GetDanhSachLopSinhHoatAsync();
-        var taskKhoa = sinhVienService.GetDanhSachKhoaHocAsync();
-        var taskMon = monHocService.LayDanhSachAsync(null, "TenMon");
+            ReportProgress(10, "Đang nạp danh mục Học kỳ...");
+            await LoadHocKysAsync(hocKyService);
 
-        await Task.WhenAll(taskHocKy, taskLop, taskKhoa, taskMon);
+            ReportProgress(40, "Đang nạp danh mục Môn học...");
+            await LoadMonHocsAsync(monHocService);
 
-        var hocKyList = await taskHocKy;
-        var lopList = await taskLop;
-        var khoaList = await taskKhoa;
-        var monList = await taskMon;
+            ReportProgress(70, "Đang nạp danh mục Lớp học phần...");
+            await LoadLopHocPhansAsync(sinhVienService);
 
-        DanhSachHocKy = hocKyList != null ? hocKyList : Array.Empty<HocKy>();
-        DanhSachLopSinhHoat = lopList != null ? lopList : Array.Empty<string>();
-        DanhSachKhoaHoc = khoaList != null ? khoaList : Array.Empty<string>();
-        DanhSachMonHoc = monList != null ? monList : Array.Empty<MonHoc>();
+            ReportProgress(90, "Đang nạp cấu hình hệ thống...");
+            await LoadMetadataAsync(sinhVienService);
 
-        IsInitialized = true;
+            ReportProgress(100, "Hoàn tất nạp dữ liệu.");
+            IsInitialized = true;
+        }
+        catch
+        {
+            ReportProgress(0, "Lỗi nạp dữ liệu.");
+            throw;
+        }
+    }
+
+    private async Task LoadHocKysAsync(IHocKyService service)
+    {
+        var list = await service.LayTatCaAsync();
+        DanhSachHocKy = OrEmpty(list);
+    }
+
+    private async Task LoadMonHocsAsync(IMonHocService service)
+    {
+        var list = await service.LayDanhSachAsync(null, "TenMon");
+        DanhSachMonHoc = OrEmpty(list);
+    }
+
+    private async Task LoadLopHocPhansAsync(ISinhVienService service)
+    {
+        // Theo dữ liệu hiện có của store: danh mục Lớp sinh hoạt.
+        // Nếu sau này có ILopHocPhanService riêng thì chỉ cần đổi nguồn ở đây.
+        var list = await service.GetDanhSachLopSinhHoatAsync();
+        DanhSachLopSinhHoat = OrEmpty(list);
+    }
+
+    private async Task LoadMetadataAsync(ISinhVienService service)
+    {
+        var list = await service.GetDanhSachKhoaHocAsync();
+        DanhSachKhoaHoc = OrEmpty(list);
     }
 }
