@@ -12,6 +12,7 @@ using QuanLyDKHP.App.Views;
 using QuanLyDKHP.Core.Interfaces;
 using QuanLyDKHP.Infrastructure.Data;
 using QuanLyDKHP.Infrastructure.Repositories;
+using QuanLyDKHP.Infrastructure.Services;
 using QuanLyDKHP.Services;
 using QuanLyDKHP.App.Services;
 
@@ -78,6 +79,9 @@ public partial class App : Application
         services.AddDbContextFactory<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
+        services.AddDbContextFactory<LocalAppDbContext>(options =>
+            options.UseSqlite($"Data Source={LocalAppDbContext.GetDatabasePath()}"));
+
         // Repositories
         services.AddScoped<INguoiDungRepository, NguoiDungRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
@@ -105,6 +109,7 @@ public partial class App : Application
         services.AddScoped<IImportExcelService, ImportExcelService>();
         services.AddScoped<IPdfExportService, QuanLyDKHP.Infrastructure.Export.PdfExportService>();
         services.AddScoped<IExcelExportService, QuanLyDKHP.Infrastructure.Export.ExcelExportService>();
+        services.AddScoped<ISyncService, SyncService>();
 
         // ViewModels
         services.AddTransient<LoginViewModel>();

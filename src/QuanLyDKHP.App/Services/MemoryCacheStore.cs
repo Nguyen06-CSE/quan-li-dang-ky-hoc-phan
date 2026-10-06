@@ -1,15 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
+using QuanLyDKHP.Infrastructure.Data;
 
 namespace QuanLyDKHP.App.Services;
 
 public class MemoryCacheStore : IMemoryCacheStore
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly SemaphoreSlim _initializeLock = new(1, 1);
 
     public IReadOnlyList<HocKy> DanhSachHocKy { get; private set; } = Array.Empty<HocKy>();
     public IReadOnlyList<string> DanhSachLopSinhHoat { get; private set; } = Array.Empty<string>();
@@ -34,69 +39,101 @@ public class MemoryCacheStore : IMemoryCacheStore
         ProgressChanged?.Invoke(percent, status);
     }
 
-    /// <summary>
-    /// Trả về list gốc nếu khác null, ngược lại trả về mảng rỗng.
-    /// Ép về IReadOnlyList&lt;T&gt; để tránh lỗi CS0019 khi dùng toán tử ??.
-    /// </summary>
-    private static IReadOnlyList<T> OrEmpty<T>(List<T>? list)
-        => list ?? (IReadOnlyList<T>)Array.Empty<T>();
-
     public async Task InitializeAsync(bool forceReload = false)
     {
         if (IsInitialized && !forceReload) return;
 
+        await _initializeLock.WaitAsync();
         try
         {
+            if (IsInitialized && !forceReload) return;
+
             using var scope = _serviceProvider.CreateScope();
-            var hocKyService    = scope.ServiceProvider.GetRequiredService<IHocKyService>();
-            var sinhVienService = scope.ServiceProvider.GetRequiredService<ISinhVienService>();
-            var monHocService   = scope.ServiceProvider.GetRequiredService<IMonHocService>();
+            var syncService = scope.ServiceProvider.GetRequiredService<ISyncService>();
+            var localFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<LocalAppDbContext>>();
 
-            ReportProgress(10, "Đang nạp danh mục Học kỳ...");
-            await LoadHocKysAsync(hocKyService);
+            if (forceReload)
+            {
+                await syncService.ForceFullRefreshAsync(new Progress<(double Percent, string Status)>(p =>
+                    ReportProgress(p.Percent, p.Status)));
+            }
+            else if (!await syncService.HasLocalDataAsync())
+            {
+                await syncService.InitialSeedAsync(new Progress<(double Percent, string Status)>(p =>
+                    ReportProgress(p.Percent, p.Status)));
+            }
 
-            ReportProgress(40, "Đang nạp danh mục Môn học...");
-            await LoadMonHocsAsync(monHocService);
-
-            ReportProgress(70, "Đang nạp danh mục Lớp học phần...");
-            await LoadLopHocPhansAsync(sinhVienService);
-
-            ReportProgress(90, "Đang nạp cấu hình hệ thống...");
-            await LoadMetadataAsync(sinhVienService);
-
-            ReportProgress(100, "Hoàn tất nạp dữ liệu.");
+            await LoadFromLocalCacheAsync(localFactory);
             IsInitialized = true;
+
+            if (!forceReload)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var backgroundScope = _serviceProvider.CreateScope();
+                        var backgroundSyncService = backgroundScope.ServiceProvider.GetRequiredService<ISyncService>();
+                        var backgroundLocalFactory = backgroundScope.ServiceProvider.GetRequiredService<IDbContextFactory<LocalAppDbContext>>();
+
+                        await backgroundSyncService.SyncDeltaAsync();
+                        await LoadFromLocalCacheAsync(backgroundLocalFactory);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Cache Refresh Error]: {ex.Message}");
+                    }
+                });
+            }
         }
         catch
         {
             ReportProgress(0, "Lỗi nạp dữ liệu.");
             throw;
         }
+        finally
+        {
+            _initializeLock.Release();
+        }
     }
 
-    private async Task LoadHocKysAsync(IHocKyService service)
+    private async Task LoadFromLocalCacheAsync(IDbContextFactory<LocalAppDbContext> localFactory)
     {
-        var list = await service.LayTatCaAsync();
-        DanhSachHocKy = OrEmpty(list);
-    }
+        await using var local = await localFactory.CreateDbContextAsync();
+        await local.Database.EnsureCreatedAsync();
 
-    private async Task LoadMonHocsAsync(IMonHocService service)
-    {
-        var list = await service.LayDanhSachAsync(null, "TenMon");
-        DanhSachMonHoc = OrEmpty(list);
-    }
+        ReportProgress(20, "Đang nạp học kỳ từ bộ nhớ cục bộ...");
+        DanhSachHocKy = await local.HocKys
+            .AsNoTracking()
+            .OrderByDescending(h => h.DangMo)
+            .ThenByDescending(h => h.NgayBatDau)
+            .ToListAsync();
 
-    private async Task LoadLopHocPhansAsync(ISinhVienService service)
-    {
-        // Theo dữ liệu hiện có của store: danh mục Lớp sinh hoạt.
-        // Nếu sau này có ILopHocPhanService riêng thì chỉ cần đổi nguồn ở đây.
-        var list = await service.GetDanhSachLopSinhHoatAsync();
-        DanhSachLopSinhHoat = OrEmpty(list);
-    }
+        ReportProgress(45, "Đang nạp môn học từ bộ nhớ cục bộ...");
+        DanhSachMonHoc = await local.MonHocs
+            .AsNoTracking()
+            .Where(m => !m.IsDeleted)
+            .OrderBy(m => m.TenMon)
+            .ToListAsync();
 
-    private async Task LoadMetadataAsync(ISinhVienService service)
-    {
-        var list = await service.GetDanhSachKhoaHocAsync();
-        DanhSachKhoaHoc = OrEmpty(list);
+        ReportProgress(70, "Đang nạp lớp sinh hoạt từ bộ nhớ cục bộ...");
+        DanhSachLopSinhHoat = await local.SinhViens
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && s.LopSinhHoat != null && s.LopSinhHoat != "")
+            .Select(s => s.LopSinhHoat!)
+            .Distinct()
+            .OrderBy(l => l)
+            .ToListAsync();
+
+        ReportProgress(90, "Đang nạp khóa học từ bộ nhớ cục bộ...");
+        DanhSachKhoaHoc = await local.SinhViens
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && s.KhoaHoc != null && s.KhoaHoc != "")
+            .Select(s => s.KhoaHoc!)
+            .Distinct()
+            .OrderBy(k => k)
+            .ToListAsync();
+
+        ReportProgress(100, "Hoàn tất nạp dữ liệu.");
     }
 }
