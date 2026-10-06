@@ -69,7 +69,14 @@ Tạo một lớp dịch vụ `MemoryDataStore` đăng ký `Singleton` trong DI 
 
 ---
 
-## 6. Hướng Mở Rộng Trong Tương Lai (Dual-Database / SQLite)
-Trong các giai đoạn phát triển tiếp theo (khi cần hỗ trợ chế độ Offline-First hoặc dữ liệu lớn vượt mức tối ưu của RAM):
-* Thay thế `MemoryDataStore` bằng **SQLite** lưu trữ file cục bộ trên máy client.
-* Áp dụng kiến trúc Repository hai tầng: Tầng Đọc (Query từ SQLite Local) và Tầng Ghi (Ghi Neon Remote -> Đồng bộ về SQLite Local).
+## 6. Kiến Trúc Thực Tế: Bộ Nhớ Đệm 2 Tầng (2-Tier Caching: RAM L1 + SQLite L2)
+
+Hệ thống đã triển khai thành công mô hình **Hybrid Local Cache** kết hợp giữa RAM và cơ sở dữ liệu SQLite đĩa cục bộ:
+
+* **Tầng L1 Cache (RAM):** `MemoryCacheStore` lưu các danh mục tĩnh trên bộ nhớ để cung cấp dữ liệu tức thì cho UI binding (0ms).
+* **Tầng L2 Cache (Disk Storage):** `LocalAppDbContext` (SQLite) lưu dữ liệu bền vững tại thư mục người dùng (`SpecialFolder.LocalApplicationData`), cho phép nạp dữ liệu tức thì (10ms - 20ms) ngay khi vừa mở ứng dụng mà không cần chờ nạp lại từ Cloud.
+* **Cơ chế Đồng bộ Vi sai (Delta Sync & Read-Local / Write-Remote):**
+  * **Luồng Đọc (Read):** Mọi thao tác tìm kiếm, tra cứu, hiển thị danh sách từ ViewModel đều đọc trực tiếp từ SQLite Local DB qua `ILocalReadService` (hỗ trợ Offline Read-Only).
+  * **Luồng Ghi (Write):** Thao tác Thêm/Sửa/Xóa và Đăng ký học phần được gửi trực tiếp lên Cloud Neon PostgreSQL làm Single Source of Truth, sau đó lập tức được cập nhật bản sao về SQLite Local DB qua `ISyncService.UpsertLocalEntityAsync` / `SyncDeltaAsync`.
+
+> 🔗 Xem tài liệu đặc tả kỹ thuật chi tiết tại [`../01-features/F06-local-database-cache-sync.md`](../01-features/F06-local-database-cache-sync.md).

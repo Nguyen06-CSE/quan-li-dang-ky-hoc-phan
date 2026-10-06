@@ -71,6 +71,8 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
     private readonly IMemoryCacheStore _cacheStore;
     private readonly ICurrentUserService _currentUserService;
     private readonly IBaoCaoService? _baoCaoService;
+    private readonly ILocalReadService _localReadService;
+    private readonly ISyncService _syncService;
 
     // Timer debounce 300ms và CancellationTokenSource cho tìm kiếm in-memory
     private readonly System.Timers.Timer _debounceTimer;
@@ -232,6 +234,8 @@ public DangKyHocPhanViewModel(
         INguoiDungRepository nguoiDungRepository,
         IMemoryCacheStore cacheStore,
         ICurrentUserService currentUserService,
+        ILocalReadService localReadService,
+        ISyncService syncService,
         IBaoCaoService? baoCaoService = null)
     {
         _dangKyService = dangKyService;
@@ -241,6 +245,8 @@ public DangKyHocPhanViewModel(
         _lopHocPhanService = lopHocPhanService;
         _cauHinhService = cauHinhService;
         _nguoiDungRepository = nguoiDungRepository;
+        _localReadService = localReadService;
+        _syncService = syncService;
         
         // GÁN THAM SỐ VÀO BIẾN TRƯỜNG TRƯỚC TIÊN
         _cacheStore = cacheStore;
@@ -280,7 +286,9 @@ public DangKyHocPhanViewModel(
         _debounceTimer.Elapsed += (s, e) => ApplyFiltersInMemory();
 
         _ = InitDataAsync();
-    }    public DangKyHocPhanViewModel()
+    }
+
+    public DangKyHocPhanViewModel()
     {
         _dangKyService = null!;
         _hocKyService = null!;
@@ -291,8 +299,9 @@ public DangKyHocPhanViewModel(
         _nguoiDungRepository = null!;
         _cacheStore = null!;
         _currentUserService = null!;
+        _localReadService = null!;
+        _syncService = null!;
         _debounceTimer = new System.Timers.Timer(300);
-
     }
 
     /// <summary>
@@ -341,9 +350,9 @@ public DangKyHocPhanViewModel(
             DsMonHocFilter.Clear();
             foreach (var mh in _cacheStore.DanhSachMonHoc) DsMonHocFilter.Add(mh);
 
-            // Nạp toàn bộ danh sách sinh viên vào RAM (in-memory cache)
-            var result = await _sinhVienService.TimKiemAsync(null, null, null, 1, 100000);
-            _masterList = result.Items.ToList();
+            // Nạp toàn bộ danh sách sinh viên vào RAM từ SQLite Local DB (0ms)
+            var items = await _localReadService.GetSinhViensLocalAsync();
+            _masterList = items;
 
             _dangKhoiTao = false;
 
@@ -472,10 +481,10 @@ public DangKyHocPhanViewModel(
     {
         try
         {
-            if (HocKyHienHanh != null && _baoCaoService != null)
+            if (HocKyHienHanh != null)
             {
                 Dispatcher.UIThread.Invoke(() => IsLoading = true);
-                var ds = await _baoCaoService.DsSinhVienTheoMonAsync(mon.MaMon, HocKyHienHanh.MaHocKy);
+                var ds = await _localReadService.GetDsSinhVienTheoMonLocalAsync(mon.MaMon, HocKyHienHanh.MaHocKy);
                 _registeredStudentIdsForFilter = ds
                     .Where(x => x.TrangThai == "DangHoc")
                     .Select(x => x.MaSV)
@@ -690,7 +699,7 @@ public DangKyHocPhanViewModel(
 
         try
         {
-            var list = await _dangKyService.LayDanhSachDangKyAsync(maSV, HocKyHienHanh.MaHocKy);
+            var list = await _localReadService.GetDangKyLocalAsync(maSV, HocKyHienHanh.MaHocKy);
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
             var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
 
@@ -755,13 +764,20 @@ public DangKyHocPhanViewModel(
         {
             Dispatcher.UIThread.Invoke(() => IsLoading = true);
 
+            var maSvList = students.Select(s => s.MaSV).ToList();
+            var allRegistrations = await _localReadService.GetDangKyNhieuSvLocalAsync(maSvList, HocKyHienHanh.MaHocKy);
+            var regBySv = allRegistrations
+                .Where(d => d.TrangThai == "DangHoc")
+                .GroupBy(d => d.MaSV)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             var items = new List<StudentComparisonItem>();
             foreach (var sv in students)
             {
-                var list = await _dangKyService.LayDanhSachDangKyAsync(sv.MaSV, HocKyHienHanh.MaHocKy);
+                var list = regBySv.TryGetValue(sv.MaSV, out var svRegs) ? svRegs : new List<DangKyHocPhan>();
                 var rawCourses = new List<DangKyHocPhanDisplayDto>();
 
-                foreach (var dk in list.Where(d => d.TrangThai == "DangHoc"))
+                foreach (var dk in list)
                 {
                     int tcLT = dk.LopHocPhan?.MonHoc?.SoTinChiLT ?? 0;
                     int tcTH = dk.LopHocPhan?.MonHoc?.SoTinChiTH ?? 0;
@@ -916,15 +932,17 @@ public DangKyHocPhanViewModel(
 
         try
         {
-            var lhps = await _lopHocPhanService.LayTheoHocKyAsync(HocKyHienHanh.MaHocKy, null, mon.MaMon);
+            var lhps = await _localReadService.GetLopHocPhansLocalAsync(HocKyHienHanh.MaHocKy, null, mon.MaMon);
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
             var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
+            var maLhpList = lhps.Select(l => l.MaLHP).ToList();
+            var siSoDict = await _localReadService.DemSiSoDangKyBulkLocalAsync(maLhpList);
 
             var tempList = new List<LopHocPhanDisplayDto>();
 
             foreach (var lhp in lhps)
             {
-                int siSoRealtime = await _lopHocPhanService.DemSiSoDangKyAsync(lhp.MaLHP);
+                int siSoRealtime = siSoDict.TryGetValue(lhp.MaLHP, out var count) ? count : 0;
                 if (lhp.SiSoToiDa.HasValue && lhp.SiSoToiDa.Value > 0 && siSoRealtime >= lhp.SiSoToiDa.Value)
                 {
                     continue; // Ẩn các LHP đã đầy sĩ số
@@ -1009,6 +1027,7 @@ public DangKyHocPhanViewModel(
             }
 
             ShowMessage("Đăng ký thành công.", false);
+            await _syncService.SyncDeltaAsync();
             await LoadDangKyCuaSinhVienAsync(SinhVienDangChon.MaSV);
             await LoadLHPTheoMonAsync(MonDangChon);
         }
@@ -1033,6 +1052,7 @@ public DangKyHocPhanViewModel(
         {
             await _dangKyService.HuyDangKyAsync(SinhVienDangChon.MaSV, dto.MaLHP);
             ShowMessage($"Đã hủy đăng ký lớp học phần {dto.MaLHP} thành công.", false);
+            await _syncService.SyncDeltaAsync();
             await LoadDangKyCuaSinhVienAsync(SinhVienDangChon.MaSV);
             await LoadLHPTheoMonAsync(MonDangChon);
         }

@@ -24,6 +24,8 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
     private readonly INguoiDungRepository _nguoiDungRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IMemoryCacheStore _cacheStore;
+    private readonly ILocalReadService _localReadService;
+    private readonly ISyncService _syncService;
     private readonly Timer _debounceTimer;
 
     // ✅ THÊM MỚI: chặn debounce trong lúc khởi tạo
@@ -68,7 +70,9 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         IMonHocService monHocService,
         INguoiDungRepository nguoiDungRepository,
         ICurrentUserService currentUserService,
-        IMemoryCacheStore cacheStore)
+        IMemoryCacheStore cacheStore,
+        ILocalReadService localReadService,
+        ISyncService syncService)
     {
         _hocKyService = hocKyService;
         _lhpService = lhpService;
@@ -76,6 +80,8 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         _nguoiDungRepository = nguoiDungRepository;
         _currentUserService = currentUserService;
         _cacheStore = cacheStore;
+        _localReadService = localReadService;
+        _syncService = syncService;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudHocKyLopHocPhan, _currentUserService.CurrentUser.Role);
@@ -95,6 +101,8 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         _nguoiDungRepository = null!;
         _currentUserService = null!;
         _cacheStore = null!;
+        _localReadService = null!;
+        _syncService = null!;
         _debounceTimer = new Timer(300);
     }
 
@@ -167,8 +175,8 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         SelectedMonFilter = DanhSachMonHocFilter.First();
     }
 
-    // ✅ THÊM MỚI: Load TOÀN BỘ LHP của mọi học kỳ vào cache 1 lần
-    // - Enrich sẵn: tên giảng viên, sĩ số đăng ký, tên môn
+    // ✅ ĐỌC TỪ LOCAL SQLITE: Load TOÀN BỘ LHP của mọi học kỳ vào cache 1 lần
+    // - Enrich sẵn: tên giảng viên, sĩ số đăng ký (bulk count), tên môn
     private async Task LoadMasterLhpAsync()
     {
         try
@@ -177,19 +185,18 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
             var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
 
-            // 2. Load ALL LHP của tất cả học kỳ
-            var allLhps = new List<LopHocPhan>();
-            foreach (var hk in DanhSachHocKy)
-            {
-                var lhps = await _lhpService.LayTheoHocKyAsync(hk.MaHocKy, null, null);
-                allLhps.AddRange(lhps);
-            }
+            // 2. Load ALL LHP của tất cả học kỳ từ Local SQLite DB (0ms)
+            var allLhps = await _localReadService.GetLopHocPhansLocalAsync();
 
-            // 3. Build display list (enrich 1 lần duy nhất, không lặp lại khi filter)
+            // 3. Lấy sĩ số đăng ký hàng loạt qua local query (triệt tiêu vòng lặp N+1 query)
+            var maLhpList = allLhps.Select(l => l.MaLHP).ToList();
+            var siSoDict = await _localReadService.DemSiSoDangKyBulkLocalAsync(maLhpList);
+
+            // 4. Build display list
             var displayList = new List<LopHocPhanDisplayDto>(allLhps.Count);
             foreach (var lhp in allLhps)
             {
-                int siSo = await _lhpService.DemSiSoDangKyAsync(lhp.MaLHP);
+                int siSo = siSoDict.TryGetValue(lhp.MaLHP, out var count) ? count : 0;
                 string gvName = !string.IsNullOrEmpty(lhp.MaGV) && gvDict.TryGetValue(lhp.MaGV, out var name)
                     ? $"{name} ({lhp.MaGV})"
                     : "Chưa phân công";
@@ -290,6 +297,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             try
             {
                 await _hocKyService.ThemAsync(newHk);
+                await _syncService.UpsertLocalEntityAsync(newHk);
                 ShowMessage($"Đã thêm học kỳ {newHk.TenHocKy} ({newHk.MaHocKy}) thành công.", false);
 
                 // ✅ ĐỔI MỚI: reload học kỳ + master LHP + filter
@@ -309,6 +317,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         try
         {
             await _hocKyService.DatHocKyHienHanhAsync(hk.MaHocKy);
+            await _syncService.SyncDeltaAsync();
             ShowMessage($"Đã đặt học kỳ {hk.TenHocKy} làm học kỳ hiện hành.", false);
             await LoadDanhSachHocKyAsync();
         }
@@ -332,6 +341,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             if (newLhp != null)
             {
                 await _lhpService.ThemAsync(newLhp);
+                await _syncService.UpsertLocalEntityAsync(newLhp);
                 ShowMessage($"Đã thêm lớp học phần {newLhp.MaLHP} thành công.", false);
 
                 // ✅ ĐỔI MỚI: reload master LHP + filter (không query lại per-item)
@@ -359,6 +369,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             if (updatedLhp != null)
             {
                 await _lhpService.CapNhatAsync(updatedLhp);
+                await _syncService.UpsertLocalEntityAsync(updatedLhp);
                 ShowMessage($"Đã cập nhật lớp học phần {updatedLhp.MaLHP} thành công.", false);
 
                 // ✅ ĐỔI MỚI
@@ -383,6 +394,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             try
             {
                 await _lhpService.XoaAsync(dto.MaLHP);
+                await _syncService.RemoveLocalEntityAsync<LopHocPhan>(dto.MaLHP);
                 ShowMessage($"Đã xóa lớp học phần {dto.MaLHP} thành công.", false);
 
                 // ✅ ĐỔI MỚI

@@ -363,4 +363,51 @@ public class SyncService : ISyncService
         NgayTao = item.NgayTao,
         NgayCapNhat = item.NgayCapNhat
     };
+
+    public async Task UpsertLocalEntityAsync<TEntity>(TEntity entity) where TEntity : class
+    {
+        await using var local = await _localFactory.CreateDbContextAsync();
+        var keyValues = local.Model.FindEntityType(typeof(TEntity))?
+            .FindPrimaryKey()?.Properties
+            .Select(p => p.PropertyInfo?.GetValue(entity))
+            .ToArray();
+
+        if (keyValues != null && keyValues.All(k => k != null))
+        {
+            var existing = await local.Set<TEntity>().FindAsync(keyValues);
+            if (existing != null)
+            {
+                local.Entry(existing).CurrentValues.SetValues(entity);
+            }
+            else
+            {
+                await local.Set<TEntity>().AddAsync(entity);
+            }
+        }
+        else
+        {
+            await local.Set<TEntity>().AddAsync(entity);
+        }
+
+        await local.SaveChangesAsync();
+    }
+
+    public async Task RemoveLocalEntityAsync<TEntity>(params object[] keyValues) where TEntity : class
+    {
+        await using var local = await _localFactory.CreateDbContextAsync();
+        var existing = await local.Set<TEntity>().FindAsync(keyValues);
+        if (existing != null)
+        {
+            // Soft delete if supports ISoftDeleteEntity
+            if (existing is ISoftDeleteEntity softDelete)
+            {
+                softDelete.IsDeleted = true;
+            }
+            else
+            {
+                local.Set<TEntity>().Remove(existing);
+            }
+            await local.SaveChangesAsync();
+        }
+    }
 }

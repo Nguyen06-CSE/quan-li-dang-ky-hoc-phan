@@ -12,6 +12,7 @@ docs/
 ├── roadmap.md                     # Tổng quan lộ trình, các mốc quan trọng (Milestones)
 │
 ├── 00-architecture/               # Kiến trúc hệ thống, Phân quyền, DB Schema
+│   ├── caching-and-state-management.md # Kiến trúc Cache 2 tầng & ViewModel State
 │   ├── coding-conventions.md      # Quy chuẩn code C# / MVVM / Git branch
 │   ├── database-setup.md          # Hướng dẫn setup DB Local / Docker
 │   ├── ERD.md                     # Thiết kế bảng & Mối quan hệ
@@ -21,7 +22,8 @@ docs/
 │   ├── F01-auth-login.md          # Đăng nhập, session, nhớ mật khẩu
 │   ├── F02-quan-ly-sinh-vien.md   # CRUD sinh viên, bộ lọc Lớp/Khoá
 │   ├── F03-dkhp.md                # Đăng ký học phần, thuật toán ràng buộc
-│   └── F04-import-excel.md        # Luồng Import Excel, xử lý file lớn
+│   ├── F04-import-excel.md        # Luồng Import Excel, xử lý file lớn
+│   └── F06-local-database-cache-sync.md # Hybrid Cache SQLite & Delta Sync
 │
 ├── 02-daily-logs/                 # Tiến trình công việc & Blockers theo NGÀY (Daily Log)
 │   ├── 2026-09-28.md              # Báo cáo tiến độ ngày 28/09
@@ -50,11 +52,13 @@ docs/
 - **[Lộ trình phát triển](roadmap.md)**: Danh sách các Sprint & tính năng sắp triển khai.
 - **[Kiến trúc & DB](00-architecture/)**:
   - [Quy chuẩn viết code](00-architecture/coding-conventions.md)
+  - [Kiến trúc Cache 2 tầng & Trạng thái UI](00-architecture/caching-and-state-management.md)
   - [Hướng dẫn Cài đặt DB PostgreSQL](00-architecture/database-setup.md)
   - [Sơ đồ ERD](00-architecture/ERD.md)
   - [Ma trận Phân quyền Hệ thống](00-architecture/PHAN-QUYEN.md)
 - **[Đặc tả Chức năng](01-features/)**: Chi tiết yêu cầu UI/UX và logic nghiệp vụ.
   - [Tổng quan chức năng](01-features/README.md)
+  - [Đặc tả Bộ nhớ đệm Cục bộ & Delta Sync (F06)](01-features/F06-local-database-cache-sync.md)
 - **[Tiến độ hằng ngày](02-daily-logs/)**: Cập nhật công việc, task hoàn thành theo ngày.
 - **[Sửa lỗi & Tồn đọng](03-troubleshooting/)**:
   - [Nhật ký lỗi đã xử lý (FIX.md)](03-troubleshooting/FIX.md)

@@ -15,6 +15,7 @@ Tài liệu này liệt kê **toàn bộ nhóm chức năng chính** của dự 
 5. [Quản lý Người dùng & Phân quyền](#5-quản-lý-người-dùng--phân-quyền)
 6. [Nhập dữ liệu tự động (Import Excel)](#6-nhập-dữ-liệu-tự-động-import-excel)
 7. [Dashboard & Cấu hình Hệ thống](#7-dashboard--cấu-hình-hệ-thống)
+8. [Bộ nhớ đệm Cục bộ & Đồng bộ Vi sai (Hybrid Cache & Delta Sync)](#8-bộ-nhớ-đệm-cục-bộ--đồng-bộ-vi-sai-hybrid-cache--delta-sync)
 
 ---
 
@@ -92,11 +93,22 @@ Tài liệu này liệt kê **toàn bộ nhóm chức năng chính** của dự 
 
 ---
 
+## 8. Bộ nhớ đệm Cục bộ & Đồng bộ Vi sai (Hybrid Cache & Delta Sync)
+
+- **Mô hình Hybrid Cache 2 tầng:** Kết hợp RAM L1 Cache (đọc 0ms) và SQLite L2 Cache (khởi động 15ms).
+- **Cơ chế Read-Local / Write-Remote:** Đọc toàn bộ danh mục từ SQLite cục bộ; Ghi giao dịch đăng ký trực tiếp lên Cloud Neon PostgreSQL làm Single Source of Truth rồi đồng bộ ngược về SQLite.
+- **Delta Sync (High-water mark):** Tự động kéo các bản ghi thay đổi từ Cloud về SQLite local ngầm sau khi mở ứng dụng.
+
+> 🔗 Xem chi tiết đặc tả kỹ thuật F06 tại [`F06-local-database-cache-sync.md`](F06-local-database-cache-sync.md).
+
+---
+
 ## 🔗 Liên kết liên quan
 
 - [Đặc tả Đăng nhập](F01-auth-login.md)
 - [Đặc tả Quản lý Sinh viên](F02-quan-ly-sinh-vien.md)
 - [Đặc tả Đăng ký học phần](F03-dkhp.md)
 - [Đặc tả Import Excel](F04-import-excel.md)
+- [Đặc tả Bộ nhớ đệm Cục bộ & Delta Sync](F06-local-database-cache-sync.md)
 - [Ma trận Phân quyền](../00-architecture/PHAN-QUYEN.md)
 - [Sơ đồ ERD](../00-architecture/ERD.md)

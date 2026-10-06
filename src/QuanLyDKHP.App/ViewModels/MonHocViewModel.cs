@@ -60,14 +60,23 @@ public partial class MonHocViewModel : ObservableObject
     private ObservableCollection<MonHocDto> _danhSach = new();
 
     private readonly IExcelExportService _excelExportService;
+    private readonly ILocalReadService _localReadService;
+    private readonly ISyncService _syncService;
 
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
 
-    public MonHocViewModel(IMonHocService monHocService, ICurrentUserService currentUserService, IExcelExportService excelExportService)
+    public MonHocViewModel(
+        IMonHocService monHocService,
+        ICurrentUserService currentUserService,
+        IExcelExportService excelExportService,
+        ILocalReadService localReadService,
+        ISyncService syncService)
     {
         _monHocService = monHocService;
         _currentUserService = currentUserService;
         _excelExportService = excelExportService;
+        _localReadService = localReadService;
+        _syncService = syncService;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudMonHoc, _currentUserService.CurrentUser.Role);
@@ -84,20 +93,20 @@ public partial class MonHocViewModel : ObservableObject
         _monHocService = null!;
         _currentUserService = null!;
         _excelExportService = null!;
+        _localReadService = null!;
+        _syncService = null!;
         _debounceTimer = new Timer(300);
     }
 
-    // ✅ THÊM MỚI: Load TOÀN BỘ dữ liệu 1 lần duy nhất từ DB vào _masterList
-    // (thay cho LoadDataAsync cũ vừa query vừa filter phía server)
+    // Đọc TOÀN BỘ dữ liệu môn học 0ms từ SQLite Local DB
     private async Task InitMasterDataAsync()
     {
         try
         {
             IsLoading = true;
 
-            // Truyền null cho từ khóa → lấy hết; sortParam mặc định "TenMon"
-            var items = await _monHocService.LayDanhSachDtoAsync(null, "TenMon");
-            _masterList = items.ToList();
+            var items = await _localReadService.GetMonHocsLocalAsync();
+            _masterList = items;
 
             _dangKhoiTao = false;
 
@@ -175,6 +184,7 @@ public partial class MonHocViewModel : ObservableObject
             try
             {
                 await _monHocService.ThemAsync(newMon);
+                await _syncService.UpsertLocalEntityAsync(newMon);
                 ShowMessage($"Đã thêm môn học {newMon.TenMon} ({newMon.MaMon}) thành công.", false);
 
                 // ✅ ĐỔI MỚI: reload master list + lọc lại in-memory (không query DB 2 lần)
@@ -206,6 +216,7 @@ public partial class MonHocViewModel : ObservableObject
             try
             {
                 await _monHocService.CapNhatAsync(updatedMon);
+                await _syncService.UpsertLocalEntityAsync(updatedMon);
                 ShowMessage($"Đã cập nhật môn học {updatedMon.MaMon} thành công.", false);
 
                 // ✅ ĐỔI MỚI: reload master list
@@ -228,6 +239,7 @@ public partial class MonHocViewModel : ObservableObject
             try
             {
                 await _monHocService.XoaAsync(dto.MaMon);
+                await _syncService.RemoveLocalEntityAsync<MonHoc>(dto.MaMon);
                 ShowMessage($"Đã xóa môn học {dto.MaMon} thành công.", false);
 
                 // ✅ ĐỔI MỚI: reload master list

@@ -62,15 +62,25 @@ public partial class SinhVienViewModel : ObservableObject
 
     private readonly IExcelExportService _excelExportService;
     private readonly IMemoryCacheStore _cacheStore;
+    private readonly ILocalReadService _localReadService;
+    private readonly ISyncService _syncService;
 
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
 
-    public SinhVienViewModel(ISinhVienService sinhVienService, ICurrentUserService currentUserService, IExcelExportService excelExportService, IMemoryCacheStore cacheStore)
+    public SinhVienViewModel(
+        ISinhVienService sinhVienService,
+        ICurrentUserService currentUserService,
+        IExcelExportService excelExportService,
+        IMemoryCacheStore cacheStore,
+        ILocalReadService localReadService,
+        ISyncService syncService)
     {
         _sinhVienService = sinhVienService;
         _currentUserService = currentUserService;
         _excelExportService = excelExportService;
         _cacheStore = cacheStore;
+        _localReadService = localReadService;
+        _syncService = syncService;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudSinhVien, _currentUserService.CurrentUser.Role);
@@ -91,6 +101,8 @@ public partial class SinhVienViewModel : ObservableObject
         _currentUserService = null!;
         _excelExportService = null!;
         _cacheStore = null!;
+        _localReadService = null!;
+        _syncService = null!;
         _debounceTimer = new Timer(300);
     }
 
@@ -112,10 +124,9 @@ public partial class SinhVienViewModel : ObservableObject
             DsKhoaHoc.Add("Tất cả");
             foreach (var k in _cacheStore.DanhSachKhoaHoc) DsKhoaHoc.Add(k);
 
-            // Load TOÀN BỘ dữ liệu 1 lần duy nhất từ DB (Set pageSize cực lớn, ví dụ 100.000)
-            // Lời khuyên: Về sau bạn nên tạo 1 hàm GetAll() trả về thẳng List<SinhVienDto> ở Repository
-            var result = await _sinhVienService.TimKiemAsync(null, null, null, 1, 100000);
-            _masterList = result.Items.ToList();
+            // Đọc 0ms từ SQLite Local DB thay vì remote Neon PostgreSQL
+            var items = await _localReadService.GetSinhViensLocalAsync();
+            _masterList = items;
 
             _dangKhoiTao = false;
 
@@ -195,6 +206,7 @@ public partial class SinhVienViewModel : ObservableObject
             try
             {
                 await _sinhVienService.ThemAsync(newSv);
+                await _syncService.UpsertLocalEntityAsync(newSv);
                 ShowMessage($"Đã thêm sinh viên {newSv.HoTen} ({newSv.MaSV}) thành công.", false);
                 await InitFiltersAndLoadMasterDataAsync(); // Load lại Master Data
             }
@@ -223,6 +235,7 @@ public partial class SinhVienViewModel : ObservableObject
             try
             {
                 await _sinhVienService.CapNhatAsync(updatedSv);
+                await _syncService.UpsertLocalEntityAsync(updatedSv);
                 ShowMessage($"Đã cập nhật sinh viên {updatedSv.MaSV} thành công.", false);
                 await InitFiltersAndLoadMasterDataAsync(); // Load lại Master Data
             }
@@ -243,6 +256,7 @@ public partial class SinhVienViewModel : ObservableObject
             try
             {
                 await _sinhVienService.XoaAsync(dto.MaSV);
+                await _syncService.RemoveLocalEntityAsync<SinhVien>(dto.MaSV);
                 ShowMessage($"Đã xóa sinh viên {dto.MaSV} thành công.", false);
                 await InitFiltersAndLoadMasterDataAsync(); // Load lại Master Data
             }

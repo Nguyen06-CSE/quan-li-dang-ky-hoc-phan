@@ -110,6 +110,7 @@ public partial class App : Application
         services.AddScoped<IPdfExportService, QuanLyDKHP.Infrastructure.Export.PdfExportService>();
         services.AddScoped<IExcelExportService, QuanLyDKHP.Infrastructure.Export.ExcelExportService>();
         services.AddScoped<ISyncService, SyncService>();
+        services.AddScoped<ILocalReadService, LocalReadService>();
 
         // ViewModels
         services.AddTransient<LoginViewModel>();
