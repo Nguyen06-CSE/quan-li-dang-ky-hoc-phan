@@ -135,7 +135,7 @@ public partial class App : Application
         services.AddSingleton<Func<CauHinhViewModel>>(sp => () => sp.GetRequiredService<CauHinhViewModel>());
         services.AddSingleton<Func<NguoiDungViewModel>>(sp => () => sp.GetRequiredService<NguoiDungViewModel>());
         services.AddSingleton<Func<ImportExcelViewModel>>(sp => () => sp.GetRequiredService<ImportExcelViewModel>());
-
+       
         // Views
         services.AddTransient<LoginWindow>();
         services.AddTransient<MainWindow>();

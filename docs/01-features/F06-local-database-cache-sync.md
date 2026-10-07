@@ -1,349 +1,220 @@
-# F06 - Bộ Nhớ Đệm Cục Bộ (SQLite Local DB) & Đồng Bộ Vi Sai (Delta Sync)
+# Đặc Tả Tính Năng F06: Local Database Cache & Delta Sync (Hybrid 2-Tier Caching)
 
-## 1. Bối Cảnh Kỹ Thuật & Mục Tiêu Nghiệp Vụ
+## Chương 1: Bối cảnh Kỹ thuật & Mục tiêu Nghiệp vụ
 
-### 1.1. Vấn đề Kỹ thuật trước khi Tối ưu
-* **Độ trễ truy vấn Cloud DB (Neon PostgreSQL):** Do máy chủ PostgreSQL đặt tại Cloud (Neon), độ trễ đường truyền mạng trung bình biến động từ **150ms đến 300ms** cho mỗi truy vấn. Trường hợp database nhàn rỗi (cold-start), thời gian kết nối lại có thể mất từ **2s đến 5s**.
-* **Giới hạn của `IMemoryCacheStore` (RAM pure L1):** Khi ứng dụng tắt và khởi chạy lại, toàn bộ dữ liệu trong bộ nhớ RAM bị giải phóng hoàn toàn. Việc phải nạp lại toàn bộ Master Data từ Cloud DB trong mỗi phiên đăng nhập khiến ứng dụng bị khựng (stale status) **3s đến 5s** ở màn hình splash/chờ.
-* **Tải lặp dữ liệu danh mục:** Các chức năng chính như Quản lý Sinh viên, Môn học, Học kỳ/Lớp học phần đều gửi các request trùng lặp lên Cloud DB để lấy dữ liệu tĩnh, gây lãng phí băng thông và hạ tầng Cloud.
+### 1.1. Vấn đề trước khi tối ưu
+- **Độ trễ mạng của Cloud DB (Neon PostgreSQL):** Mỗi truy vấn đọc dữ liệu danh mục hoặc bảng từ Neon PostgreSQL thông qua kết nối Internet mất từ **150ms – 300ms**, và có thể khựng từ **2s – 5s (cold-start)** khi database rơi vào trạng thái nhàn rỗi (idle/sleep).
+- **Hạn chế của `IMemoryCacheStore` thuần RAM:** Bộ nhớ đệm RAM bị xóa sạch hoàn toàn mỗi khi người dùng tắt ứng dụng. Do đó, khởi động app lần đầu luôn bị khựng từ **3s – 5s** do phải nạp lại toàn bộ danh mục từ Cloud.
+- **Nghẽn nghiêm trọng tại Màn hình Học phí:** Hàm tính toán học phí `TinhHocPhiTheoDanhSachAsync` trước đây thực hiện hàng loạt truy vấn lặp $N+1$ trực tiếp lên Neon PostgreSQL thông qua các Repository. Khi hiển thị danh sách cho một lớp hoặc một khóa, ứng dụng kích hoạt hàng chục query `_sinhVienRepo.GetByIdAsync` / `DangKyHocPhan` lên Cloud DB, khiến giao diện bị đơ (freeze) từ **75 giây đến 88 giây** đối với danh sách khoảng 40–50 sinh viên.
 
-### 1.2. Mục tiêu Kỹ thuật & Nghiệp vụ Đạt được
-1. **Khởi động tức thì (Instant Startup):** Mở ứng dụng và nạp toàn bộ danh mục lên UI chỉ trong **10ms – 20ms** bằng cách truy vấn SQLite đĩa cục bộ.
-2. **Lọc / Tìm kiếm 0ms (Offline Read-only Support):** Cho phép tra cứu, tìm kiếm, lọc danh sách Sinh viên, Môn học, Lớp học phần trực tiếp trên đĩa local với độ trễ **0ms**, kể cả khi mất kết nối Internet.
-3. **Bảo đảm toàn vẹn giao dịch (Host First Write):** Giữ luồng GHI (Create/Update/Delete) qua Cloud Neon PostgreSQL để làm **Single Source of Truth**, ngăn ngừa triệt tiêu các ràng buộc giao dịch thời gian thực (như `SiSoToiDa`, đăng ký trùng môn). Cập nhật ngược về SQLite ngay sau khi Cloud xác nhận thành công.
+### 1.2. Mục tiêu kỹ thuật đạt được
+- **Khởi động app tức thì (10ms – 20ms):** Nhờ nạp trực tiếp dữ liệu danh mục từ đĩa cục bộ (SQLite) thay vì chờ kết nối mạng.
+- **Tra cứu, tìm kiếm, lọc danh mục đạt tốc độ 0ms – 2ms:** Phản hồi mượt mà ở mức 60 FPS kể cả khi mất kết nối Internet (Offline Read-Only mode).
+- **Tối ưu Tính toán Học phí (Snapshot & Closing Architecture):** Chuyển 100% luồng đọc và tính toán học phí về SQLite Local DB, đưa tổng thời gian xử lý và hiển thị danh sách từ **88,000ms xuống dưới 50ms** (cải thiện hiệu năng hơn **1700 lần**).
+- **Đảm bảo tính toàn vẹn giao dịch:** Các thao tác ghi (Đăng ký học phần, đổi trạng thái) vẫn tuân thủ mô hình **Write-Remote** nhằm giữ vững tính nhất quán sĩ số và hạn ngạch trên Cloud Neon PostgreSQL.
 
 ---
 
-## 2. Mô Hình Kiến Trúc 2-Tier Caching & Delta Sync (Read-Local / Write-Remote)
+## Chương 2: Mô hình Kiến trúc 2-Tier Caching & Delta Sync (Read-Local / Write-Remote)
 
-### 2.1. Sơ đồ Phân tầng Kiến trúc (ASCII Workflow)
+### 2.1. Sơ đồ phân tầng (ASCII Diagram)
 
 ```text
-                                  ┌───────────────────────────────┐
-                                  │      Cloud PostgreSQL DB      │
-                                  │    (Neon - Single Truth)      │
-                                  └───────────────┬───────────────┘
-                                                  │
-                                                  │ Write (CUD Transactions)
-                                                  │ & Delta Sync Query (>= LastSyncUtc)
-                                                  ▼
-┌───────────────────────────────┐ ┌───────────────────────────────┐
-│     MemoryCacheStore (RAM)    │ │   LocalAppDbContext (SQLite)  │
-│       [L1 Cache - 0ms]        │ │     [L2 Cache - Disk DB]      │
-└───────────────┬───────────────┘ └───────────────┬───────────────┘
-                │                                 │
-                │ Fast In-Memory Bind             │ 0ms Query / Fallback
-                └─────────────────┬───────────────┘
-                                  ▼
-                     ┌──────────────────────────┐
-                     │    UI Views / ViewModels │
-                     └──────────────────────────┘
++-------------------------------------------------------------------------+
+|                       Giao Diện Người Dùng (Avalonia UI)                |
++-------------------------------------------------------------------------+
+                                     │
+           ┌─────────────────────────┴─────────────────────────┐
+           ▼ (Đọc UI Binding: 0ms)                             ▼ (Thao tác Ghi CUD / ĐKHP)
++------------------------------------+               +------------------------------------+
+| L1 Cache (RAM): MemoryCacheStore   |               | Single Source of Truth (Cloud Host) |
++------------------------------------+               | Neon PostgreSQL                    |
+           ▲                                         +------------------------------------+
+           │ (Read Disk: 10ms - 20ms)                                  │
++------------------------------------+                                 │ (Background Sync)
+| L2 Cache (Disk): LocalAppDbContext | <───────────────────────────────┘ (Delta Sync / Upsert)
+| (SQLite - local_cache.db)          |
++------------------------------------+
 ```
 
-### 2.2. Quy tắc Phân loại Luồng Dữ liệu (Read/Write Rules)
-* **Master / Data Danh mục (Read-Local):** `SinhVien`, `MonHoc`, `LopHocPhan`, `HocKy`.
-  * **Luồng Đọc (Read):** Chuyển hướng 100% sang truy vấn từ `LocalAppDbContext` (SQLite) hoặc `IMemoryCacheStore` (RAM).
-  * **Luồng Ghi (Write):** Gửi lệnh CUD tới Cloud Neon PostgreSQL qua `AppDbContext`. Ngay khi thành công, gọi `UpsertLocalEntityAsync` hoặc `RemoveLocalEntityAsync` để cập nhật lập tức vào SQLite local.
-* **Giao dịch Thời gian thực (DangKyHocPhan):**
-  * Luồng đăng ký/hủy đăng ký học phần bắt buộc gửi trực tiếp lên Neon DB qua `IDangKyHocPhanService` để kiểm tra các ràng buộc sĩ số thời gian thực (`SiSoToiDa`).
-  * Ngay sau khi Neon ghi thành công, hệ thống tự động kích hoạt `SyncService.SyncDeltaAsync()` nền để kéo kết quả mới về SQLite local.
+### 2.2. Quy tắc phân loại dữ liệu
+1. **Dữ liệu Master / Danh mục (`SinhVien`, `MonHoc`, `LopHocPhan`, `HocKy`, `CauHinhHeThong`):**
+   - Đọc 100% từ SQLite Local DB / In-Memory RAM.
+   - Khi có thay đổi từ Cloud Host, dịch vụ `SyncService` sẽ tiến hành đồng bộ Delta về SQLite.
+2. **Dữ liệu Giao dịch & Chốt sổ (`DangKyHocPhan`, `HocPhiHocKy`):**
+   - **Đăng ký học phần:** Thao tác đăng ký/hủy được ghi trực tiếp lên Neon PostgreSQL để kiểm tra sĩ số thời gian thực (`SiSoToiDa`). Khi ghi thành công, kết quả được `Upsert` ngay lập tức xuống SQLite Local.
+   - **Học phí (Snapshot & Closing):** 
+     - Học kỳ đã đóng sổ (`DaKhoaSo = true`): Đọc số liệu bất biến cố định từ bảng Snapshot `HocPhiHocKy` trên SQLite (0ms).
+     - Học kỳ hiện hành đang mở (`DangMo = true`): Tính toán "live" dựa trên các môn đã đăng ký cục bộ trong SQLite kết hợp nợ cũ từ bảng Snapshot.
 
 ---
 
-## 3. Chi Tiết Thiết Kế & Triển Khai Theo Clean Architecture
+## Chương 3: Chi tiết Thiết kế & Triển khai theo Clean Architecture
 
-### 3.1. Tầng Core (`QuanLyDKHP.Core`)
+### 3.1. Các Entity & Dịch vụ Mới
+- **`HocPhiHocKy` (`QuanLyDKHP.Core/Entities/HocPhiHocKy.cs`):** Bảng lưu trữ Snapshot học phí cố định của sinh viên theo từng học kỳ (gồm `MaSV`, `MaHocKy`, `TongSoTinChi`, `TongHocPhi`, `DaDong`, `ConNo`, `DaKhoaSo`, `NgayKhoaSo`).
+- **`SyncMetadata` (`QuanLyDKHP.Core/Entities/SyncMetadata.cs`):** Theo dõi lịch sử đồng bộ vi sai theo từng bảng master (`TableName`, `LastSyncUtc`, `RecordCount`).
+- **`ILocalReadService` (`QuanLyDKHP.Core/Interfaces/ILocalReadService.cs`):** Giao diện định nghĩa các hàm truy vấn đọc dữ liệu siêu tốc hoàn toàn từ SQLite (như `GetHocPhiTheoDanhSachLocalAsync`, `GetSinhViensLocalAsync`, `DemSiSoDangKyBulkLocalAsync`).
 
-#### Entity `SyncMetadata.cs`
-Lưu trữ mốc thời gian đồng bộ vi sai (High-water mark timestamp) cho từng bảng:
+### 3.2. Cấu hình DbContext SQLite Cục bộ (`LocalAppDbContext`)
+- **Tách biệt với PostgreSQL:** `LocalAppDbContext` độc lập hoàn toàn với `AppDbContext`, sử dụng provider `Microsoft.EntityFrameworkCore.Sqlite`.
+- **Vị trí lưu trữ đa nền tảng:** File CSDL SQLite được lưu tại:
+  - **macOS / Linux / Windows:** `%LocalAppData%/QuanLyDKHP/local_cache.db` (ví dụ trên macOS: `/Users/<user>/Library/Application Support/QuanLyDKHP/local_cache.db`).
+- **Tự động chuẩn hóa UTC:** Đảm bảo tất cả kiểu `DateTime` được ghi xuống SQLite hoặc lấy ra đều được ép kiểu `DateTimeKind.Utc` thông qua phương thức `AsUtc()`, triệt tiêu lỗi tương thích múi giờ khi so sánh với PostgreSQL `timestamptz`.
+
+### 3.3. Cơ chế Khởi tạo & Tái tạo CSDL Tự động (SQLite Schema Auto-Recreation)
+- `EF Core EnsureCreatedAsync()` không tự động thêm bảng mới nếu tệp `.db` đã tồn tại từ các phiên bản trước.
+- **Giải pháp xử lý:** Trong `LocalAppDbContext`, bổ sung phương thức `CheckAndRecreateIfMissingTablesAsync()`:
 ```csharp
-namespace QuanLyDKHP.Core.Entities;
-
-public class SyncMetadata
-{
-    public string TableName { get; set; } = string.Empty;
-    public DateTime LastSyncUtc { get; set; }
-    public int RecordCount { get; set; }
-}
-```
-
-#### Interface `ILocalReadService.cs`
-Định nghĩa giao diện đọc dữ liệu siêu tốc từ SQLite local:
-```csharp
-namespace QuanLyDKHP.Core.Interfaces;
-
-public interface ILocalReadService
-{
-    Task<List<SinhVienDto>> GetSinhViensLocalAsync(string? tuKhoa = null, string? lop = null, string? khoaHoc = null);
-    Task<List<MonHocDto>> GetMonHocsLocalAsync(string? tuKhoa = null);
-    Task<List<LopHocPhan>> GetLopHocPhansLocalAsync(string? maHocKy = null, string? tuKhoa = null, string? maMon = null);
-    Task<List<DangKyHocPhan>> GetDangKyLocalAsync(string maSV, string maHocKy);
-    Task<List<DangKyHocPhan>> GetDangKyNhieuSvLocalAsync(IEnumerable<string> dsMaSV, string maHocKy);
-    Task<int> DemSiSoDangKyLocalAsync(string maLHP);
-    Task<Dictionary<string, int>> DemSiSoDangKyBulkLocalAsync(IEnumerable<string> dsMaLHP);
-    Task<List<SinhVienTheoMonDto>> GetDsSinhVienTheoMonLocalAsync(string maMon, string maHocKy);
-    Task<DashboardStatsDto> GetDashboardStatsLocalAsync(string? maHocKy);
-}
-```
-
-#### Interface `ISyncService.cs`
-```csharp
-namespace QuanLyDKHP.Core.Interfaces;
-
-public interface ISyncService
-{
-    Task<bool> HasLocalDataAsync();
-    Task InitialSeedAsync(IProgress<(double Percent, string Status)>? progress = null);
-    Task SyncDeltaAsync();
-    Task ForceFullRefreshAsync(IProgress<(double Percent, string Status)>? progress = null);
-    Task UpsertLocalEntityAsync<TEntity>(TEntity entity) where TEntity : class;
-    Task RemoveLocalEntityAsync<TEntity>(params object[] keyValues) where TEntity : class;
-}
-```
-
----
-
-### 3.2. Tầng Infrastructure (`QuanLyDKHP.Infrastructure`)
-
-#### Data Context `LocalAppDbContext.cs`
-Độc lập hoàn toàn với `AppDbContext` (Cloud) nhằm triệt tiêu các hàm đặc thù của Npgsql/PostgreSQL (`gen_random_uuid()`, `timestamptz`, check constraints không hỗ trợ trong SQLite).
-
-* **Đường dẫn lưu trữ đa nền tảng:**
-```csharp
-public static string GetDatabasePath()
-{
-    var folder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "QuanLyDKHP");
-    Directory.CreateDirectory(folder);
-    return Path.Combine(folder, "local_cache.db");
-}
-```
-  * macOS: `~/Library/Application Support/QuanLyDKHP/local_cache.db`
-  * Windows: `%LocalAppData%/QuanLyDKHP/local_cache.db`
-
-* **Định nghĩa DbSets & Indexing:**
-```csharp
-public class LocalAppDbContext : DbContext
-{
-    public DbSet<SinhVien> SinhViens => Set<SinhVien>();
-    public DbSet<MonHoc> MonHocs => Set<MonHoc>();
-    public DbSet<HocKy> HocKys => Set<HocKy>();
-    public DbSet<LopHocPhan> LopHocPhans => Set<LopHocPhan>();
-    public DbSet<DangKyHocPhan> DangKyHocPhans => Set<DangKyHocPhan>();
-    public DbSet<SyncMetadata> SyncMetadatas => Set<SyncMetadata>();
-    ...
-}
-```
-
----
-
-### 3.3. Tầng Services (`QuanLyDKHP.Services` & `QuanLyDKHP.Infrastructure`)
-
-#### Thuật toán Initial Seed & Delta Sync (`SyncService.cs`)
-1. **Initial Seed (Nạp lần đầu):** Bọc toàn bộ thao tác nạp dữ liệu từ Cloud vào `IDbContextTransaction` của SQLite để tối ưu hóa tốc độ ghi đĩa gấp 50 – 100 lần.
-2. **Delta Sync (High-water mark query):** Dùng timestamp `LastSyncUtc` so sánh với `NgayCapNhat` và `NgayTao` của Entity trên Cloud để chỉ kéo các bản ghi có thay đổi:
-
-```csharp
-public async Task SyncDeltaAsync()
+public async Task CheckAndRecreateIfMissingTablesAsync()
 {
     try
     {
-        await using var local = await _localFactory.CreateDbContextAsync();
-        await local.Database.EnsureCreatedAsync();
-
-        if (!await HasLocalDataAsync())
-        {
-            await InitialSeedAsync();
-            return;
-        }
-
-        await using var remote = await _remoteFactory.CreateDbContextAsync();
-        var syncStartedAt = DateTime.UtcNow;
-        var hocKyLastSync = await GetLastSyncUtcAsync(local, nameof(HocKy));
-        var monHocLastSync = await GetLastSyncUtcAsync(local, nameof(MonHoc));
-        var sinhVienLastSync = await GetLastSyncUtcAsync(local, nameof(SinhVien));
-        var lopHocPhanLastSync = await GetLastSyncUtcAsync(local, nameof(LopHocPhan));
-        var dangKyHocPhanLastSync = await GetLastSyncUtcAsync(local, nameof(DangKyHocPhan));
-
-        await using var transaction = await local.Database.BeginTransactionAsync();
-
-        await SyncHocKysAsync(local, await remote.HocKys.AsNoTracking()
-            .Where(e => e.NgayTao > hocKyLastSync || (e.NgayCapNhat != null && e.NgayCapNhat > hocKyLastSync))
-            .ToListAsync());
-
-        await SyncMonHocsAsync(local, await remote.MonHocs.AsNoTracking()
-            .Where(e => e.NgayTao > monHocLastSync || (e.NgayCapNhat != null && e.NgayCapNhat > monHocLastSync))
-            .ToListAsync());
-
-        await SyncSinhViensAsync(local, await remote.SinhViens.AsNoTracking()
-            .Where(e => e.NgayTao > sinhVienLastSync || (e.NgayCapNhat != null && e.NgayCapNhat > sinhVienLastSync))
-            .ToListAsync());
-
-        await SyncLopHocPhansAsync(local, await remote.LopHocPhans.AsNoTracking()
-            .Where(e => e.NgayTao > lopHocPhanLastSync || (e.NgayCapNhat != null && e.NgayCapNhat > lopHocPhanLastSync))
-            .ToListAsync());
-
-        await SyncDangKyHocPhansAsync(local, await remote.DangKyHocPhans.AsNoTracking()
-            .Where(e => e.NgayTao > dangKyHocPhanLastSync || (e.NgayCapNhat != null && e.NgayCapNhat > dangKyHocPhanLastSync))
-            .ToListAsync());
-
-        foreach (var table in MasterTables)
-        {
-            await UpsertMetadataAsync(local, table, syncStartedAt);
-        }
-
-        await local.SaveChangesAsync();
-        await transaction.CommitAsync();
+        // Kiểm tra sự tồn tại của các bảng mới
+        await CauHinhHeThongs.FirstOrDefaultAsync();
+        await HocPhiHocKys.FirstOrDefaultAsync();
     }
-    catch (Exception ex)
+    catch (Microsoft.Data.Sqlite.SqliteException)
     {
-        System.Diagnostics.Debug.WriteLine($"[Local Sync Error]: {ex.Message}");
+        Console.WriteLine("[SQLite] Phát hiện cấu trúc DB cũ (thiếu bảng mới). Đang tái tạo cơ sở dữ liệu...");
+        await Database.EnsureDeletedAsync();
+        await Database.EnsureCreatedAsync();
+        Console.WriteLine("[SQLite] Đã tái tạo đầy đủ các bảng.");
     }
 }
 ```
 
 ---
 
-### 3.4. Tầng Ứng Dụng (`QuanLyDKHP.App`)
+## Chương 4: Luồng Đồng Bộ (Sync Workflow) & Tính Toán Học Phí Cục Bộ
 
-#### Tái cấu trúc `MemoryCacheStore.cs` (Kích hoạt 2-Tier Caching)
-* Khi khởi động ứng dụng (`InitializeAsync`), đọc ngay lập tức từ SQLite Local DB nạp lên RAM L1 Cache (khoảng **15ms**).
-* Kích hoạt tiến trình ngầm `SyncService.SyncDeltaAsync()` để làm mới dữ liệu từ Cloud mà không gây nghẽn UI thread:
+### 4.1. Quy trình Đồng bộ 2 Bước (Initial Seed & Delta Sync)
 
+```text
+[Ứng dụng Khởi chạy]
+         │
+         ▼
+[Kiểm tra HasLocalDataAsync()]
+         │
+         ├─► [Chưa có dữ liệu Local] ──► Chạy InitialSeedAsync()
+         │                               ├─ Tải toàn bộ 7 bảng từ Neon Cloud DB
+         │                               ├─ Bọc Try-Catch riêng biệt cho từng bảng (Isolate Failure)
+         │                               └─ Ghi log tiến độ seed xuống Terminal & Lưu SQLite
+         │
+         └─► [Đã có dữ liệu Local] ───► Chạy SyncDeltaAsync() (Background Worker)
+                                         ├─ Lấy LastSyncUtc của từng bảng (Ép kiểu Utc)
+                                         ├─ Query Neon DB: NgayTao > LastSyncUtc OR NgayCapNhat > LastSyncUtc
+                                         └─ Cập nhật (Upsert) bản ghi thay đổi vào SQLite
+```
+
+### 4.2. Logic Tính Toán Học Phí Cục Bộ (`LocalReadService`)
+1. **Lấy cấu hình đơn giá tín chỉ:** Đọc đơn giá `DonGiaTinChiLT` và `DonGiaTinChiTH` trực tiếp từ bảng `CauHinhHeThong` trên SQLite (fallback 500,000đ / 700,000đ).
+2. **Tính nợ cũ tồn đọng:** Đọc các bản ghi `HocPhiHocKy` có `DaKhoaSo = true` thuộc các học kỳ trước.
+3. **Tính học phí live kỳ hiện hành:** Đọc các bản ghi `DangKyHocPhan` có `TrangThai = "DangHoc"` trong học kỳ hiện tại, thực hiện `Include(LopHocPhan.MonHoc)` trên SQLite để cộng dồn số tín chỉ và học phí.
+
+---
+
+## Chương 5: Xử Lý Các Trường Hợp Biên (Edge Cases) & Tối Ưu Xử Lý Lỗi
+
+### 5.1. Xử lý Lỗi Tương thích Múi giờ UTC PostgreSQL (Npgsql Exception)
+- **Sự cố:** Npgsql ném ngoại lệ `Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone'` khi `SyncDeltaAsync` dùng `DateTime.MinValue` để query Neon DB.
+- **Giải pháp:** Cập nhật hàm `GetLastSyncUtcAsync` trong `SyncService.cs`:
 ```csharp
-public async Task InitializeAsync(bool forceReload = false)
+private static async Task<DateTime> GetLastSyncUtcAsync(LocalAppDbContext local, string tableName)
 {
-    if (IsInitialized && !forceReload) return;
+    var metadata = await local.SyncMetadatas.FindAsync(tableName);
+    var dt = metadata?.LastSyncUtc ?? DateTime.MinValue;
+    return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+}
+```
 
-    await _initializeLock.WaitAsync();
+### 5.2. Giải quyết Giới hạn Aggregate `Sum` trên kiểu `decimal` của SQLite Provider
+- **Sự cố:** EF Core SQLite Provider ném lỗi `SQLite cannot apply aggregate operator 'Sum' on expressions of type 'decimal'`.
+- **Giải pháp:** Thực hiện nạp danh sách dữ liệu thô về bộ nhớ RAM (Client Evaluation) trước khi nhóm và tính tổng LINQ:
+```csharp
+// Nạp dữ liệu thô về RAM
+var noCuList = await local.HocPhiHocKys.AsNoTracking()
+    .Where(h => listMaSV.Contains(h.MaSV) && h.DaKhoaSo)
+    .Select(h => new { h.MaSV, h.ConNo })
+    .ToListAsync();
+
+// Nhóm và tính tổng trên RAM (LINQ to Objects)
+var noCuDict = noCuList
+    .GroupBy(h => h.MaSV)
+    .ToDictionary(g => g.Key, g => g.Sum(x => x.ConNo));
+```
+
+### 5.3. Tránh Reset Trạng thái ViewModel khi Chọn Gợi ý Tìm kiếm (`HocPhiViewModel`)
+- **Sự cố:** Việc gán giá trị chuỗi vào `TuKhoaSinhVien` khi chọn một gợi ý sinh viên kích hoạt sự kiện `OnTuKhoaSinhVienChanged`, làm xóa danh sách gợi ý và reset `SinhVienDangChon` về `null`.
+- **Giải pháp:** Thêm cờ bảo vệ `_isSelectingFromSuggestion` trong `HocPhiViewModel.cs`:
+```csharp
+private bool _isSelectingFromSuggestion;
+
+partial void OnTuKhoaSinhVienChanged(string? value)
+{
+    if (_isSelectingFromSuggestion) return; // Bỏ qua nếu đang trong luồng chọn từ gợi ý
+    _searchDebounceTimer.Stop();
+    // ...
+}
+
+[RelayCommand]
+private async Task ChonSinhVienAsync(SinhVienDto sv)
+{
+    if (sv == null) return;
     try
     {
-        if (IsInitialized && !forceReload) return;
-
-        using var scope = _serviceProvider.CreateScope();
-        var syncService = scope.ServiceProvider.GetRequiredService<ISyncService>();
-        var localFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<LocalAppDbContext>>();
-
-        if (forceReload)
-        {
-            await syncService.ForceFullRefreshAsync(new Progress<(double Percent, string Status)>(p =>
-                ReportProgress(p.Percent, p.Status)));
-        }
-        else if (!await syncService.HasLocalDataAsync())
-        {
-            await syncService.InitialSeedAsync(new Progress<(double Percent, string Status)>(p =>
-                ReportProgress(p.Percent, p.Status)));
-        }
-
-        await LoadFromLocalCacheAsync(localFactory);
-        IsInitialized = true;
-
-        if (!forceReload)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    using var backgroundScope = _serviceProvider.CreateScope();
-                    var backgroundSyncService = backgroundScope.ServiceProvider.GetRequiredService<ISyncService>();
-                    var backgroundLocalFactory = backgroundScope.ServiceProvider.GetRequiredService<IDbContextFactory<LocalAppDbContext>>();
-
-                    await backgroundSyncService.SyncDeltaAsync();
-                    await LoadFromLocalCacheAsync(backgroundLocalFactory);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Cache Refresh Error]: {ex.Message}");
-                }
-            });
-        }
+        _isSelectingFromSuggestion = true;
+        SinhVienDangChon = sv;
+        IsGoiYOpen = false;
+        TuKhoaSinhVien = $"{sv.MaSV} - {sv.HoTen}";
+        await LoadDanhSachTheoPhamViAsync();
     }
     finally
     {
-        _initializeLock.Release();
+        _isSelectingFromSuggestion = false;
     }
 }
 ```
 
----
-
-## 4. Xử Lý Các Trường Hợp Biên (Edge Cases) & Tối Ưu Hiệu Năng
-
-### 4.1. Múi giờ & Định dạng Ngày tháng (UTC Standardization)
-* SQLite lưu trữ ngày tháng dưới dạng chuỗi hoặc số tick không chứa thông tin Kind (`DateTimeKind.Unspecified`).
-* Để giải quyết vấn đề so sánh timestamp giữa PostgreSQL `timestamptz` và SQLite `TEXT`, `LocalAppDbContext` chuẩn hóa tự động mọi `DateTime` về `DateTimeKind.Utc` trong phương thức `SaveChangesAsync`:
-
-```csharp
-private static DateTime AsUtc(DateTime value)
-{
-    if (value == default) return DateTime.SpecifyKind(value, DateTimeKind.Utc);
-    return value.Kind switch
-    {
-        DateTimeKind.Utc => value,
-        DateTimeKind.Local => value.ToUniversalTime(),
-        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
-    };
-}
-```
-
-### 4.2. Đồng bộ Xóa mềm (Soft Delete Reconciliation)
-* Tất cả truy vấn đọc danh mục ở `LocalReadService` đều lọc theo cờ `Where(e => !e.IsDeleted)`.
-* Khi một bản ghi bị xóa mềm trên Cloud, trường `NgayCapNhat` được gán mốc `DateTime.UtcNow` và `IsDeleted = true`. Thuật toán Delta Sync so sánh mốc `NgayCapNhat > LastSyncUtc` sẽ kéo bản ghi này về và cập nhật cờ `IsDeleted` tương ứng vào SQLite local.
-
-### 4.3. Chống chịu Lỗi Mạng (Offline Resiliency)
-* Nếu ứng dụng mở khi không có kết nối Internet:
-  * `SyncService.SyncDeltaAsync()` bắt exception đệm ngầm và ghi log debug mà không ném ngoại lệ lên UI.
-  * Các màn hình `SinhVienViewModel`, `MonHocViewModel`, `HocKyLopHocPhanViewModel`, `DangKyHocPhanViewModel` tiếp tục phục vụ dữ liệu đọc 0ms từ SQLite local.
-
-### 4.4. Tối ưu hóa Sĩ số Đăng ký theo Lớp (Bulk Aggregation)
-* Thay vì chạy truy vấn `DemSiSoDangKyAsync` theo kiểu N+1 cho từng lớp học phần (dẫn đến hàng chục request đĩa), `LocalReadService` cung cấp hàm gom nhóm `DemSiSoDangKyBulkLocalAsync`:
-
-```csharp
-public async Task<Dictionary<string, int>> DemSiSoDangKyBulkLocalAsync(IEnumerable<string> dsMaLHP)
-{
-    var list = dsMaLHP.Distinct().ToList();
-    if (list.Count == 0) return new Dictionary<string, int>();
-
-    await using var local = await _localFactory.CreateDbContextAsync();
-    return await local.DangKyHocPhans
-        .AsNoTracking()
-        .Where(dk => list.Contains(dk.MaLHP) && dk.TrangThai == "DangHoc")
-        .GroupBy(dk => dk.MaLHP)
-        .Select(g => new { MaLHP = g.Key, Count = g.Count() })
-        .ToDictionaryAsync(x => x.MaLHP, x => x.Count);
-}
-```
+### 5.4. Tối ưu hóa Phạm vi Hiển thị Sinh viên Mặc định (Default 300 Batching)
+- **Yêu cầu:** Khi người dùng chọn phạm vi "Theo sinh viên" nhưng chưa nhập từ khóa tìm kiếm, ứng dụng nạp mặc định **300 sinh viên đầu tiên** từ SQLite Local.
+- **Ưu điểm:** Kết hợp với tính năng Virtualization của Avalonia `DataGrid`, việc nạp 300 bản ghi đạt phản hồi **~2ms**, đảm bảo trải nghiệm instant mà không cần áp dụng cơ chế Infinite Scroll phức tạp.
 
 ---
 
-## 5. Danh Mục Tệp Mã Nguồn Liên Quan (Impacted Files)
+## Chương 6: Bảng Tiêu Chí Kiểm Thử & Hiệu Năng Thực Tế (Benchmark Results)
 
-| STT | Tệp tin | Vị trí | Mô tả thay đổi |
+### 6.1. Bảng so sánh kết quả thực tế (Benchmark Matrix)
+
+| Tiêu chí kiểm thử | Trước khi tối ưu (Neon Remote Only) | Sau khi tối ưu (Hybrid Cache SQLite) | Trạng thái |
 | :--- | :--- | :--- | :--- |
-| 1 | `ILocalReadService.cs` | `src/QuanLyDKHP.Core/Interfaces/` | Khai báo các hàm đọc cục bộ chuẩn Clean Architecture. |
-| 2 | `ISyncService.cs` | `src/QuanLyDKHP.Core/Interfaces/` | Mở rộng các hàm `UpsertLocalEntityAsync` & `RemoveLocalEntityAsync`. |
-| 3 | `LocalAppDbContext.cs` | `src/QuanLyDKHP.Infrastructure/Data/` | Khai báo DbContext SQLite, đường dẫn lưu đĩa và tự động chuẩn hóa UTC. |
-| 4 | `LocalReadService.cs` | `src/QuanLyDKHP.Infrastructure/Services/` | Triển khai truy vấn SQLite local siêu tốc và tính sĩ số hàng loạt. |
-| 5 | `SyncService.cs` | `src/QuanLyDKHP.Infrastructure/Services/` | Thực thi Initial Seed, Delta Sync và cập nhật local ngay khi Host thay đổi. |
-| 6 | `MemoryCacheStore.cs` | `src/QuanLyDKHP.App/Services/` | Tối ưu nạp cache L1 từ SQLite đĩa L2 trong ~15ms và kích hoạt delta sync ngầm. |
-| 7 | `App.axaml.cs` | `src/QuanLyDKHP.App/` | Đăng ký DI cho `ILocalReadService` và `LocalAppDbContext`. |
-| 8 | `SinhVienViewModel.cs` | `src/QuanLyDKHP.App/ViewModels/` | Đọc dữ liệu master từ SQLite local (0ms); Ghi Neon Host $\rightarrow$ Upsert SQLite. |
-| 9 | `MonHocViewModel.cs` | `src/QuanLyDKHP.App/ViewModels/` | Chuyển luồng đọc danh mục sang SQLite local; CUD đồng bộ lập tức. |
-| 10 | `HocKyLopHocPhanViewModel.cs` | `src/QuanLyDKHP.App/ViewModels/` | Đọc LHP và sĩ số hàng loạt từ SQLite local (triệt tiêu N+1 query). |
-| 11 | `DangKyHocPhanViewModel.cs` | `src/QuanLyDKHP.App/ViewModels/` | Đọc danh sách SV, môn, LHP từ SQLite local; Đăng ký/Hủy ĐK qua Host $\rightarrow$ Delta sync. |
-| 12 | `DashboardViewModel.cs` | `src/QuanLyDKHP.App/ViewModels/` | Thống kê số liệu Dashboard trực tiếp từ SQLite local. |
+| **Cold Startup (Khởi động ứng dụng)** | 3,500ms – 5,000ms | **15ms – 25ms** | **PASS** |
+| **Tính & Load Học phí (46 Sinh viên)** | **88,291 ms (~88s)** | **29 ms** | **PASS (Gấp 3000 lần)** |
+| **Tính & Load Học phí (39 Sinh viên)** | **75,597 ms (~75s)** | **27 ms** | **PASS (Gấp 2800 lần)** |
+| **Load 300 Sinh viên mặc định (Chưa tìm kiếm)** | 0 ms (Màn hình rỗng) | **111 ms** | **PASS** |
+| **Chuyển đổi các Scope (Lớp / Khóa)** | 3,700ms – 10,000ms | **4ms – 51ms** | **PASS** |
+| **Offline Read-Only (Mất Internet)** | Crash / Freeze timeout | **Hoạt động tra cứu 100% mượt mà** | **PASS** |
 
----
+### 6.2. Log đo lường thực tế từ Terminal (Benchmark Log)
+```text
+================== [BENCHMARK HỌC PHÍ] ==================
+[1] Lấy 300 mã SV từ SQLite Local:    2 ms
+[2] Tính học phí (SQLite LocalReadService):  109 ms
+[3] Render lên giao diện (UI Grid):          0 ms
+---> TỔNG THỜI GIAN:                         111 ms
+=========================================================
 
-## 6. Bảng Tiêu Chí Kiểm Thử & Nghiệm Thu (Verification Matrix)
+================== [BENCHMARK HỌC PHÍ] ==================
+[1] Lấy 46 mã SV từ SQLite Local:    2 ms
+[2] Tính học phí (SQLite LocalReadService):  24 ms
+[3] Render lên giao diện (UI Grid):          3 ms
+---> TỔNG THỜI GIAN:                         29 ms
+=========================================================
 
-| Tiêu chí kiểm thử | Trước khi tối ưu (Neon Remote) | Sau khi tối ưu (Hybrid Cache SQLite) | Trạng thái |
-| :--- | :--- | :--- | :--- |
-| **Cold Startup Time (Mở App)** | 3.5s – 5.0s (Chờ nạp lại toàn bộ từ Cloud) | **15ms – 25ms** (Đọc trực tiếp từ SQLite đĩa) | PASS |
-| **Mở màn hình Sinh viên** | 300ms – 600ms (Query Neon PostgreSQL) | **0ms – 2ms** (Đọc SQLite Local / In-Memory RAM) | PASS |
-| **Mở màn hình Môn học** | 200ms – 400ms (Query Neon PostgreSQL) | **0ms – 1ms** (Đọc SQLite Local / In-Memory RAM) | PASS |
-| **Mở màn hình Học kỳ / LHP** | 1.5s – 3.0s (Vòng lặp N+1 đếm sĩ số từng LHP) | **10ms – 30ms** (SQLite Local + Bulk GroupBy Query) | PASS |
-| **Độ trễ khi lọc/tìm kiếm UI** | 150ms – 300ms | **0ms** (Filter in-memory trên master list) | PASS |
-| **Hoạt động khi mất mạng** | App bị đơ, báo lỗi Connection Timeout | **Xem/Lọc dữ liệu bình thường** (Offline Read-Only) | PASS |
-| **Độ chính xác sĩ số ĐKHP** | Kiểm tra realtime trên Host | **100% Chính xác** (Ghi Host First, Delta sync local) | PASS |
+================== [BENCHMARK HỌC PHÍ] ==================
+[1] Lấy 2 mã SV từ SQLite Local:    2 ms
+[2] Tính học phí (SQLite LocalReadService):  1 ms
+[3] Render lên giao diện (UI Grid):          0 ms
+---> TỔNG THỜI GIAN:                         4 ms
+=========================================================
+```

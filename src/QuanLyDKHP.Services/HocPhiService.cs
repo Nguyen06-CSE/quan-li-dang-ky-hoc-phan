@@ -1,3 +1,5 @@
+// src/QuanLyDKHP.Services/HocPhiService.cs
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +30,6 @@ public class HocPhiService : IHocPhiService
 
     public async Task TinhLaiHocPhiAsync(string maSV, string maHocKy)
     {
-        // TODO: Giai đoạn sau hỗ trợ "khóa sổ" học kỳ đã qua để giữ nguyên đơn giá lịch sử.
         decimal donGiaLT = await _cauHinhService.GetDecimal("DonGiaTinChiLT");
         decimal donGiaTH = await _cauHinhService.GetDecimal("DonGiaTinChiTH");
 
@@ -55,7 +56,6 @@ public class HocPhiService : IHocPhiService
         var danhSach = dsMaSV.Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
         if (danhSach.Count == 0) return;
 
-        // Đọc đơn giá 1 lần cho cả lô (thay vì mỗi sinh viên 1 lần)
         decimal donGiaLT = await _cauHinhService.GetDecimal("DonGiaTinChiLT");
         decimal donGiaTH = await _cauHinhService.GetDecimal("DonGiaTinChiTH");
 
@@ -128,20 +128,89 @@ public class HocPhiService : IHocPhiService
 
     public async Task<List<HocPhiTongHopDto>> TinhHocPhiTheoDanhSachAsync(IEnumerable<string> dsMaSV, string maHocKy)
     {
-        var result = new List<HocPhiTongHopDto>();
-        foreach (var maSV in dsMaSV)
+        var listMaSV = dsMaSV.Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
+        if (listMaSV.Count == 0) return [];
+
+        // 1. Lấy đơn giá 1 lần duy nhất cho toàn bộ danh sách
+        decimal donGiaLT = await _cauHinhService.GetDecimal("DonGiaTinChiLT");
+        decimal donGiaTH = await _cauHinhService.GetDecimal("DonGiaTinChiTH");
+
+        // 2. Kéo toàn bộ đăng ký trong 1 lượt query gộp duy nhất qua Repository
+        var allDangKy = await _dangKyRepo.LayTheoDanhSachMaSVVaMaHocKyAsync(listMaSV, maHocKy);
+
+        // 3. Gom nhóm đăng ký theo từng sinh viên
+        var dangKyTheoSV = allDangKy
+            .Where(dk => dk.TrangThai == "DangHoc")
+            .GroupBy(dk => dk.MaSV)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // 4. Lấy thông tin sinh viên (ưu tiên từ navigation property nếu repo đã include)
+        var mapSinhVien = new Dictionary<string, (string HoTen, string LopSinhHoat)>();
+        foreach (var dk in allDangKy)
         {
-            var chiTiet = await TinhHocPhiSinhVienAsync(maSV, maHocKy);
+            if (dk.SinhVien != null && !mapSinhVien.ContainsKey(dk.MaSV))
+            {
+                mapSinhVien[dk.MaSV] = (dk.SinhVien.HoTen, dk.SinhVien.LopSinhHoat ?? string.Empty);
+            }
+        }
+
+        // Với những sinh viên chưa có thông tin (chưa đăng ký môn nào), tải thông tin song song qua Task.WhenAll
+        var svChuaCoInfo = listMaSV.Where(m => !mapSinhVien.ContainsKey(m)).ToList();
+        if (svChuaCoInfo.Count > 0)
+        {
+            var tasks = svChuaCoInfo.Select(async ma =>
+            {
+                var sv = await _sinhVienRepo.GetByIdAsync(ma);
+                return (MaSV: ma, HoTen: sv?.HoTen ?? ma, Lop: sv?.LopSinhHoat ?? string.Empty);
+            });
+            var ketQuaSVs = await Task.WhenAll(tasks);
+            foreach (var item in ketQuaSVs)
+            {
+                mapSinhVien[item.MaSV] = (item.HoTen, item.Lop);
+            }
+        }
+
+        // 5. Tính toán tổng hợp trên bộ nhớ RAM
+        var result = new List<HocPhiTongHopDto>(listMaSV.Count);
+        foreach (var maSV in listMaSV)
+        {
+            mapSinhVien.TryGetValue(maSV, out var svInfo);
+            dangKyTheoSV.TryGetValue(maSV, out var dks);
+
+            int tongTinChi = 0;
+            decimal tongHocPhi = 0;
+            decimal daDong = 0;
+
+            if (dks != null)
+            {
+                foreach (var dk in dks)
+                {
+                    if (dk.LopHocPhan?.MonHoc != null)
+                    {
+                        var mon = dk.LopHocPhan.MonHoc;
+                        tongTinChi += (mon.SoTinChiLT + mon.SoTinChiTH);
+                        tongHocPhi += (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                    }
+                    else if (dk.SoTienPhaiDong.HasValue)
+                    {
+                        tongHocPhi += dk.SoTienPhaiDong.Value;
+                    }
+
+                    daDong += dk.SoTienDaDong;
+                }
+            }
+
             result.Add(new HocPhiTongHopDto
             {
-                MaSV = chiTiet.MaSV,
-                HoTen = chiTiet.HoTen,
-                LopSinhHoat = chiTiet.LopSinhHoat,
-                TongSoTinChi = chiTiet.TongSoTinChi,
-                TongHocPhi = chiTiet.TongHocPhi,
-                DaDong = chiTiet.DaDong
+                MaSV = maSV,
+                HoTen = svInfo.HoTen ?? maSV,
+                LopSinhHoat = svInfo.LopSinhHoat ?? string.Empty,
+                TongSoTinChi = tongTinChi,
+                TongHocPhi = tongHocPhi,
+                DaDong = daDong
             });
         }
+
         return result;
     }
 }

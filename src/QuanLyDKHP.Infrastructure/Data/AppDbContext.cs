@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<LopHocPhan> LopHocPhans { get; set; } = null!;
     public DbSet<DangKyHocPhan> DangKyHocPhans { get; set; } = null!;
     public DbSet<CauHinhHeThong> CauHinhHeThongs { get; set; } = null!;
+    public DbSet<HocPhiHocKy> HocPhiHocKys { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -143,6 +144,34 @@ public class AppDbContext : DbContext
             b.Property(e => e.Key).HasColumnType("varchar(50)");
             b.Property(e => e.Value).HasColumnType("varchar(50)").IsRequired();
             b.Property(e => e.MoTa).HasColumnType("varchar(200)");
+        });
+
+        // HocPhiHocKy
+        modelBuilder.Entity<HocPhiHocKy>(b =>
+        {
+            b.ToTable("HocPhiHocKy");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            b.Property(e => e.MaSV).HasColumnType("varchar(20)").IsRequired();
+            b.Property(e => e.MaHocKy).HasColumnType("varchar(20)").IsRequired();
+            b.Property(e => e.TongSoTinChi).HasDefaultValue(0);
+            b.Property(e => e.TongHocPhi).HasColumnType("numeric(12,2)").HasDefaultValue(0);
+            b.Property(e => e.DaDong).HasColumnType("numeric(12,2)").HasDefaultValue(0);
+            b.Property(e => e.ConNo).HasColumnType("numeric(12,2)").HasDefaultValue(0);
+            b.Property(e => e.DaKhoaSo).HasDefaultValue(false);
+            b.Property(e => e.NgayKhoaSo).HasColumnType("timestamptz");
+
+            b.HasIndex(e => new { e.MaSV, e.MaHocKy }).IsUnique();
+
+            b.HasOne(e => e.SinhVien)
+             .WithMany()
+             .HasForeignKey(e => e.MaSV)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(e => e.HocKy)
+             .WithMany()
+             .HasForeignKey(e => e.MaHocKy)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Global auditing fields config

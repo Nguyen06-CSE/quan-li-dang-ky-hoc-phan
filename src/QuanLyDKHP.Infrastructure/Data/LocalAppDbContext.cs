@@ -18,6 +18,8 @@ public class LocalAppDbContext : DbContext
     public DbSet<HocKy> HocKys => Set<HocKy>();
     public DbSet<LopHocPhan> LopHocPhans => Set<LopHocPhan>();
     public DbSet<DangKyHocPhan> DangKyHocPhans => Set<DangKyHocPhan>();
+    public DbSet<CauHinhHeThong> CauHinhHeThongs => Set<CauHinhHeThong>();
+    public DbSet<HocPhiHocKy> HocPhiHocKys => Set<HocPhiHocKy>();
     public DbSet<SyncMetadata> SyncMetadatas => Set<SyncMetadata>();
 
     public static string GetDatabasePath()
@@ -27,6 +29,23 @@ public class LocalAppDbContext : DbContext
             "QuanLyDKHP");
         Directory.CreateDirectory(folder);
         return Path.Combine(folder, "local_cache.db");
+    }
+
+    public async Task CheckAndRecreateIfMissingTablesAsync()
+    {
+        try
+        {
+            // Thử query 1 bảng mới, nếu lỗi nghĩa là bảng chưa tồn tại
+            await CauHinhHeThongs.FirstOrDefaultAsync();
+            await HocPhiHocKys.FirstOrDefaultAsync();
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException)
+        {
+            Console.WriteLine("[SQLite] Phát hiện cấu trúc DB cũ (thiếu bảng mới). Đang tái tạo cơ sở dữ liệu...");
+            await Database.EnsureDeletedAsync();
+            await Database.EnsureCreatedAsync();
+            Console.WriteLine("[SQLite] Đã tái tạo đầy đủ các bảng.");
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -111,6 +130,40 @@ public class LocalAppDbContext : DbContext
                 .WithMany(l => l.DangKyHocPhans)
                 .HasForeignKey(e => e.MaLHP)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CauHinhHeThong>(b =>
+        {
+            b.ToTable("CauHinhHeThong");
+            b.HasKey(e => e.Key);
+            b.Property(e => e.Key).HasMaxLength(50);
+            b.Property(e => e.Value).HasMaxLength(50).IsRequired();
+            b.Property(e => e.MoTa).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<HocPhiHocKy>(b =>
+        {
+            b.ToTable("HocPhiHocKy");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.MaSV).HasMaxLength(20).IsRequired();
+            b.Property(e => e.MaHocKy).HasMaxLength(20).IsRequired();
+            b.Property(e => e.TongSoTinChi).HasDefaultValue(0);
+            b.Property(e => e.TongHocPhi).HasColumnType("numeric").HasDefaultValue(0);
+            b.Property(e => e.DaDong).HasColumnType("numeric").HasDefaultValue(0);
+            b.Property(e => e.ConNo).HasColumnType("numeric").HasDefaultValue(0);
+            b.Property(e => e.DaKhoaSo).HasDefaultValue(false);
+
+            b.HasIndex(e => new { e.MaSV, e.MaHocKy }).IsUnique();
+
+            b.HasOne(e => e.SinhVien)
+             .WithMany()
+             .HasForeignKey(e => e.MaSV)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(e => e.HocKy)
+             .WithMany()
+             .HasForeignKey(e => e.MaHocKy)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SyncMetadata>(b =>

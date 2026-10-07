@@ -19,6 +19,116 @@ public class LocalReadService : ILocalReadService
         _localFactory = localFactory;
     }
 
+    public async Task<List<HocPhiTongHopDto>> GetHocPhiTheoDanhSachLocalAsync(IEnumerable<string> dsMaSV, string maHocKy)
+    {
+        var listMaSV = dsMaSV.Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
+        if (listMaSV.Count == 0) return new List<HocPhiTongHopDto>();
+
+        await using var local = await _localFactory.CreateDbContextAsync();
+
+        // 1. Lấy trạng thái học kỳ
+        var hocKyInfo = await local.HocKys.AsNoTracking().FirstOrDefaultAsync(h => h.MaHocKy == maHocKy);
+        bool dangMo = hocKyInfo?.DangMo ?? false;
+
+        var result = new List<HocPhiTongHopDto>(listMaSV.Count);
+
+        // 2. Tải sinh viên
+        var sinhViens = await local.SinhViens.AsNoTracking()
+            .Where(s => listMaSV.Contains(s.MaSV))
+            .ToDictionaryAsync(s => s.MaSV);
+
+        if (!dangMo)
+        {
+            // Học kỳ đã đóng: Đọc trực tiếp từ snapshot
+            var snapshots = await local.HocPhiHocKys.AsNoTracking()
+                .Where(h => listMaSV.Contains(h.MaSV) && h.MaHocKy == maHocKy)
+                .ToDictionaryAsync(h => h.MaSV);
+
+            foreach (var maSV in listMaSV)
+            {
+                sinhViens.TryGetValue(maSV, out var svInfo);
+                snapshots.TryGetValue(maSV, out var snap);
+
+                result.Add(new HocPhiTongHopDto
+                {
+                    MaSV = maSV,
+                    HoTen = svInfo?.HoTen ?? maSV,
+                    LopSinhHoat = svInfo?.LopSinhHoat ?? string.Empty,
+                    TongSoTinChi = snap?.TongSoTinChi ?? 0,
+                    TongHocPhi = snap?.TongHocPhi ?? 0,
+                    DaDong = snap?.DaDong ?? 0
+                });
+            }
+        }
+        else
+        {
+            // Học kỳ mở: Tính toán live + nợ cũ
+            // Đơn giá từ CauHinhHeThong
+            var donGiaLTStr = await local.CauHinhHeThongs.AsNoTracking()
+                .Where(c => c.Key == "DonGiaTinChiLT").Select(c => c.Value).FirstOrDefaultAsync();
+            var donGiaTHStr = await local.CauHinhHeThongs.AsNoTracking()
+                .Where(c => c.Key == "DonGiaTinChiTH").Select(c => c.Value).FirstOrDefaultAsync();
+
+            decimal donGiaLT = decimal.TryParse(donGiaLTStr, out var dLT) ? dLT : 500000m;
+            decimal donGiaTH = decimal.TryParse(donGiaTHStr, out var dTH) ? dTH : 700000m;
+
+            // Nợ cũ: SUM(ConNo) từ các kỳ đã khóa
+            var noCuList = await local.HocPhiHocKys.AsNoTracking()
+                .Where(h => listMaSV.Contains(h.MaSV) && h.DaKhoaSo)
+                .Select(h => new { h.MaSV, h.ConNo })
+                .ToListAsync();
+
+            var noCuDict = noCuList
+                .GroupBy(h => h.MaSV)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.ConNo));
+
+            // Đăng ký hiện tại
+            var dangKyList = await local.DangKyHocPhans.AsNoTracking()
+                .Include(dk => dk.LopHocPhan).ThenInclude(l => l.MonHoc)
+                .Where(dk => listMaSV.Contains(dk.MaSV) && dk.LopHocPhan.MaHocKy == maHocKy && dk.TrangThai == "DangHoc")
+                .ToListAsync();
+
+            var dangKyGroup = dangKyList.GroupBy(dk => dk.MaSV).ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var maSV in listMaSV)
+            {
+                sinhViens.TryGetValue(maSV, out var svInfo);
+                dangKyGroup.TryGetValue(maSV, out var dks);
+                noCuDict.TryGetValue(maSV, out var noCu);
+
+                int tongTinChi = 0;
+                decimal tongHocPhi = noCu; // Khởi tạo tổng học phí = nợ cũ
+                decimal daDong = 0;
+
+                if (dks != null)
+                {
+                    foreach (var dk in dks)
+                    {
+                        if (dk.LopHocPhan?.MonHoc != null)
+                        {
+                            var mon = dk.LopHocPhan.MonHoc;
+                            tongTinChi += (mon.SoTinChiLT + mon.SoTinChiTH);
+                            tongHocPhi += (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                        }
+                        daDong += dk.SoTienDaDong;
+                    }
+                }
+
+                result.Add(new HocPhiTongHopDto
+                {
+                    MaSV = maSV,
+                    HoTen = svInfo?.HoTen ?? maSV,
+                    LopSinhHoat = svInfo?.LopSinhHoat ?? string.Empty,
+                    TongSoTinChi = tongTinChi,
+                    TongHocPhi = tongHocPhi,
+                    DaDong = daDong
+                });
+            }
+        }
+
+        return result;
+    }
+
     public async Task<List<SinhVienDto>> GetSinhViensLocalAsync(string? tuKhoa = null, string? lop = null, string? khoaHoc = null)
     {
         await using var local = await _localFactory.CreateDbContextAsync();

@@ -11,6 +11,10 @@ using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using QuanLyDKHP.Infrastructure.Data;
+using System.Diagnostics; // Đảm bảo đã có using này ở đầu file
+
 
 namespace QuanLyDKHP.App.ViewModels;
 
@@ -22,6 +26,7 @@ public partial class HocPhiViewModel : ObservableObject
     private readonly IPdfExportService _pdfExportService;
     private readonly IExcelExportService _excelExportService;
     private readonly IMemoryCacheStore _cacheStore;
+    private readonly ILocalReadService _localReadService;
     private readonly Timer _searchDebounceTimer;
 
     [ObservableProperty]
@@ -86,13 +91,17 @@ public partial class HocPhiViewModel : ObservableObject
     /// </summary>
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
 
+    private readonly IDbContextFactory<LocalAppDbContext> _localContextFactory;
+
     public HocPhiViewModel(
         IHocPhiService hocPhiService,
         IHocKyService hocKyService,
         ISinhVienService sinhVienService,
         IPdfExportService pdfExportService,
         IExcelExportService excelExportService,
-        IMemoryCacheStore cacheStore)
+        IMemoryCacheStore cacheStore,
+        IDbContextFactory<LocalAppDbContext> localContextFactory,
+        ILocalReadService localReadService)
         
     {
         _hocPhiService = hocPhiService;
@@ -101,6 +110,8 @@ public partial class HocPhiViewModel : ObservableObject
         _pdfExportService = pdfExportService;
         _excelExportService = excelExportService;
         _cacheStore = cacheStore;
+        _localContextFactory = localContextFactory;
+        _localReadService = localReadService;
 
         _searchDebounceTimer = new Timer(300) { AutoReset = false };
         _searchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYAsync);
@@ -117,6 +128,8 @@ public partial class HocPhiViewModel : ObservableObject
         _excelExportService = null!;
         _cacheStore = null!;
         _searchDebounceTimer = new Timer(300);
+        _localContextFactory = null!;
+        _localReadService = null!;
     }
 
 private async Task InitDataAsync()
@@ -197,8 +210,12 @@ private async Task InitDataAsync()
         }
     }
 
+    private bool _isSelectingFromSuggestion;
+
     partial void OnTuKhoaSinhVienChanged(string? value)
     {
+        if (_isSelectingFromSuggestion) return;
+        
         _searchDebounceTimer.Stop();
         if (string.IsNullOrWhiteSpace(value) || value.Trim().Length < 2)
         {
@@ -209,52 +226,89 @@ private async Task InitDataAsync()
         _searchDebounceTimer.Start();
     }
 
-    private async Task TimKiemSinhVienGoiYAsync()
+  private async Task TimKiemSinhVienGoiYAsync()
+{
+    if (string.IsNullOrWhiteSpace(TuKhoaSinhVien) || TuKhoaSinhVien.Trim().Length < 2)
     {
-        if (string.IsNullOrWhiteSpace(TuKhoaSinhVien) || TuKhoaSinhVien.Trim().Length < 2)
-        {
-            GoiYSinhVien.Clear();
-            IsGoiYOpen = false;
-            return;
-        }
-
-        try
-        {
-            var result = await _sinhVienService.TimKiemAsync(TuKhoaSinhVien.Trim(), null, null, 1, 15);
-            GoiYSinhVien.Clear();
-            foreach (var sv in result.Items)
-            {
-                GoiYSinhVien.Add(sv);
-            }
-            IsGoiYOpen = GoiYSinhVien.Count > 0;
-        }
-        catch (Exception ex)
-        {
-            ShowMessage(ex.Message, true);
-        }
+        GoiYSinhVien.Clear();
+        IsGoiYOpen = false;
+        return;
     }
 
+    try
+    {
+        var key = TuKhoaSinhVien.Trim().ToLower();
+
+        // Mở kết nối đọc trực tiếp từ SQLite Local
+        await using var localContext = await _localContextFactory.CreateDbContextAsync();
+
+        var query = localContext.SinhViens
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && (s.MaSV.ToLower().Contains(key) || s.HoTen.ToLower().Contains(key)))
+            .OrderBy(s => s.MaSV)
+            .Take(15);
+
+        var list = await query
+            .Select(s => new SinhVienDto
+            {
+                MaSV = s.MaSV,
+                HoTen = s.HoTen,
+                LopSinhHoat = s.LopSinhHoat,
+                KhoaHoc = s.KhoaHoc
+            })
+            .ToListAsync();
+
+        GoiYSinhVien.Clear();
+        foreach (var sv in list)
+        {
+            GoiYSinhVien.Add(sv);
+        }
+
+        IsGoiYOpen = GoiYSinhVien.Count > 0;
+    }
+    catch (Exception ex)
+    {
+        ShowMessage(ex.Message, true);
+    }
+}
     [RelayCommand]
     private async Task ChonSinhVienAsync(SinhVienDto sv)
     {
         if (sv == null) return;
-        SinhVienDangChon = sv;
-        IsGoiYOpen = false;
-        TuKhoaSinhVien = $"{sv.MaSV} - {sv.HoTen}";
-
-        await LoadDanhSachTheoPhamViAsync();
-    }
-
-    [RelayCommand]
-    public async Task LoadDanhSachTheoPhamViAsync()
-    {
-        if (_hocPhiService == null || HocKyDangChon == null) return;
-
         try
         {
-            IsLoading = true;
-            var dsMaSV = new List<string>();
+            _isSelectingFromSuggestion = true;
+            SinhVienDangChon = sv;
+            IsGoiYOpen = false;
+            TuKhoaSinhVien = $"{sv.MaSV} - {sv.HoTen}";
 
+            await LoadDanhSachTheoPhamViAsync();
+        }
+        finally
+        {
+            _isSelectingFromSuggestion = false;
+        }
+    }
+
+[RelayCommand]
+public async Task LoadDanhSachTheoPhamViAsync()
+{
+    if (_hocPhiService == null || HocKyDangChon == null) return;
+
+    var totalSw = Stopwatch.StartNew();
+    var stepSw = Stopwatch.StartNew();
+
+    try
+    {
+        IsLoading = true;
+        var dsMaSV = new List<string>();
+
+        Console.WriteLine($"[DEBUG LoadHocPhi] Scope: IsSV={IsTheoSinhVien}, SelectedSV={SinhVienDangChon?.MaSV}, Lop={LopDangChon}, Khoa={KhoaDangChon}");
+
+        // CHẶNG 1: LẤY MÃ SINH VIÊN TỪ SQLITE LOCAL
+        stepSw.Restart();
+        await using (var localContext = await _localContextFactory.CreateDbContextAsync())
+        {
             if (IsTheoSinhVien)
             {
                 if (SinhVienDangChon != null)
@@ -263,48 +317,87 @@ private async Task InitDataAsync()
                 }
                 else if (!string.IsNullOrWhiteSpace(TuKhoaSinhVien))
                 {
-                    // Lấy các SV khớp từ khóa
-                    var svs = await _sinhVienService.LayDanhSachAsync(TuKhoaSinhVien.Trim(), null, null);
-                    dsMaSV.AddRange(svs.Select(s => s.MaSV));
+                    var key = TuKhoaSinhVien.Trim().ToLower();
+                    dsMaSV = await localContext.SinhViens
+                        .AsNoTracking()
+                        .Where(s => !s.IsDeleted && (s.MaSV.ToLower().Contains(key) || s.HoTen.ToLower().Contains(key)))
+                        .Select(s => s.MaSV)
+                        .Take(500)
+                        .ToListAsync();
                 }
-            }
-            else if (IsTheoLop)
-            {
-                if (!string.IsNullOrWhiteSpace(LopDangChon))
+                else
                 {
-                    var svs = await _sinhVienService.LayDanhSachAsync(null, LopDangChon, null);
-                    dsMaSV.AddRange(svs.Select(s => s.MaSV));
+                    // Mặc định lấy 300 sinh viên nếu chưa nhập từ khóa
+                    dsMaSV = await localContext.SinhViens
+                        .AsNoTracking()
+                        .Where(s => !s.IsDeleted)
+                        .OrderBy(s => s.MaSV)
+                        .Select(s => s.MaSV)
+                        .Take(300)
+                        .ToListAsync();
                 }
             }
-            else if (IsTheoKhoa)
+            else if (IsTheoLop && !string.IsNullOrWhiteSpace(LopDangChon))
             {
-                if (!string.IsNullOrWhiteSpace(KhoaDangChon))
-                {
-                    var svs = await _sinhVienService.LayDanhSachAsync(null, null, KhoaDangChon);
-                    dsMaSV.AddRange(svs.Select(s => s.MaSV));
-                }
+                dsMaSV = await localContext.SinhViens
+                    .AsNoTracking()
+                    .Where(s => !s.IsDeleted && s.LopSinhHoat == LopDangChon)
+                    .Select(s => s.MaSV)
+                    .ToListAsync();
             }
+            else if (IsTheoKhoa && !string.IsNullOrWhiteSpace(KhoaDangChon))
+            {
+                dsMaSV = await localContext.SinhViens
+                    .AsNoTracking()
+                    .Where(s => !s.IsDeleted && s.KhoaHoc == KhoaDangChon)
+                    .Select(s => s.MaSV)
+                    .ToListAsync();
+            }
+        }
+        long timeSqlite = stepSw.ElapsedMilliseconds;
 
-            DsHocPhiTongHop.Clear();
-            if (dsMaSV.Count > 0)
-            {
-                var result = await _hocPhiService.TinhHocPhiTheoDanhSachAsync(dsMaSV, HocKyDangChon.MaHocKy);
-                foreach (var item in result)
-                {
-                    DsHocPhiTongHop.Add(item);
-                }
-            }
-        }
-        catch (Exception ex)
+        // CHẶNG 2: GỌI SERVICE TÍNH TOÁN HỌC PHÍ
+        stepSw.Restart();
+        List<HocPhiTongHopDto> result = [];
+        if (dsMaSV.Count > 0)
         {
-            ShowMessage(ex.Message, true);
+            result = (await _localReadService.GetHocPhiTheoDanhSachLocalAsync(dsMaSV, HocKyDangChon.MaHocKy)).ToList();
         }
-        finally
-        {
-            IsLoading = false;
-        }
+        long timeHocPhiService = stepSw.ElapsedMilliseconds;
+
+        // CHẶNG 3: CẬP NHẬT GIAO DIỆN UI
+        stepSw.Restart();
+        // CHẶNG 3: CẬP NHẬT GIAO DIỆN UI
+stepSw.Restart();
+DsHocPhiTongHop.Clear();
+foreach (var item in result)
+{
+    DsHocPhiTongHop.Add(item);
+}
+        long timeUpdateUi = stepSw.ElapsedMilliseconds;
+
+        totalSw.Stop();
+
+        // IN KẾT QUẢ ĐO RA TERMINAL
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"\n================== [BENCHMARK HỌC PHÍ] ==================");
+        Console.WriteLine($"[1] Lấy {dsMaSV.Count} mã SV từ SQLite Local:    {timeSqlite} ms");
+        Console.WriteLine($"[2] Tính học phí (SQLite LocalReadService):  {timeHocPhiService} ms");
+        Console.WriteLine($"[3] Render lên giao diện (UI Grid):          {timeUpdateUi} ms");
+        Console.WriteLine($"---> TỔNG THỜI GIAN:                         {totalSw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"=========================================================\n");
+        Console.ResetColor();
     }
-
+    catch (Exception ex)
+    {
+        ShowMessage(ex.Message, true);
+    }
+    finally
+    {
+        IsLoading = false;
+    }
+}
+   
     [RelayCommand]
     private async Task XemChiTietAsync(HocPhiTongHopDto dto)
     {

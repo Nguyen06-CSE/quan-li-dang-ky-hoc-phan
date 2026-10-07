@@ -17,4 +17,5 @@ public interface ILocalReadService
     Task<Dictionary<string, int>> DemSiSoDangKyBulkLocalAsync(IEnumerable<string> dsMaLHP);
     Task<List<SinhVienTheoMonDto>> GetDsSinhVienTheoMonLocalAsync(string maMon, string maHocKy);
     Task<DashboardStatsDto> GetDashboardStatsLocalAsync(string? maHocKy);
+    Task<List<HocPhiTongHopDto>> GetHocPhiTheoDanhSachLocalAsync(IEnumerable<string> dsMaSV, string maHocKy);
 }

@@ -17,7 +17,9 @@ public class SyncService : ISyncService
         nameof(MonHoc),
         nameof(HocKy),
         nameof(LopHocPhan),
-        nameof(DangKyHocPhan)
+        nameof(DangKyHocPhan),
+        nameof(CauHinhHeThong),
+        nameof(HocPhiHocKy)
     ];
 
     private readonly IDbContextFactory<AppDbContext> _remoteFactory;
@@ -35,6 +37,7 @@ public class SyncService : ISyncService
     {
         await using var local = await _localFactory.CreateDbContextAsync();
         await local.Database.EnsureCreatedAsync();
+        await local.CheckAndRecreateIfMissingTablesAsync();
 
         return await local.SyncMetadatas.AnyAsync()
             && await local.HocKys.AnyAsync()
@@ -72,43 +75,73 @@ public class SyncService : ISyncService
             var sinhVienLastSync = await GetLastSyncUtcAsync(local, nameof(SinhVien));
             var lopHocPhanLastSync = await GetLastSyncUtcAsync(local, nameof(LopHocPhan));
             var dangKyHocPhanLastSync = await GetLastSyncUtcAsync(local, nameof(DangKyHocPhan));
+            var cauHinhHeThongLastSync = await GetLastSyncUtcAsync(local, nameof(CauHinhHeThong));
+            var hocPhiHocKyLastSync = await GetLastSyncUtcAsync(local, nameof(HocPhiHocKy));
 
             await using var transaction = await local.Database.BeginTransactionAsync();
 
-            await SyncHocKysAsync(
-                local,
-                await remote.HocKys.AsNoTracking()
+            try {
+                var list = await remote.HocKys.AsNoTracking()
                     .Where(e => e.NgayTao > hocKyLastSync
                         || (e.NgayCapNhat != null && e.NgayCapNhat > hocKyLastSync))
-                    .ToListAsync());
+                    .ToListAsync();
+                await SyncHocKysAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} HocKy vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] HocKy: {ex.Message}"); }
 
-            await SyncMonHocsAsync(
-                local,
-                await remote.MonHocs.AsNoTracking()
+            try {
+                var list = await remote.MonHocs.AsNoTracking()
                     .Where(e => e.NgayTao > monHocLastSync
                         || (e.NgayCapNhat != null && e.NgayCapNhat > monHocLastSync))
-                    .ToListAsync());
+                    .ToListAsync();
+                await SyncMonHocsAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} MonHoc vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] MonHoc: {ex.Message}"); }
 
-            await SyncSinhViensAsync(
-                local,
-                await remote.SinhViens.AsNoTracking()
+            try {
+                var list = await remote.SinhViens.AsNoTracking()
                     .Where(e => e.NgayTao > sinhVienLastSync
                         || (e.NgayCapNhat != null && e.NgayCapNhat > sinhVienLastSync))
-                    .ToListAsync());
+                    .ToListAsync();
+                await SyncSinhViensAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} SinhVien vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] SinhVien: {ex.Message}"); }
 
-            await SyncLopHocPhansAsync(
-                local,
-                await remote.LopHocPhans.AsNoTracking()
+            try {
+                var list = await remote.LopHocPhans.AsNoTracking()
                     .Where(e => e.NgayTao > lopHocPhanLastSync
                         || (e.NgayCapNhat != null && e.NgayCapNhat > lopHocPhanLastSync))
-                    .ToListAsync());
+                    .ToListAsync();
+                await SyncLopHocPhansAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} LopHocPhan vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] LopHocPhan: {ex.Message}"); }
 
-            await SyncDangKyHocPhansAsync(
-                local,
-                await remote.DangKyHocPhans.AsNoTracking()
+            try {
+                var list = await remote.DangKyHocPhans.AsNoTracking()
                     .Where(e => e.NgayTao > dangKyHocPhanLastSync
                         || (e.NgayCapNhat != null && e.NgayCapNhat > dangKyHocPhanLastSync))
-                    .ToListAsync());
+                    .ToListAsync();
+                await SyncDangKyHocPhansAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} DangKyHocPhan vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] DangKyHocPhan: {ex.Message}"); }
+
+            try {
+                var list = await remote.CauHinhHeThongs.AsNoTracking()
+                    .Where(e => e.NgayTao > cauHinhHeThongLastSync
+                        || (e.NgayCapNhat != null && e.NgayCapNhat > cauHinhHeThongLastSync))
+                    .ToListAsync();
+                await SyncCauHinhHeThongsAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} CauHinhHeThong vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] CauHinhHeThong: {ex.Message}"); }
+
+            try {
+                var list = await remote.HocPhiHocKys.AsNoTracking()
+                    .Where(e => e.NgayTao > hocPhiHocKyLastSync
+                        || (e.NgayCapNhat != null && e.NgayCapNhat > hocPhiHocKyLastSync))
+                    .ToListAsync();
+                await SyncHocPhiHocKysAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} HocPhiHocKy vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] HocPhiHocKy: {ex.Message}"); }
 
             foreach (var table in MasterTables)
             {
@@ -135,24 +168,59 @@ public class SyncService : ISyncService
         await using var transaction = await local.Database.BeginTransactionAsync();
 
         progress?.Report((10, "Đang tải học kỳ từ máy chủ..."));
-        var hocKys = await remote.HocKys.AsNoTracking().ToListAsync();
-        await local.HocKys.AddRangeAsync(hocKys.Select(CloneHocKy));
+        var hocKys = new List<HocKy>();
+        try {
+            hocKys = await remote.HocKys.AsNoTracking().ToListAsync();
+            await local.HocKys.AddRangeAsync(hocKys.Select(CloneHocKy));
+            Console.WriteLine($"[Sync] Đã lưu {hocKys.Count} HocKy vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] HocKy: {ex.Message}"); }
 
         progress?.Report((30, "Đang tải môn học từ máy chủ..."));
-        var monHocs = await remote.MonHocs.AsNoTracking().ToListAsync();
-        await local.MonHocs.AddRangeAsync(monHocs.Select(CloneMonHoc));
+        var monHocs = new List<MonHoc>();
+        try {
+            monHocs = await remote.MonHocs.AsNoTracking().ToListAsync();
+            await local.MonHocs.AddRangeAsync(monHocs.Select(CloneMonHoc));
+            Console.WriteLine($"[Sync] Đã lưu {monHocs.Count} MonHoc vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] MonHoc: {ex.Message}"); }
 
         progress?.Report((50, "Đang tải sinh viên từ máy chủ..."));
-        var sinhViens = await remote.SinhViens.AsNoTracking().ToListAsync();
-        await local.SinhViens.AddRangeAsync(sinhViens.Select(CloneSinhVien));
+        var sinhViens = new List<SinhVien>();
+        try {
+            sinhViens = await remote.SinhViens.AsNoTracking().ToListAsync();
+            await local.SinhViens.AddRangeAsync(sinhViens.Select(CloneSinhVien));
+            Console.WriteLine($"[Sync] Đã lưu {sinhViens.Count} SinhVien vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] SinhVien: {ex.Message}"); }
 
         progress?.Report((70, "Đang tải lớp học phần từ máy chủ..."));
-        var lopHocPhans = await remote.LopHocPhans.AsNoTracking().ToListAsync();
-        await local.LopHocPhans.AddRangeAsync(lopHocPhans.Select(CloneLopHocPhan));
+        var lopHocPhans = new List<LopHocPhan>();
+        try {
+            lopHocPhans = await remote.LopHocPhans.AsNoTracking().ToListAsync();
+            await local.LopHocPhans.AddRangeAsync(lopHocPhans.Select(CloneLopHocPhan));
+            Console.WriteLine($"[Sync] Đã lưu {lopHocPhans.Count} LopHocPhan vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] LopHocPhan: {ex.Message}"); }
 
         progress?.Report((85, "Đang tải đăng ký học phần từ máy chủ..."));
-        var dangKyHocPhans = await remote.DangKyHocPhans.AsNoTracking().ToListAsync();
-        await local.DangKyHocPhans.AddRangeAsync(dangKyHocPhans.Select(CloneDangKyHocPhan));
+        var dangKyHocPhans = new List<DangKyHocPhan>();
+        try {
+            dangKyHocPhans = await remote.DangKyHocPhans.AsNoTracking().ToListAsync();
+            await local.DangKyHocPhans.AddRangeAsync(dangKyHocPhans.Select(CloneDangKyHocPhan));
+            Console.WriteLine($"[Sync] Đã lưu {dangKyHocPhans.Count} DangKyHocPhan vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] DangKyHocPhan: {ex.Message}"); }
+
+        progress?.Report((90, "Đang tải cấu hình và học phí từ máy chủ..."));
+        var cauHinhHeThongs = new List<CauHinhHeThong>();
+        try {
+            cauHinhHeThongs = await remote.CauHinhHeThongs.AsNoTracking().ToListAsync();
+            await local.CauHinhHeThongs.AddRangeAsync(cauHinhHeThongs.Select(CloneCauHinhHeThong));
+            Console.WriteLine($"[Sync] Đã lưu {cauHinhHeThongs.Count} CauHinhHeThong vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] CauHinhHeThong: {ex.Message}"); }
+
+        var hocPhiHocKys = new List<HocPhiHocKy>();
+        try {
+            hocPhiHocKys = await remote.HocPhiHocKys.AsNoTracking().ToListAsync();
+            await local.HocPhiHocKys.AddRangeAsync(hocPhiHocKys.Select(CloneHocPhiHocKy));
+            Console.WriteLine($"[Sync] Đã lưu {hocPhiHocKys.Count} HocPhiHocKy vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] HocPhiHocKy: {ex.Message}"); }
 
         foreach (var table in MasterTables)
         {
@@ -160,7 +228,7 @@ public class SyncService : ISyncService
             {
                 TableName = table,
                 LastSyncUtc = syncStartedAt,
-                RecordCount = GetRecordCount(table, hocKys, monHocs, sinhViens, lopHocPhans, dangKyHocPhans)
+                RecordCount = GetRecordCount(table, hocKys, monHocs, sinhViens, lopHocPhans, dangKyHocPhans, cauHinhHeThongs, hocPhiHocKys)
             });
         }
 
@@ -172,7 +240,8 @@ public class SyncService : ISyncService
     private static async Task<DateTime> GetLastSyncUtcAsync(LocalAppDbContext local, string tableName)
     {
         var metadata = await local.SyncMetadatas.FindAsync(tableName);
-        return metadata?.LastSyncUtc ?? DateTime.MinValue;
+        var dt = metadata?.LastSyncUtc ?? DateTime.MinValue;
+        return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
     }
 
     private static async Task UpsertMetadataAsync(LocalAppDbContext local, string tableName, DateTime syncStartedAt)
@@ -192,6 +261,8 @@ public class SyncService : ISyncService
             nameof(HocKy) => await local.HocKys.CountAsync(),
             nameof(LopHocPhan) => await local.LopHocPhans.CountAsync(),
             nameof(DangKyHocPhan) => await local.DangKyHocPhans.CountAsync(),
+            nameof(CauHinhHeThong) => await local.CauHinhHeThongs.CountAsync(),
+            nameof(HocPhiHocKy) => await local.HocPhiHocKys.CountAsync(),
             _ => 0
         };
     }
@@ -282,7 +353,9 @@ public class SyncService : ISyncService
         List<MonHoc> monHocs,
         List<SinhVien> sinhViens,
         List<LopHocPhan> lopHocPhans,
-        List<DangKyHocPhan> dangKyHocPhans)
+        List<DangKyHocPhan> dangKyHocPhans,
+        List<CauHinhHeThong> cauHinhHeThongs,
+        List<HocPhiHocKy> hocPhiHocKys)
     {
         return tableName switch
         {
@@ -291,6 +364,8 @@ public class SyncService : ISyncService
             nameof(HocKy) => hocKys.Count,
             nameof(LopHocPhan) => lopHocPhans.Count,
             nameof(DangKyHocPhan) => dangKyHocPhans.Count,
+            nameof(CauHinhHeThong) => cauHinhHeThongs.Count,
+            nameof(HocPhiHocKy) => hocPhiHocKys.Count,
             _ => 0
         };
     }
@@ -363,6 +438,63 @@ public class SyncService : ISyncService
         NgayTao = item.NgayTao,
         NgayCapNhat = item.NgayCapNhat
     };
+
+
+    private static CauHinhHeThong CloneCauHinhHeThong(CauHinhHeThong item) => new()
+    {
+        Key = item.Key,
+        Value = item.Value,
+        MoTa = item.MoTa,
+        NgayTao = item.NgayTao,
+        NgayCapNhat = item.NgayCapNhat
+    };
+
+    private static HocPhiHocKy CloneHocPhiHocKy(HocPhiHocKy item) => new()
+    {
+        Id = item.Id,
+        MaSV = item.MaSV,
+        MaHocKy = item.MaHocKy,
+        TongSoTinChi = item.TongSoTinChi,
+        TongHocPhi = item.TongHocPhi,
+        DaDong = item.DaDong,
+        ConNo = item.ConNo,
+        DaKhoaSo = item.DaKhoaSo,
+        NgayKhoaSo = item.NgayKhoaSo,
+        NgayTao = item.NgayTao,
+        NgayCapNhat = item.NgayCapNhat
+    };
+
+    private static async Task SyncCauHinhHeThongsAsync(LocalAppDbContext local, IEnumerable<CauHinhHeThong> items)
+    {
+        foreach (var item in items)
+        {
+            var existing = await local.CauHinhHeThongs.FindAsync(item.Key);
+            if (existing == null)
+            {
+                await local.CauHinhHeThongs.AddAsync(CloneCauHinhHeThong(item));
+            }
+            else
+            {
+                local.Entry(existing).CurrentValues.SetValues(CloneCauHinhHeThong(item));
+            }
+        }
+    }
+
+    private static async Task SyncHocPhiHocKysAsync(LocalAppDbContext local, IEnumerable<HocPhiHocKy> items)
+    {
+        foreach (var item in items)
+        {
+            var existing = await local.HocPhiHocKys.FindAsync(item.Id);
+            if (existing == null)
+            {
+                await local.HocPhiHocKys.AddAsync(CloneHocPhiHocKy(item));
+            }
+            else
+            {
+                local.Entry(existing).CurrentValues.SetValues(CloneHocPhiHocKy(item));
+            }
+        }
+    }
 
     public async Task UpsertLocalEntityAsync<TEntity>(TEntity entity) where TEntity : class
     {
