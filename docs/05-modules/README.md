@@ -13,8 +13,8 @@ và các quyết định kỹ thuật đã chốt trong quá trình làm.
 |---|---|---|
 | [M1 — Đăng nhập](M1-dang-nhap.md) | Màn hình Login, remember-me, hiệu ứng lỗi | ✅ Hoàn thành |
 | [M2 — App Shell / Navigation](M2-app-shell.md) | Sidebar, top bar, điều hướng, theme Liquid glass | ✅ Hoàn thành |
-| [M3 — Đăng ký học phần](M3-dang-ky-hoc-phan.md) | Luồng đăng ký, cảnh báo, check trùng lịch | ⚠️ Một phần — chờ dữ liệu lịch học |
-| [M4 — Thời khóa biểu](M4-thoi-khoa-bieu.md) | Lưới thời khóa biểu Thứ 2 → CN | ❌ Chưa làm — chờ dữ liệu lịch học |
+| [M3 — Đăng ký học phần](M3-dang-ky-hoc-phan.md) | Luồng đăng ký, cảnh báo, check trùng lịch | ✅ Hoàn thành |
+| [M4 — Thời khóa biểu](M4-thoi-khoa-bieu.md) | Lưới thời khóa biểu Thứ 2 → CN | ✅ Hoàn thành |
 
 ## Quy tắc chung đã áp dụng cho cả 4 module
 

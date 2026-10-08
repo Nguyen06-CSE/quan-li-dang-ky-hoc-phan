@@ -1,22 +1,39 @@
 # M4 — Thời khóa biểu
 
-**Trạng thái: ❌ Chưa làm — chờ dữ liệu lịch học**
+**Trạng thái: ✅ Hoàn thành**
 
-## Lý do chặn
+## Đã làm
 
-Toàn bộ Module này (lưới thời khóa biểu Thứ 2 → CN theo tiết) phụ thuộc vào 4 cột lịch học của `LopHocPhan`
-(`Thu`, `TietBatDau`, `SoTiet`, `Phong`) — trước đây không tồn tại trong DB, và ngay cả sau khi thêm cột
-(`db/2026-10-01_them-lich-hoc-LopHocPhan.sql`, đã chạy trên Neon), **toàn bộ lớp học phần hiện có đều có giá trị NULL**
-("chưa xếp lịch") vì file Excel import thật không có cột này. Không có gì để vẽ lên lưới nếu dữ liệu toàn NULL —
-theo nguyên tắc không bịa dữ liệu giả, Module này chờ đến khi:
+- Dialog mới `ThoiKhoaBieuDialog`, mở từ màn **Đăng ký học phần** (State View — khi đã chọn 1 sinh viên) qua nút
+  "Xem Thời khóa biểu" cạnh nút "Chỉnh sửa Đăng ký".
+- Lưới 7 cột Thứ 2 → CN, dựng **hoàn toàn từ `DsDaDangKy` đã có sẵn trong bộ nhớ** của `DangKyHocPhanViewModel`
+  (các LHP `TrangThai = DangHoc` của sinh viên đang chọn) — không query thêm DB.
+- Mỗi ô lớp hiển thị Tên môn, Mã LHP, Phòng (nếu có) và khoảng tiết (`Tiết {TietBatDau}-{TietKetThuc}`), xếp dọc
+  theo thứ tự tiết tăng dần trong từng cột Thứ.
+- LHP nào **chưa xếp lịch** (`Thu`/`TietBatDau`/`SoTiet` còn NULL) **không vẽ lên lưới** — liệt kê riêng ở khung
+  "Lớp chưa xếp lịch (không hiển thị trên lưới)" bên dưới lưới, để sinh viên/admin biết vẫn còn lớp thiếu dữ liệu lịch
+  học chứ không bị "biến mất" âm thầm. Đúng theo nguyên tắc không bịa dữ liệu giả.
 
-1. Đủ số lớp học phần cần thiết đã được nhập lịch học (qua form thêm ở `LopHocPhanEditDialog`, xem `M3-dang-ky-hoc-phan.md`).
-2. Xác nhận lại với người phụ trách xem có cần làm thêm màn hình nhập lịch học theo lô (ví dụ qua Excel riêng) hay
-   nhập tay từng lớp là đủ.
+## Thiết kế
 
-## Kế hoạch khi có dữ liệu
+- Không thêm bảng/cột DB mới, không thêm hàm repository mới — tái sử dụng đúng field
+  `Thu`/`TietBatDau`/`SoTiet`/`Phong` đã có trên `DangKyHocPhanDisplayDto.Entity.LopHocPhan`.
+- `ThoiKhoaBieuDialogViewModel` nhận thẳng `List<DangKyHocPhanDisplayDto>` (đã lọc `IsDangHoc` từ ViewModel gọi) qua
+  constructor — dựng cấu trúc 7 cột (`ThoiKhoaBieuCot`) + từng ô lớp (`ThoiKhoaBieuOClass`) ngay trong constructor,
+  hoàn toàn client-side, không cần Service/Repository riêng.
 
-- Lưới 7 ngày × N tiết (theo `CauHinh` số tiết/ngày), mỗi ô hiển thị Mã LHP/Tên môn/Phòng của lớp sinh viên đang học
-  rơi vào đúng Thứ + khoảng tiết đó.
-- Dùng lại đúng field `Thu`/`TietBatDau`/`SoTiet`/`Phong` đã có trên `LopHocPhanDisplayDto.Entity`, không cần thêm
-  bảng/cột mới.
+## Giới hạn đã biết
+
+- Lưới không giới hạn số tiết tối đa cố định theo `CauHinh` (hệ thống hiện chưa có cấu hình "số tiết/ngày") — hiển thị
+  tự do theo đúng `TietBatDau`/`SoTiet` đã nhập cho từng lớp.
+- Nếu 2 lớp trùng Thứ nhưng **không trùng tiết** (ví dụ lớp A tiết 1-3, lớp B tiết 4-6), cả 2 vẫn hiển thị trong cùng
+  1 cột Thứ, xếp theo thứ tự tiết — không có ô lưới cố định theo từng tiết riêng lẻ (đơn giản hóa so với lưới
+  tiết-cố-định truyền thống, nhưng đủ để xem lịch học tổng quan).
+
+## File liên quan
+
+- `src/QuanLyDKHP.App/ViewModels/ThoiKhoaBieuDialogViewModel.cs`
+- `src/QuanLyDKHP.App/Views/ThoiKhoaBieuDialog.axaml`, `.axaml.cs`
+- `src/QuanLyDKHP.App/ViewModels/DangKyHocPhanViewModel.cs` (`ShowThoiKhoaBieuFunc`, `XemThoiKhoaBieuCommand`)
+- `src/QuanLyDKHP.App/Views/DangKyHocPhanView.axaml(.cs)`
+- `src/QuanLyDKHP.App/Dtos/DangKyHocPhanDisplayDto.cs`

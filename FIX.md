@@ -199,3 +199,31 @@ File: `Infrastructure/Repositories/ImportExcelRepository.cs`
   1. Đổi mật khẩu Neon ngay (Neon Console → Reset password) — mật khẩu cũ đã nằm trong lịch sử commit GitHub thật, xóa file khỏi tracking không xóa được nó khỏi các commit cũ.
   2. Sau khi đổi mật khẩu, cập nhật lại `appsettings.Local.json` trên máy với mật khẩu mới.
   3. Review lại các commit cũ trên GitHub xem có public hay chỉ trong tổ/nhóm riêng — nếu repo từng public, nên coi mật khẩu cũ là lộ hoàn toàn.
+
+## 24. Hoàn thiện Module 3 (check trùng lịch) + Module 4 (Thời khóa biểu) (06/10/2026) ✅
+- Theo yêu cầu "tiếp tục M3/M4 đi" (sau khi bạn xác nhận đã nhập lịch học cho LHP qua form ở mục 20).
+
+### Module 3 — Kiểm tra trùng lịch khi đăng ký
+- Thêm **bước 3.5** vào `DangKyHocPhanService.DangKyAsync` (giữa bước kiểm tra sĩ số và bước kiểm tra tín chỉ):
+  - Chỉ chạy khi LHP **đang đăng ký** đã có đủ `Thu`/`TietBatDau`/`SoTiet` (khác NULL).
+  - Lấy danh sách LHP SV đang học trong cùng học kỳ qua `_dangKyRepo.LayTheoMaSVVaMaHocKyAsync` (hàm có sẵn, đã `Include` `LopHocPhan` mang theo 4 cột lịch học).
+  - Với mỗi LHP đang học (bỏ qua chính LHP đang đăng ký): nếu LHP đó **chưa xếp lịch** (còn NULL) thì bỏ qua hoàn toàn — không coi là trùng với gì cả, đúng nguyên tắc không bịa dữ liệu.
+  - Nếu cùng `Thu` và khoảng tiết `[TietBatDau, TietBatDau+SoTiet-1]` giao nhau → chặn cứng, trả lỗi nêu rõ tên lớp/môn bị trùng và khung giờ.
+- Không cần thêm bảng/cột/hàm repository mới — dùng lại 100% dữ liệu và hàm đã có.
+
+### Module 4 — Thời khóa biểu
+- Thêm dialog mới `ThoiKhoaBieuDialog` (`Views/ThoiKhoaBieuDialog.axaml(.cs)` + `ViewModels/ThoiKhoaBieuDialogViewModel.cs`), mở từ màn **Đăng ký học phần** qua nút "Xem Thời khóa biểu" cạnh nút "Chỉnh sửa Đăng ký" (chỉ hiện ở State View, khi đã chọn 1 sinh viên).
+- Dựng lưới 7 cột (Thứ 2 → CN) **hoàn toàn từ `DsDaDangKy` đã có sẵn trong bộ nhớ** (các LHP `TrangThai = DangHoc` của SV đang chọn) — không query thêm DB.
+- LHP nào chưa có lịch (`Thu`/`TietBatDau`/`SoTiet` NULL) **không vẽ lên lưới**, mà liệt kê riêng ở khung "Lớp chưa xếp lịch (không hiển thị trên lưới)" bên dưới — không bịa dữ liệu, không ẩn thông tin.
+- Mỗi ô lớp hiển thị Tên môn + Mã LHP + Phòng (nếu có) + khoảng tiết.
+
+### File liên quan
+- `src/QuanLyDKHP.Services/DangKyHocPhanService.cs` (bước 3.5 mới)
+- `src/QuanLyDKHP.App/ViewModels/ThoiKhoaBieuDialogViewModel.cs` (mới)
+- `src/QuanLyDKHP.App/Views/ThoiKhoaBieuDialog.axaml`, `.axaml.cs` (mới)
+- `src/QuanLyDKHP.App/ViewModels/DangKyHocPhanViewModel.cs` (thêm `ShowThoiKhoaBieuFunc` + lệnh `XemThoiKhoaBieuCommand`)
+- `src/QuanLyDKHP.App/Views/DangKyHocPhanView.axaml(.cs)` (nút mới + nối dialog)
+
+### Lưu ý
+- Chưa build được bằng `dotnet build` (môi trường sandbox không có .NET SDK) — đã tự kiểm tra cân bằng ngoặc `{}`/`()` trong các file `.cs` và XML hợp lệ cho các file `.axaml` mới/sửa, nhưng **bạn cần build/chạy thử thực tế trước khi commit** để chắc chắn.
+- `docs/05-modules/M3-dang-ky-hoc-phan.md` và `M4-thoi-khoa-bieu.md` cần cập nhật trạng thái từ "⚠️ Một phần"/"❌ Chưa làm" sang "✅ Hoàn thành" (sẽ cập nhật trong cùng lần đồng bộ này).
