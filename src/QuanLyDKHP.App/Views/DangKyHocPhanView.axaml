@@ -308,13 +308,19 @@
                                                IsVisible="{Binding IsChuaDatToiThieu}"/>
                                 </StackPanel>
 
-                                <!-- Nút Chỉnh sửa đăng ký -->
-                                <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <Button Content="Chỉnh sửa Đăng ký" 
-                                            Command="{Binding EnterEditModeCommand}" 
+                                <!-- Nút Chỉnh sửa đăng ký + Xem TKB -->
+                                <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="16,0,0,0" Spacing="8">
+                                    <Button Content="Chỉnh sửa Đăng ký"
+                                            Command="{Binding EnterEditModeCommand}"
                                             IsEnabled="{Binding CanEdit}"
                                             Classes="btn-primary"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                             ToolTip.Tip="Chuyển sang chế độ đăng ký / hủy học phần cho sinh viên này"/>
+                                    <Button Content="Xem Thời khóa biểu"
+                                            Command="{Binding XemThoiKhoaBieuCommand}"
+                                            Classes="btn-secondary"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                            ToolTip.Tip="Xem lịch học các lớp SV đang học trong học kỳ này"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

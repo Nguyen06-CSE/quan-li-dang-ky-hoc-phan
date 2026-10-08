@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using QuanLyDKHP.App.Dtos;
 using QuanLyDKHP.App.ViewModels;
 using QuanLyDKHP.Core.Dtos;
 
@@ -28,6 +29,7 @@ public partial class DangKyHocPhanView : UserControl
             vm.ShowConfirmFunc = ShowConfirmDialogAsync;
             vm.ShowWarningConfirmFunc = ShowWarningDialogAsync;
             vm.RequestSelectStudents = SyncListBoxSelection;
+            vm.ShowThoiKhoaBieuFunc = ShowThoiKhoaBieuDialogAsync;
         }
     }
 
@@ -66,6 +68,16 @@ public partial class DangKyHocPhanView : UserControl
             var selected = lb.SelectedItems?.Cast<SinhVienDto>().ToList() ?? [];
             _ = vm.HandleSelectionChanged(selected);
         }
+    }
+
+    private async Task ShowThoiKhoaBieuDialogAsync(List<DangKyHocPhanDisplayDto> dsDaDangKy)
+    {
+        var topLevel = TopLevel.GetTopLevel(this) as Window;
+        if (topLevel == null) return;
+
+        var dialogVm = new ThoiKhoaBieuDialogViewModel(dsDaDangKy);
+        var dialog = new ThoiKhoaBieuDialog(dialogVm);
+        await dialog.ShowDialog(topLevel);
     }
 
     private async Task<bool> ShowConfirmDialogAsync(string message)

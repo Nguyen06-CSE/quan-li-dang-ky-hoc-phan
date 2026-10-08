@@ -211,6 +211,8 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
     public Func<string, Task<bool>>? ShowConfirmFunc { get; set; }
     public Func<string, Task<bool>>? ShowWarningConfirmFunc { get; set; }
     public Action<List<SinhVienDto>>? RequestSelectStudents { get; set; }
+    // Module 4 — Thời khóa biểu: code-behind mở dialog hiển thị lưới TKB từ danh sách LHP truyền vào.
+    public Func<List<DangKyHocPhanDisplayDto>, Task>? ShowThoiKhoaBieuFunc { get; set; }
 
     public DangKyHocPhanViewModel(
         IDangKyHocPhanService dangKyService,
@@ -425,6 +427,20 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<Na
     private void ClearMonHocFilter()
     {
         MonHocFilter = null;
+    }
+
+    /// <summary>
+    /// Module 4 — Mở dialog Thời khóa biểu cho sinh viên đang chọn, dựng từ chính DsDaDangKy hiện có
+    /// (không query thêm DB). Các LHP "chưa xếp lịch" (Thu/TietBatDau/SoTiet NULL) sẽ không xuất hiện
+    /// trên lưới — đúng nguyên tắc không bịa dữ liệu giả.
+    /// </summary>
+    [RelayCommand]
+    private async Task XemThoiKhoaBieu()
+    {
+        if (SinhVienDangChon == null || ShowThoiKhoaBieuFunc == null) return;
+
+        var dsDangHoc = DsDaDangKy.Where(d => d.IsDangHoc).ToList();
+        await ShowThoiKhoaBieuFunc(dsDangHoc);
     }
 
     private async Task CapNhatSinhVienTheoMonFilterAsync(MonHoc mon)

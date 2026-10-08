@@ -58,6 +58,8 @@ public class DangKyHocPhanService : IDangKyHocPhanService
     /// Bước 1: Kiểm tra trùng LHP (chặn cứng)
     /// Bước 2: Kiểm tra trùng môn học (cảnh báo mềm cho học lại/cải thiện)
     /// Bước 3: Kiểm tra sĩ số lớp học phần (chặn cứng)
+    /// Bước 3.5: Kiểm tra trùng lịch học (chặn cứng) — chỉ áp dụng khi cả 2 LHP đã có lịch học
+    /// (LHP nào "chưa xếp lịch" — Thu/TietBatDau/SoTiet NULL — thì bỏ qua, không coi là trùng)
     /// Bước 4: Kiểm tra tổng số tín chỉ tối đa (chặn cứng)
     /// Bước 5: Lưu đăng ký (tạo mới hoặc tái kích hoạt) và gọi TinhLaiHocPhiAsync
     /// </summary>
@@ -108,9 +110,48 @@ public class DangKyHocPhanService : IDangKyHocPhanService
             }
         }
 
+        // Lấy 1 lần danh sách đăng ký hiện tại của SV trong học kỳ này — dùng chung cho bước 3.5
+        // (check trùng lịch) và bước 4 (tính tổng tín chỉ), tránh query DB 2 lần cho cùng 1 dữ liệu.
+        var dangKyHienTai = await _dangKyRepo.LayTheoMaSVVaMaHocKyAsync(maSV, lhp.MaHocKy);
+
+        // 3.5. Kiểm tra trùng lịch học: so Thứ + khoảng Tiết của LHP mới với các LHP SV đang học.
+        // Chỉ áp dụng khi LHP mới ĐÃ xếp lịch đầy đủ (Thu/TietBatDau/SoTiet đều có giá trị).
+        // LHP nào (mới hoặc đang học) "chưa xếp lịch" (còn NULL) thì bỏ qua, không coi là trùng với gì cả
+        // — đúng theo nguyên tắc không bịa dữ liệu giả (xem docs/05-modules/M3-dang-ky-hoc-phan.md).
+        if (lhp.Thu.HasValue && lhp.TietBatDau.HasValue && lhp.SoTiet.HasValue)
+        {
+            int batDauMoi = lhp.TietBatDau.Value;
+            int ketThucMoi = batDauMoi + lhp.SoTiet.Value - 1;
+
+            foreach (var dk in dangKyHienTai)
+            {
+                if (dk.TrangThai != "DangHoc") continue;
+                if (dk.MaLHP == maLHP) continue;
+
+                var lhpKhac = dk.LopHocPhan;
+                if (lhpKhac == null) continue;
+                if (!lhpKhac.Thu.HasValue || !lhpKhac.TietBatDau.HasValue || !lhpKhac.SoTiet.HasValue) continue;
+                if (lhpKhac.Thu.Value != lhp.Thu.Value) continue;
+
+                int batDauKhac = lhpKhac.TietBatDau.Value;
+                int ketThucKhac = batDauKhac + lhpKhac.SoTiet.Value - 1;
+
+                bool trung = batDauMoi <= ketThucKhac && batDauKhac <= ketThucMoi;
+                if (trung)
+                {
+                    string tenMonKhac = lhpKhac.MonHoc?.TenMon ?? lhpKhac.MaMon;
+                    return DangKyResult.Fail(
+                        $"Trùng lịch học với lớp '{lhpKhac.MaLHP}' ({tenMonKhac}) — cùng Thứ {lhp.Thu.Value}, " +
+                        $"tiết {batDauKhac}-{ketThucKhac}.");
+                }
+            }
+        }
+
         // 4. Kiểm tra tổng số tín chỉ: TongTCHienTai + SoTCMonMoi > SoTinChiToiDa
         int soTCMonMoi = lhp.MonHoc != null ? (lhp.MonHoc.SoTinChiLT + lhp.MonHoc.SoTinChiTH) : 0;
-        int tongTCHienTai = await TinhTongTinChiHienTaiAsync(maSV, lhp.MaHocKy);
+        int tongTCHienTai = dangKyHienTai
+            .Where(dk => dk.TrangThai == "DangHoc" && dk.LopHocPhan?.MonHoc != null)
+            .Sum(dk => dk.LopHocPhan.MonHoc.SoTinChiLT + dk.LopHocPhan.MonHoc.SoTinChiTH);
         int soTinChiToiDa = await _cauHinhService.GetInt("SoTinChiToiDa");
         if (soTinChiToiDa <= 0) soTinChiToiDa = 25;
 
