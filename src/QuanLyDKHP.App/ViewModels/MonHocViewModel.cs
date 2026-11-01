@@ -5,15 +5,19 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;                        // ✅ THÊM MỚI: cho StringBuilder/Encoding khi cần
 using System.Threading.Tasks;
 using System.Timers;
-using Avalonia.Threading;                       // ✅ THÊM MỚI: để dispatch UI thread
+using Avalonia.Threading;                  // ✅ để dispatch UI thread
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input.Platform;
+using Avalonia;
 
 namespace QuanLyDKHP.App.ViewModels;
 
@@ -23,21 +27,20 @@ public partial class MonHocViewModel : ObservableObject
     private readonly ICurrentUserService _currentUserService;
     private readonly Timer _debounceTimer;
 
-    // ✅ THÊM MỚI: chặn debounce trong lúc khởi tạo để tránh gọi lọc khi _masterList còn rỗng
+    // ✅ Chặn debounce trong lúc khởi tạo để tránh gọi lọc khi _masterList còn rỗng
     private bool _dangKhoiTao = true;
 
-    // ✅ THÊM MỚI: Bộ nhớ đệm chứa TOÀN BỘ dữ liệu gốc trên RAM
+    // ✅ Bộ nhớ đệm chứa TOÀN BỘ dữ liệu gốc trên RAM
     private List<MonHocDto> _masterList = new();
 
-    // ✅ THÊM MỚI: Comparer tiếng Việt (xử lý dấu đúng thứ tự alphabet)
+    // ✅ Comparer tiếng Việt (xử lý dấu đúng thứ tự alphabet)
     private static readonly StringComparer ViComparer =
         StringComparer.Create(CultureInfo.GetCultureInfo("vi-VN"), ignoreCase: true);
 
     [ObservableProperty]
     private string? _tuKhoa;
 
-    // ✅ ĐỔI MỚI: dùng SelectedSortIndex (int) để bind thẳng ComboBox, thay cho SelectedSortBy (string)
-    //    Lý do: ComboBox trong Avalonia bind SelectedIndex dễ dàng hơn nhiều so với Tag/SelectedValue
+    // ✅ Dùng SelectedSortIndex (int) để bind thẳng ComboBox
     [ObservableProperty]
     private int _selectedSortIndex = 0;
 
@@ -50,14 +53,115 @@ public partial class MonHocViewModel : ObservableObject
     [ObservableProperty]
     private bool _isStatusError;
 
-    // ✅ THÊM MỚI: cờ báo hiệu cho ProgressBar
+    // ✅ Cờ báo hiệu cho ProgressBar
     [ObservableProperty]
     private bool _isLoading;
 
-    // ✅ ĐỔI MỚI QUAN TRỌNG: chuyển từ { get; } = new() sang [ObservableProperty]
-    //    → cho phép gán mới TOÀN BỘ collection 1 lần (nhanh hơn .Add() từng dòng rất nhiều)
+    // ✅ Cho phép gán mới TOÀN BỘ collection 1 lần (nhanh hơn .Add() từng dòng)
     [ObservableProperty]
     private ObservableCollection<MonHocDto> _danhSach = new();
+
+    // ============================================================
+    // ✅ Quản lý chọn hàng loạt (Bulk Selection)
+    // ============================================================
+    private bool _isUpdatingSelection;
+
+    [ObservableProperty]
+    private bool? _isAllSelected = false;
+
+    [ObservableProperty]
+    private int _selectedCount;
+
+    public bool HasSelectedItems => SelectedCount > 0;
+
+    // Lệnh cập nhật số lượng khi tick từng dòng
+    [RelayCommand]
+    public void CapNhatSoLuongChon()
+    {
+        _isUpdatingSelection = true;
+        try
+        {
+            SelectedCount = DanhSach.Count(x => x.IsSelected);
+            OnPropertyChanged(nameof(HasSelectedItems));
+
+            if (SelectedCount == 0)
+                IsAllSelected = false;
+            else if (SelectedCount == DanhSach.Count && DanhSach.Count > 0)
+                IsAllSelected = true;
+            else
+                IsAllSelected = null;
+        }
+        finally
+        {
+            _isUpdatingSelection = false;
+        }
+    }
+
+    // Toggle khi click checkbox chọn tất cả ở Header
+    partial void OnIsAllSelectedChanged(bool? value)
+    {
+        if (_isUpdatingSelection || !value.HasValue) return;
+
+        foreach (var item in DanhSach)
+        {
+            item.IsSelected = value.Value;
+        }
+        SelectedCount = value.Value ? DanhSach.Count : 0;
+        OnPropertyChanged(nameof(HasSelectedItems));
+    }
+
+    [RelayCommand]
+    private void BoChonTatCa()
+    {
+        IsAllSelected = false;
+    }
+
+    [RelayCommand]
+    private async Task SaoChepCacMaMonDaChonAsync()
+    {
+        var cacMaMon = DanhSach.Where(x => x.IsSelected).Select(x => x.MaMon).ToList();
+        if (cacMaMon.Count == 0) return;
+
+        var text = string.Join(", ", cacMaMon);
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
+            && desktop.MainWindow?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(text);
+            ShowMessage($"Đã sao chép {cacMaMon.Count} mã môn vào bộ nhớ tạm", false);
+        }
+    }
+
+    [RelayCommand]
+    private async Task XoaCacMonDaChonAsync()
+    {
+        var cacMonDuocChon = DanhSach.Where(x => x.IsSelected).ToList();
+        if (cacMonDuocChon.Count == 0 || !CanThemSuaXoa) return;
+
+        if (ShowConfirmDeleteFunc != null)
+        {
+            bool confirm = await ShowConfirmDeleteFunc($"Bạn có chắc chắn muốn xóa {cacMonDuocChon.Count} môn học đã chọn?");
+            if (!confirm) return;
+        }
+
+        try
+        {
+            foreach (var mon in cacMonDuocChon)
+            {
+                await _monHocService.XoaAsync(mon.MaMon);
+                await _syncService.RemoveLocalEntityAsync<MonHoc>(mon.MaMon);
+            }
+            ShowMessage($"Đã xóa {cacMonDuocChon.Count} môn học thành công.", false);
+            await InitMasterDataAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message, true);
+        }
+    }
+    // ============================================================
+    // Services & Delegate dialog
+    // ============================================================
 
     private readonly IExcelExportService _excelExportService;
     private readonly ILocalReadService _localReadService;
@@ -72,20 +176,29 @@ public partial class MonHocViewModel : ObservableObject
         ILocalReadService localReadService,
         ISyncService syncService)
     {
-        _monHocService = monHocService;
-        _currentUserService = currentUserService;
-        _excelExportService = excelExportService;
-        _localReadService = localReadService;
-        _syncService = syncService;
+        try
+        {
+            _monHocService = monHocService;
+            _currentUserService = currentUserService;
+            _excelExportService = excelExportService;
+            _localReadService = localReadService;
+            _syncService = syncService;
 
-        CanThemSuaXoa = _currentUserService.CurrentUser != null &&
-                       PermissionMatrix.HasPermission(ChucNang.CrudMonHoc, _currentUserService.CurrentUser.Role);
+            CanThemSuaXoa = _currentUserService.CurrentUser != null &&
+                           PermissionMatrix.HasPermission(ChucNang.CrudMonHoc, _currentUserService.CurrentUser.Role);
 
-        // ✅ ĐỔI MỚI: timer giờ gọi hàm lọc in-memory (không gọi DB nữa)
-        _debounceTimer = new Timer(300) { AutoReset = false };
-        _debounceTimer.Elapsed += (s, e) => ApplyFiltersInMemory();
+            // Timer giờ gọi hàm lọc in-memory (không gọi DB nữa)
+            _debounceTimer = new Timer(300) { AutoReset = false };
+            _debounceTimer.Elapsed += (s, e) => ApplyFiltersInMemory();
 
-        _ = InitMasterDataAsync();
+            _ = InitMasterDataAsync();
+        }
+        catch (System.Exception ex)
+        {
+            System.Console.WriteLine("=== LỖI KHỞI TẠO MONHOCVIEWMODEL ===");
+            System.Console.WriteLine(ex.ToString());
+            throw;
+        }
     }
 
     public MonHocViewModel()
@@ -120,7 +233,7 @@ public partial class MonHocViewModel : ObservableObject
         }
     }
 
-    // ✅ ĐỔI MỚI: các partial method chỉ trigger debounce, KHÔNG gọi DB
+    // Các partial method chỉ trigger debounce, KHÔNG gọi DB
     partial void OnTuKhoaChanged(string? value) => TriggerDebounce();
     partial void OnSelectedSortIndexChanged(int value) => TriggerDebounce();
 
@@ -131,7 +244,7 @@ public partial class MonHocViewModel : ObservableObject
         _debounceTimer.Start();
     }
 
-    // ✅ THÊM MỚI: hàm lọc in-memory chạy trên Background Thread
+    // Hàm lọc in-memory chạy trên Background Thread
     private void ApplyFiltersInMemory()
     {
         Task.Run(() =>
@@ -164,6 +277,7 @@ public partial class MonHocViewModel : ObservableObject
             Dispatcher.UIThread.Invoke(() =>
             {
                 DanhSach = new ObservableCollection<MonHocDto>(resultList);
+                CapNhatSoLuongChon();
                 IsLoading = false;
             });
         });
@@ -187,7 +301,6 @@ public partial class MonHocViewModel : ObservableObject
                 await _syncService.UpsertLocalEntityAsync(newMon);
                 ShowMessage($"Đã thêm môn học {newMon.TenMon} ({newMon.MaMon}) thành công.", false);
 
-                // ✅ ĐỔI MỚI: reload master list + lọc lại in-memory (không query DB 2 lần)
                 await InitMasterDataAsync();
             }
             catch (Exception ex)
@@ -198,9 +311,9 @@ public partial class MonHocViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task SuaAsync(MonHocDto dto)
+    private async Task SuaAsync(MonHocDto? dto)
     {
-        if (ShowEditDialogFunc == null) return;
+        if (dto == null || ShowEditDialogFunc == null) return;
         var existingMon = new MonHoc
         {
             MaMon = dto.MaMon,
@@ -219,7 +332,6 @@ public partial class MonHocViewModel : ObservableObject
                 await _syncService.UpsertLocalEntityAsync(updatedMon);
                 ShowMessage($"Đã cập nhật môn học {updatedMon.MaMon} thành công.", false);
 
-                // ✅ ĐỔI MỚI: reload master list
                 await InitMasterDataAsync();
             }
             catch (Exception ex)
@@ -230,9 +342,9 @@ public partial class MonHocViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task XoaAsync(MonHocDto dto)
+    private async Task XoaAsync(MonHocDto? dto)
     {
-        if (ShowConfirmDeleteFunc == null) return;
+        if (dto == null || ShowConfirmDeleteFunc == null) return;
         bool confirm = await ShowConfirmDeleteFunc($"Bạn có chắc chắn muốn xóa môn học {dto.TenMon} ({dto.MaMon})?");
         if (confirm)
         {
@@ -242,7 +354,6 @@ public partial class MonHocViewModel : ObservableObject
                 await _syncService.RemoveLocalEntityAsync<MonHoc>(dto.MaMon);
                 ShowMessage($"Đã xóa môn học {dto.MaMon} thành công.", false);
 
-                // ✅ ĐỔI MỚI: reload master list
                 await InitMasterDataAsync();
             }
             catch (Exception ex)
@@ -259,7 +370,6 @@ public partial class MonHocViewModel : ObservableObject
 
         try
         {
-            // ✅ ĐỔI MỚI: dùng luôn DanhSach hiện tại (đã được lọc/sort in-memory) → không cần query DB lại
             var ds = DanhSach.ToList();
             if (ds.Count == 0)
             {
@@ -296,5 +406,24 @@ public partial class MonHocViewModel : ObservableObject
     {
         StatusMessage = msg;
         IsStatusError = isError;
+    }
+
+    [RelayCommand]
+    private async Task SaoChepMaMonAsync(object? param)
+    {
+        string? maMon = param switch
+        {
+            MonHocDto dto => dto.MaMon,
+            string s => s,
+            _ => null
+        };
+        if (string.IsNullOrWhiteSpace(maMon)) return;
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(maMon);
+            ShowMessage($"Đã sao chép mã môn: {maMon}", false);
+        }
     }
 }

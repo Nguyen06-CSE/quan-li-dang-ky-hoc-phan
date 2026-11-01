@@ -14,52 +14,22 @@ public partial class MonHocView : UserControl
 {
     public MonHocView()
     {
-        InitializeComponent();
-
-        // Đăng ký sự kiện click chuột trái lên DataGrid để mở context menu Sửa/Xóa
-        var dataGrid = this.FindControl<DataGrid>("MonHocDataGrid");
-        if (dataGrid != null)
+        try
         {
-            dataGrid.AddHandler(PointerPressedEvent, OnDataGridPointerPressed, RoutingStrategies.Tunnel);
+            InitializeComponent();
         }
-    }
-
-    /// <summary>
-    /// Xử lý khi user click chuột TRÁI vào 1 row → mở ContextMenu (Sửa/Xóa) tại vị trí con trỏ.
-    /// </summary>
-    private void OnDataGridPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        // Chỉ xử lý chuột trái
-        var point = e.GetCurrentPoint(this);
-        if (!point.Properties.IsLeftButtonPressed) return;
-
-        // Không mở menu nếu click vào header (để không phá chức năng sort cột)
-        if (e.Source is DataGridColumnHeader) return;
-
-        // Tìm DataGridRow chứa control được click
-        var source = e.Source as Control;
-        var row = FindParent<DataGridRow>(source);
-        if (row == null) return;
-
-        // Mở ContextMenu của row (đã định nghĩa trong XAML)
-        if (row.ContextMenu != null)
+        catch (System.Exception ex)
         {
-            row.ContextMenu.Open(row);
-            e.Handled = true;
+            System.Console.WriteLine("=== LỖI KHỞI TẠO MONHOCVIEW ===");
+            System.Console.WriteLine(ex.ToString());
+            Content = new TextBlock 
+            { 
+                Text = "=== LỖI KHỞI TẠO MONHOCVIEW ===\n\n" + ex.ToString(), 
+                Foreground = Avalonia.Media.Brushes.Red,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(20)
+            };
         }
-    }
-
-    /// <summary>
-    /// Duyệt ngược visual tree để tìm control cha thuộc kiểu T.
-    /// </summary>
-    private static T? FindParent<T>(Control? control) where T : Control
-    {
-        while (control != null)
-        {
-            if (control is T typed) return typed;
-            control = control.Parent as Control;
-        }
-        return null;
     }
 
     protected override void OnDataContextChanged(System.EventArgs e)

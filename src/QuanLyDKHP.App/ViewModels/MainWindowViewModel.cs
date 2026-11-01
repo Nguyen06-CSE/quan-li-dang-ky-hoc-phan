@@ -302,25 +302,33 @@ public partial class MainWindowViewModel : ObservableObject, IRecipient<Navigate
         }
 
         // Nếu chưa có, tạo lần đầu tiên và nhét vào cache
-        ObservableObject? newVm = menuItem.ChucNang switch
+        try
         {
-            ChucNang.XemDashboard         => CreateDashboardViewModel(),
-            ChucNang.CrudSinhVien         => _sinhVienViewModelFactory(),
-            ChucNang.CrudMonHoc           => _monHocViewModelFactory(),
-            ChucNang.CrudHocKyLopHocPhan  => _hocKyLopHocPhanViewModelFactory(),
-            ChucNang.DangKyHocPhan        => _dangKyHocPhanViewModelFactory(),
-            ChucNang.XemHocPhi            => _hocPhiViewModelFactory(),
-            ChucNang.ThongKeSvTheoMon     => _baoCaoViewModelFactory(),
-            ChucNang.ImportExcel          => _importExcelViewModelFactory(),
-            ChucNang.CauHinhHeThong       => _cauHinhViewModelFactory(),
-            ChucNang.QuanLyNguoiDung      => _nguoiDungViewModelFactory(),
-            _ => null
-        };
+            ObservableObject? newVm = menuItem.ChucNang switch
+            {
+                ChucNang.XemDashboard         => CreateDashboardViewModel(),
+                ChucNang.CrudSinhVien         => _sinhVienViewModelFactory(),
+                ChucNang.CrudMonHoc           => _monHocViewModelFactory(),
+                ChucNang.CrudHocKyLopHocPhan  => _hocKyLopHocPhanViewModelFactory(),
+                ChucNang.DangKyHocPhan        => _dangKyHocPhanViewModelFactory(),
+                ChucNang.XemHocPhi            => _hocPhiViewModelFactory(),
+                ChucNang.ThongKeSvTheoMon     => _baoCaoViewModelFactory(),
+                ChucNang.ImportExcel          => _importExcelViewModelFactory(),
+                ChucNang.CauHinhHeThong       => _cauHinhViewModelFactory(),
+                ChucNang.QuanLyNguoiDung      => _nguoiDungViewModelFactory(),
+                _ => null
+            };
 
-        if (newVm != null)
+            if (newVm != null)
+            {
+                _viewModelCache[menuItem.ChucNang] = newVm;
+                CurrentViewModel = newVm;
+            }
+        }
+        catch (System.Exception ex)
         {
-            _viewModelCache[menuItem.ChucNang] = newVm;
-            CurrentViewModel = newVm;
+            System.Console.WriteLine($"=== LỖI ĐIỀU HƯỚNG / KHỞI TẠO VIEWMODEL [{menuItem.ChucNang}] ===");
+            System.Console.WriteLine(ex.ToString());
         }
     }
 
