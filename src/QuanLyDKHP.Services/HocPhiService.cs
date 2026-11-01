@@ -136,7 +136,7 @@ public class HocPhiService : IHocPhiService
         decimal donGiaTH = await _cauHinhService.GetDecimal("DonGiaTinChiTH");
 
         // 2. Kéo toàn bộ đăng ký trong 1 lượt query gộp duy nhất qua Repository
-        var allDangKy = await _dangKyRepo.LayTheoDanhSachMaSVVaMaHocKyAsync(listMaSV, maHocKy);
+        var allDangKy = (await _dangKyRepo.LayTheoDanhSachMaSVVaMaHocKyAsync(listMaSV, maHocKy)) ?? [];
 
         // 3. Gom nhóm đăng ký theo từng sinh viên
         var dangKyTheoSV = allDangKy

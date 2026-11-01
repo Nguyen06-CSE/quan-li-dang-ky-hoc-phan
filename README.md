@@ -54,7 +54,7 @@
 
 ### 3.2. Cấu hình chuỗi kết nối Database
 ---
-# LƯU Í HIỆN TẠI CHƯƠNG TRÌNH MẶC ĐỊNH DÙNG DB HOST TRÊN NEON NÊN TỐC ĐỘ RẤT THẤP BẠN HÃY TỰ TẠO DB THEO HƯỚNG DẪN TẠI ĐƯỜNG LINK DƯỚI ĐÂY [hướng dẫn cài đặt DB](/database-setup.md)
+# LƯU Í HIỆN TẠI CHƯƠNG TRÌNH MẶC ĐỊNH DÙNG DB HOST TRÊN NEON NÊN TỐC ĐỘ RẤT THẤP BẠN HÃY TỰ TẠO DB THEO HƯỚNG DẪN TẠI ĐƯỜNG LINK DƯỚI ĐÂY [hướng dẫn cài đặt DB](docs/00-architecture/database-setup.md)
 ---
 Tạo hoặc cập nhật file `src/QuanLyDKHP.App/appsettings.Local.json` (hoặc `appsettings.json`):
 
@@ -106,5 +106,6 @@ quan-li-dang-ky-hoc-phan/
 │   └── QuanLyDKHP.App/             # Avalonia UI, Views, ViewModels, Styles, Dialogs
 ├── tests/
 │   └── QuanLyDKHP.Tests/           # Unit Tests (xUnit, Moq)
-└── spec/                           # Tài liệu đặc tả kỹ thuật chi tiết
+├── scripts/                        # Script tạo dữ liệu mẫu & seeding
+└── docs/                           # Tài liệu kiến trúc, đặc tả chức năng & nhật ký lỗi
 ```

@@ -206,11 +206,14 @@ public class HocPhiServiceTests
         _mockSinhVienRepo.Setup(r => r.GetByIdAsync("SV002")).ReturnsAsync(new SinhVien { MaSV = "SV002", HoTen = "SV 2" });
         _mockHocKyRepo.Setup(r => r.GetByIdAsync(maHK)).ReturnsAsync(new HocKy { MaHocKy = maHK });
 
-        var dsDk1 = new List<DangKyHocPhan> { CreateDangKy("LHP01", "M1", "Môn 1", 3, 0, soTienDaDong: 1500000) };
-        var dsDk2 = new List<DangKyHocPhan> { CreateDangKy("LHP02", "M2", "Môn 2", 2, 1, soTienDaDong: 500000) };
+        var dk1 = CreateDangKy("LHP01", "M1", "Môn 1", 3, 0, soTienDaDong: 1500000);
+        dk1.MaSV = "SV001";
+        var dk2 = CreateDangKy("LHP02", "M2", "Môn 2", 2, 1, soTienDaDong: 500000);
+        dk2.MaSV = "SV002";
 
-        _mockDangKyRepo.Setup(r => r.LayTheoMaSVVaMaHocKyAsync("SV001", maHK)).ReturnsAsync(dsDk1);
-        _mockDangKyRepo.Setup(r => r.LayTheoMaSVVaMaHocKyAsync("SV002", maHK)).ReturnsAsync(dsDk2);
+        _mockDangKyRepo
+            .Setup(r => r.LayTheoDanhSachMaSVVaMaHocKyAsync(It.IsAny<IEnumerable<string>>(), maHK))
+            .ReturnsAsync(new List<DangKyHocPhan> { dk1, dk2 });
 
         // Act
         var result = await _service.TinhHocPhiTheoDanhSachAsync(dsMaSV, maHK);

@@ -153,14 +153,9 @@ public partial class CauHinhViewModel : ObservableObject
             }
 
             var tatCaSv = await _sinhVienService.LayDanhSachAsync(null, null, null);
-            int count = 0;
-            foreach (var sv in tatCaSv)
-            {
-                await _hocPhiService.TinhLaiHocPhiAsync(sv.MaSV, hkMacDinh.MaHocKy);
-                count++;
-            }
+            await _hocPhiService.TinhLaiHocPhiHangLoatAsync(tatCaSv.Select(s => s.MaSV), hkMacDinh.MaHocKy);
 
-            ShowMessage($"Đã tính lại học phí thành công cho {count} sinh viên trong học kỳ {hkMacDinh.TenHocKy}.", false);
+            ShowMessage($"Đã tính lại học phí thành công cho {tatCaSv.Count} sinh viên trong học kỳ {hkMacDinh.TenHocKy}.", false);
         }
         catch (Exception ex)
         {

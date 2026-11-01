@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace QuanLyDKHP.Core.Interfaces;
+namespace QuanLyDKHP.Core.Dtos;
 
 public class PagedResult<T>
 {
