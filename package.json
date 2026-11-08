@@ -1,0 +1,12 @@
+{
+  "name": "quan-li-dang-ky-hoc-phan-workspace",
+  "private": true,
+  "description": "QuanLyDKHP - He thong Quan ly Dang ky Hoc phan Desktop (.NET 8 & Avalonia UI)",
+  "scripts": {
+    "docs:install": "cd website && npm install",
+    "docs:start": "cd website && npm start",
+    "docs:build": "cd website && npm run build",
+    "docs:serve": "cd website && npm run serve",
+    "docs:clear": "cd website && npm run clear"
+  }
+}

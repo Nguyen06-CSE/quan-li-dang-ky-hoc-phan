@@ -52,3 +52,14 @@ appsettings.Local.json
 
 # --- Các file log của agent (dựa trên cấu trúc thư mục .agent của bạn) ---
 .agent/session_log*
+.agent/session-log/
+
+# --- Graphify Knowledge Graph outputs & cache ---
+graphify-out/
+
+# --- Docusaurus & Node.js ---
+node_modules/
+.docusaurus/
+website/build/
+.cache-loader/
+
