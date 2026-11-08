@@ -3,9 +3,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input.Platform;
 using Avalonia.Threading;                       // ✅ THÊM MỚI
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -45,6 +49,12 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
 
     [ObservableProperty]
     private MonHoc? _selectedMonFilter;
+
+    [ObservableProperty]
+    private int _selectedSortIndex = 0;
+
+    public bool HasAnyFilter => !string.IsNullOrWhiteSpace(TuKhoaLHP) ||
+                                (SelectedMonFilter != null && !string.IsNullOrEmpty(SelectedMonFilter.MaMon));
 
     [ObservableProperty]
     private string? _statusMessage;
@@ -226,8 +236,17 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
 
     // ✅ ĐỔI MỚI: các partial method giờ chỉ trigger debounce, KHÔNG query DB
     partial void OnSelectedHocKyChanged(HocKy? value) => TriggerDebounce();
-    partial void OnTuKhoaLHPChanged(string? value) => TriggerDebounce();
-    partial void OnSelectedMonFilterChanged(MonHoc? value) => TriggerDebounce();
+    partial void OnTuKhoaLHPChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasAnyFilter));
+        TriggerDebounce();
+    }
+    partial void OnSelectedMonFilterChanged(MonHoc? value)
+    {
+        OnPropertyChanged(nameof(HasAnyFilter));
+        TriggerDebounce();
+    }
+    partial void OnSelectedSortIndexChanged(int value) => TriggerDebounce();
 
     private void TriggerDebounce()
     {
@@ -271,6 +290,16 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             {
                 query = query.Where(x => x.MaMon == SelectedMonFilter.MaMon);
             }
+
+            // --- Sắp xếp in-memory ---
+            var viComparer = StringComparer.Create(CultureInfo.GetCultureInfo("vi-VN"), ignoreCase: true);
+            query = SelectedSortIndex switch
+            {
+                1 => query.OrderByDescending(x => x.TenMon ?? string.Empty, viComparer), // Tên môn Z → A
+                2 => query.OrderBy(x => x.MaLHP ?? string.Empty, viComparer),            // Mã LHP
+                3 => query.OrderByDescending(x => x.SiSoDangKy),                         // Sĩ số ↓
+                _ => query.OrderBy(x => x.TenMon ?? string.Empty, viComparer)            // Tên môn A → Z
+            };
 
             var resultList = query.ToList();
 
@@ -405,6 +434,29 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
             {
                 ShowMessage(ex.Message, true);
             }
+        }
+    }
+
+    [RelayCommand]
+    private void DatLaiBoLoc()
+    {
+        TuKhoaLHP = string.Empty;
+        if (DanhSachMonHocFilter.Count > 0)
+        {
+            SelectedMonFilter = DanhSachMonHocFilter[0];
+        }
+        SelectedSortIndex = 0;
+    }
+
+    [RelayCommand]
+    private async Task SaoChepMaLhpAsync(LopHocPhanDisplayDto? lhp)
+    {
+        if (lhp == null || string.IsNullOrWhiteSpace(lhp.MaLHP)) return;
+        if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow?.Clipboard != null)
+        {
+            await desktop.MainWindow.Clipboard.SetTextAsync(lhp.MaLHP);
+            ShowMessage($"Đã sao chép mã LHP: {lhp.MaLHP}", false);
         }
     }
 

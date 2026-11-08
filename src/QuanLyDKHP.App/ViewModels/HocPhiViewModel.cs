@@ -6,6 +6,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.Core.Dtos;
@@ -33,6 +36,23 @@ public partial class HocPhiViewModel : ObservableObject
 
     [ObservableProperty]
     private string _phamVi = "SinhVien"; // "SinhVien", "Lop", "Khoa"
+
+    [ObservableProperty]
+    private int _selectedPhamViIndex = 0;
+
+    partial void OnSelectedPhamViIndexChanged(int value)
+    {
+        string newPhamVi = value switch
+        {
+            1 => "Lop",
+            2 => "Khoa",
+            _ => "SinhVien"
+        };
+        if (PhamVi != newPhamVi)
+        {
+            PhamVi = newPhamVi;
+        }
+    }
 
     [ObservableProperty]
     private bool _isTheoSinhVien = true;
@@ -181,6 +201,16 @@ private async Task InitDataAsync()
         IsTheoSinhVien = value == "SinhVien";
         IsTheoLop = value == "Lop";
         IsTheoKhoa = value == "Khoa";
+        int targetIdx = value switch
+        {
+            "Lop" => 1,
+            "Khoa" => 2,
+            _ => 0
+        };
+        if (SelectedPhamViIndex != targetIdx)
+        {
+            SelectedPhamViIndex = targetIdx;
+        }
         _ = LoadDanhSachTheoPhamViAsync();
     }
 
@@ -530,6 +560,32 @@ private async Task InitDataAsync()
         {
             IsLoading = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task SaoChepMaSvAsync(object? param)
+    {
+        string? maSv = param switch
+        {
+            HocPhiTongHopDto dto => dto.MaSV,
+            string s => s,
+            _ => null
+        };
+        if (string.IsNullOrWhiteSpace(maSv)) return;
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(maSv);
+            ShowMessage($"Đã sao chép mã sinh viên: {maSv}", false);
+        }
+    }
+
+    [RelayCommand]
+    private async Task XoaSinhVienDangChonAsync()
+    {
+        SinhVienDangChon = null;
+        TuKhoaSinhVien = null;
+        await LoadDanhSachTheoPhamViAsync();
     }
 
     private void ShowMessage(string msg, bool isError)

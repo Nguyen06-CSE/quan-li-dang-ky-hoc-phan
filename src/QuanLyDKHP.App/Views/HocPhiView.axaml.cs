@@ -1,10 +1,12 @@
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using QuanLyDKHP.App.ViewModels;
+using QuanLyDKHP.Core.Dtos;
 
 namespace QuanLyDKHP.App.Views;
 
@@ -13,6 +15,14 @@ public partial class HocPhiView : UserControl
     public HocPhiView()
     {
         InitializeComponent();
+    }
+
+    private void OnDataGridDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is DataGrid dg && dg.SelectedItem is HocPhiTongHopDto dto && DataContext is HocPhiViewModel vm)
+        {
+            vm.XemChiTietCommand.Execute(dto);
+        }
     }
 
     protected override void OnDataContextChanged(System.EventArgs e)
