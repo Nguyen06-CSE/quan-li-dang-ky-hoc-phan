@@ -100,3 +100,25 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
   1. **Tầng 1 (Local Git-Style Backup):** Xuất dữ liệu 8 bảng ra định dạng văn bản chuẩn hóa theo dòng (`Canonical Sorted JSONL`, sắp xếp cố định theo khóa chính `ORDER BY PrimaryKey`) và sử dụng thư viện `LibGit2Sharp` để tự động tạo bản `Commit` mỗi ngày vào kho Git nội bộ (`.db-backup-git`), kèm 1 bản chụp nhị phân nóng (`SqliteConnection.BackupDatabase`).
   2. **Tầng 2 (Remote DB Host Replica):** Đảo chiều cơ chế Delta Sync cũ thành đẩy vi sai một chiều (`Local SQLite -> Remote PostgreSQL Host`) dựa trên mốc thời gian `NgayCapNhat`.
 * **Lý do:** Biểu diễn `Canonical Sorted JSONL` giúp thuật toán nén vi sai (Delta Compression) của Git chỉ lưu đúng những dòng bản ghi thay đổi trong ngày (tốn vài KB mỗi ngày thay vì hàng chục MB), hỗ trợ xem lịch sử thay đổi tường minh và khôi phục (`Time-Travel Restore` kèm `Pre-Restore Safety Commit`) về bất kỳ thời điểm nào, trong khi tầng DB Host bảo vệ dữ liệu trước rủi ro hỏng phần cứng máy trạm.
+
+---
+
+## ADR-14: Đóng Gói Định Dạng Sao Lưu Ngoại Tuyến Bằng Chữ Ký `QuanLyDKHP-Backup-v1` Và Mã Kiểm Tra SHA-256 Checksum
+* **Bối cảnh:** Cán bộ quản lý cần xuất (Export) bất kỳ mốc sao lưu nào thành một tệp lưu trữ ngoại tuyến (`.dkhp-backup.zip`) để lưu vào USB/ổ cứng ngoài, và có thể nhập (Import) lại vào một máy tính khác để ghi đè CSDL. Tuy nhiên, việc cho phép người dùng nạp một tệp nén tự do từ bên ngoài tiềm ẩn rủi ro phá hỏng cấu trúc dữ liệu hoặc nạp tệp không đúng chuẩn.
+* **Quyết định:** Định nghĩa cấu trúc gói sao lưu độc quyền chứa tệp chỉ mục metadata `manifest.json`:
+  * Thuộc tính `FormatSignature = "QuanLyDKHP-Backup-v1"`.
+  * Từ điển `TableSha256Checksums` lưu mã hash SHA-256 độc lập của từng bảng dữ liệu `tables/*.jsonl`.
+  * Trước khi ghi đè CSDL, hệ thống giải nén trong bộ nhớ và kiểm tra chữ ký định dạng cùng toàn bộ 8 mã SHA-256. Bất kỳ sự sai lệch hoặc thiếu tệp nào đều bị từ chối với thông báo lỗi cụ thể.
+  * Ngay trước khi ghi đè, hệ thống tự động tạo một commit Git `[Pre-Import]` để bảo vệ dữ liệu hiện tại, cho phép hoàn tác (Undo) bất kỳ lúc nào.
+* **Lý do:** Bảo đảm tính toàn vẹn 100% của tệp sao lưu, chống giả mạo hoặc chỉnh sửa thủ công làm sai lệch dữ liệu, đồng thời mang lại cơ chế an toàn tuyệt đối cho người vận hành.
+
+---
+
+## ADR-15: Chuyển Đổi Tác Vụ Sao Lưu Khi Thoát Ứng Dụng Sang ThreadPool Có Giới Hạn Thời Gian & Loại Bỏ `Cache=Shared`
+* **Bối cảnh:** Ứng dụng Desktop bị treo cứng (con trỏ chuột xoay vòng - beachball trên macOS / Not Responding trên Windows) mỗi khi người dùng tắt ứng dụng.
+* **Quyết định:**
+  1. Trong sự kiện tắt ứng dụng `desktop.ShutdownRequested` của Avalonia, chuyển toàn bộ lệnh gọi sao lưu sang chạy ngầm trên ThreadPool thông qua `Task.Run()` kết hợp giới hạn thời gian an toàn tối đa 2 giây (`.Wait(TimeSpan.FromSeconds(2))`).
+  2. Loại bỏ thuộc tính `Cache=Shared` khỏi chuỗi kết nối SQLite tại `App.axaml.cs`, chuyển về chế độ Private Cache mặc định: `Data Source={sqlitePath}`.
+* **Lý do:**
+  * Luồng UI của Avalonia được quản lý bởi `AvaloniaSynchronizationContext`. Khi luồng UI gọi `.GetAwaiter().GetResult()` chặn đồng bộ, các tác vụ `await` I/O bên trong EF Core / SQLite cố gắng điều phối (marshal) tiếp tục chạy trên luồng UI dẫn tới **Async-over-Sync Deadlock**. Đưa tác vụ vào `Task.Run` làm biến mất `SynchronizationContext`, triệt tiêu hoàn toàn khả năng deadlock.
+  * Trong chế độ WAL, SQLite hỗ trợ đọc ghi đồng thời rất tốt giữa các kết nối độc lập. Thuộc tính `Cache=Shared` gây khóa chéo cấp bảng (Table Lock) giữa kết nối của `AppDbContext` và kết nối của `BackupService`, làm chậm và nghẽn I/O khi dọn dẹp tiến trình. Private Cache giúp mỗi kết nối hoạt động mượt mà, độc lập.

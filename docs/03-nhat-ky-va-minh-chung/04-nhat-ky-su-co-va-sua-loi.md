@@ -21,6 +21,8 @@ Trong quá trình phát triển ứng dụng Desktop phức tạp với cơ sở
 | **ERR-05** | Menu Navigation | `NullReferenceException` khi bấm menu Import | Trung bình | [Đã xử lý] |
 | **ERR-06** | UI Data Binding | `StackOverflowException` do vòng lặp Binding Loop tại ĐKHP | Rất nghiêm trọng | [Đã xử lý] |
 | **ERR-07** | Điều hướng nhanh | Double-click sinh viên khi danh sách chưa tải xong gây lỗi | Trung bình | [Đã xử lý] |
+| **ERR-08** | SQLite Local / Auth | `SQLite Error 1: no such table: NguoiDung` khi đăng nhập admin | Nghiêm trọng | [Đã xử lý] |
+| **ERR-09** | Vòng đời / Tắt ứng dụng | Treo ứng dụng khi đóng/thoát (Deadlock luồng UI tại `ShutdownRequested`) | Nghiêm trọng | [Đã xử lý] |
 
 ---
 
@@ -80,3 +82,64 @@ Trong quá trình phát triển ứng dụng Desktop phức tạp với cơ sở
 * **Phương án khắc phục:**
   * Ngắt liên kết hai chiều dư thừa, chỉ dùng `OneWayToSource` cho sự kiện chọn dòng.
   * Tối ưu hóa việc cập nhật dữ liệu thông qua `ObservableCollection.Reset()` hoặc tạo mới danh sách thay vì thay đổi từng phần tử đơn lẻ.
+
+---
+
+### Sự Cố 5: Lỗi Không Tìm Thấy Bảng `NguoiDung` Khi Chuyển Sang CSDL SQLite Local (`ERR-08`)
+* **Triệu chứng:** Sau khi chuyển đổi CSDL chính sang SQLite Local, người dùng nhập tài khoản `admin` / mật khẩu `admin` thì màn hình đăng nhập báo lỗi: `SQLite Error 1: no such table: NguoiDung`.
+* **Nguyên nhân gốc rễ:**
+  * Tệp `quanlydkhp.db` trên máy trạm trước đó được sinh ra bởi ngữ cảnh `LocalAppDbContext` cũ (vốn chỉ chứa các bảng cache cho F10 và chưa bao gồm bảng `NguoiDung`).
+  * Trong Entity Framework Core, phương thức `Database.EnsureCreated()` có đặc tính: **Nếu tệp cơ sở dữ liệu đã tồn tại và đã có ít nhất 1 bảng bất kỳ, EF Core sẽ coi như CSDL đã được tạo xong và bỏ qua toàn bộ việc tạo các bảng mới còn thiếu**. Do đó, bảng `NguoiDung` không bao giờ được tạo tự động nếu tệp SQLite đã tồn tại từ trước.
+* **Phương án khắc phục:**
+  1. Hợp nhất `LocalAppDbContext` kế thừa trực tiếp từ `AppDbContext` để sử dụng chung một mô hình dữ liệu chuẩn.
+  2. Xây dựng phương thức khởi tạo chủ động `AppDbContext.EnsureTablesAndSeedAsync(db)` thực thi câu lệnh SQL trực tiếp:
+     ```sql
+     CREATE TABLE IF NOT EXISTS "NguoiDung" (
+         "Id" TEXT NOT NULL CONSTRAINT "PK_NguoiDung" PRIMARY KEY,
+         "TenDangNhap" TEXT NOT NULL,
+         "MatKhauHash" TEXT NOT NULL,
+         "HoTen" TEXT NOT NULL,
+         "Email" TEXT NOT NULL,
+         "Role" INTEGER NOT NULL,
+         "IsActive" INTEGER NOT NULL,
+         "NgayTao" TEXT NOT NULL,
+         "NgayCapNhat" TEXT NULL,
+         "IsDeleted" INTEGER NOT NULL
+     );
+     ```
+  3. Kiểm tra nếu bảng `NguoiDung` chưa có bản ghi nào thì tự động chèn tài khoản khởi tạo `admin` (mật khẩu băm BCrypt chuẩn, vai trò `Admin`).
+  4. Gọi phương thức này ngay trong bước nạp đầu của `App.axaml.cs` trước khi hiển thị `LoginWindow`.
+
+---
+
+### Sự Cố 6: Ứng Dụng Bị Treo Khi Đóng Cửa Sổ / Thoát Chương Trình (`ERR-09`)
+* **Triệu chứng:** Khi người dùng nhấn nút đóng cửa sổ (dấu 'X' đỏ trên macOS / nút Close trên Windows) hoặc nhấn phím tắt Cmd+Q để thoát ứng dụng, cửa sổ biến mất nhưng tiến trình ứng dụng vẫn chạy ngầm và rơi vào trạng thái "Not Responding" (con trỏ chuột xoay tròn beachball), buộc người dùng phải mở Activity Monitor để Force Quit.
+* **Nguyên nhân gốc rễ:**
+  * **Deadlock luồng giao diện (Async-over-Sync Deadlock):** Trong sự kiện `desktop.ShutdownRequested` của Avalonia, thao tác tự động sao lưu cuối phiên (`Auto-OnExit`) được gọi bằng cách:
+    ```csharp
+    // ❌ LỖI DEADLOCK:
+    backupService.CreateLocalGitBackupAsync("Auto-OnExit", skipIfNoChanges: true).GetAwaiter().GetResult();
+    ```
+  * `ShutdownRequested` được gọi trực tiếp trên luồng giao diện UI, nơi đang có `AvaloniaSynchronizationContext` hoạt động. Lệnh `.GetAwaiter().GetResult()` khóa chặt luồng UI để đợi Task hoàn thành.
+  * Trong khi đó, các tác vụ con bên trong `CreateLocalGitBackupAsync` (như truy vấn EF Core `ToListAsync()`, ghi tệp JSONL) khi hoàn thành I/O trên ThreadPool lại cố gắng điều phối ngữ cảnh trở lại luồng UI. Do luồng UI đang bị chặn bởi `.GetResult()`, nó không thể phân phối công việc tiếp theo $\rightarrow$ **Vòng lặp chờ vô tận (Deadlock)**.
+  * **Tranh chấp khóa tệp SQLite (`Cache=Shared`):** Việc bật `Cache=Shared` trên chuỗi kết nối SQLite làm phát sinh khóa bảng chéo giữa luồng đọc của EF Core và luồng chụp snapshot `SqliteConnection.BackupDatabase`, khiến tiến trình dọn dẹp kết nối khi tắt bị kẹt.
+* **Phương án khắc phục:**
+  1. **Bọc Task.Run có timeout trên ThreadPool:**
+     ```csharp
+     desktop.ShutdownRequested += (s, e) =>
+     {
+         try
+         {
+             Task.Run(async () =>
+             {
+                 using var exitScope = ServiceProvider.CreateScope();
+                 var backupService = exitScope.ServiceProvider.GetRequiredService<IBackupService>();
+                 await backupService.CreateLocalGitBackupAsync("Auto-OnExit", skipIfNoChanges: true);
+             }).Wait(TimeSpan.FromSeconds(2));
+         }
+         catch { }
+     };
+     ```
+     `Task.Run` loại bỏ hoàn toàn `SynchronizationContext`, giải phóng luồng UI khỏi việc xếp hàng tiếp nối. Ngưỡng `Wait(2s)` đảm bảo ứng dụng luôn tắt êm ái ngay cả khi I/O đĩa bận rộn.
+  2. **Chuyển SQLite sang Private Cache chuẩn:** Thay `Data Source={sqlitePath};Cache=Shared` bằng `Data Source={sqlitePath}`. Chế độ WAL tự động quản lý đồng thời giữa các kết nối độc lập mà không cần khóa bảng chéo.
+  3. **Kiểm thử tự động:** Bổ sung bài test `AutoOnExitBackup_CompletesFast_WithoutDeadlock` xác thực quá trình thoát luôn hoàn thành dưới 2 giây.

@@ -10,8 +10,8 @@ sidebar_position: 1
 
 * **Đường dẫn Repository:** `https://github.com/Nguyen06-CSE/quan-li-dang-ky-hoc-phan`
 * **Nhánh chính (Default Branch):** `main`
-* **Tổng số commits:** 29 commits chính thức được ghi nhận.
-* **Thời gian thực hiện:** Từ 18/09/2026 đến 01/11/2026.
+* **Tổng số commits:** 35 commits chính thức được ghi nhận.
+* **Thời gian thực hiện:** Từ 18/09/2026 đến 09/11/2026.
 * **Quy chuẩn thông điệp:** Áp dụng Conventional Commits chuẩn quốc tế (`feat`, `fix`, `docs`, `perf`, `refactor`).
 
 ---
@@ -20,18 +20,24 @@ sidebar_position: 1
 
 | Thành Viên | Tài Khoản GitHub | Số Lượng Commits | Phạm Vi Đóng Góp Chính |
 |---|---|:---:|---|
-| **Nguyễn** (Trưởng nhóm) | `Nguyen06-CSE` | 21 commits | Khởi tạo dự án, Kiến trúc CSDL & EF Core, CRUD Sinh viên/Môn học, ĐKHP, Tối ưu hóa bộ nhớ đệm In-Memory & SQLite, Tái cấu trúc DTOs và tối ưu tính học phí. |
+| **Nguyễn** (Trưởng nhóm) | `Nguyen06-CSE` | 27 commits | Khởi tạo dự án, Kiến trúc CSDL & EF Core, Chuyển đổi SQLite Local (WAL), Hệ thống sao lưu Git đa tầng (F11/F11b), Master-Detail Backup UI, Export/Import Zip, Sửa lỗi auth và deadlock khi thoát, Tối ưu hóa bộ nhớ đệm In-Memory. |
 | **Liam / Đạt** | `pliam1304` | 7 commits | Thiết kế App Shell & Navigation, Liquid Glass Theme, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu (M3/M4), Viết nhật ký FIX.md. |
 | **Ngô Quyền Linh** | `NgoQuyenLinh` | 1 commit | Soạn thảo bộ tài liệu đặc tả chi tiết từ Spec 011 đến Spec 016, hỗ trợ thiết kế luồng Import/Export. |
 
 ---
 
-## 3. Nhật Ký Chi Tiết Toàn Bộ 29 Commits
+## 3. Nhật Ký Chi Tiết Toàn Bộ 35 Commits
 
 Dưới đây là trích xuất nguyên trạng lịch sử cam kết từ lệnh `git log`:
 
 | Commit Hash | Ngày Ghi Nhận | Tác Giả | Thông Điệp Commit (Conventional Message) |
 |:---:|:---:|---|---|
+| `9e7a781` | 2026-11-09 | Nguyen06-CSE | `feat(backup): nâng cấp UI Master-Detail sao lưu, export/import file zip và fix treo app khi thoát` |
+| `e47c182` | 2026-11-09 | Nguyen06-CSE | `DB/Docs: bổ xung tài liệu mô tả cho việc áp dụng git để lưu backup` |
+| `a975057` | 2026-11-09 | Nguyen06-CSE | `fix(auth): tự động khởi tạo bảng NguoiDung và seed admin khi chạy CSDL SQLite Local` |
+| `8216839` | 2026-11-09 | Nguyen06-CSE | `feat(database): chuyển đổi CSDL chính sang SQLite Local và triển khai sao lưu đa tầng (F11)` |
+| `a3f8200` | 2026-11-08 | Nguyen06-CSE | `docs: restructure documentation and setup Docusaurus for GitHub Pages` |
+| `ef5c509` | 2026-11-08 | Nguyen06-CSE | `UI/UX(HocKy-HocPhi): nâng cấp toàn diện giao diện đồng bộ tab Sinh viên` |
 | `34757ed` | 2026-11-01 | Nguyen06-CSE | `refactor: clean up dead files, restructure dtos, optimize tuition batch recalculation` |
 | `c39c209` | 2026-11-01 | Nguyen06-CSE | `UI/UX(Môn học): cải thiện UI/UX, thêm thao tác sao chép mã môn` |
 | `7018be0` | 2026-10-08 | pliam1304 | `feat(m3m4): thêm xem thời khóa biểu cho đăng ký học phần` |

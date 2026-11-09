@@ -120,6 +120,34 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
 
 ---
 
+### Phiên 11: Chuyển Đổi Sang CSDL SQLite Local (WAL Mode) & Hệ Thống Sao Lưu Git-Style Đa Tầng (F11)
+* **Thời gian:** 09/11/2026 09:30
+* **Tài liệu tham chiếu:** `docs/01-dac-ta-ung-dung/chuc-nang/F11-local-sqlite-git-backup.md`
+* **Prompt chính đã thực hiện:**
+  > *"Dự án cần chuyển CSDL chính sang chạy local trên máy cố định tại văn phòng để bảo mật. Hãy đánh giá kỹ thuật và lập kế hoạch chuyển sang SQLite Local (WAL mode). Xây dựng cơ chế sao lưu tự động tối ưu như cách Git quản lý code bằng LibGit2Sharp (xuất dữ liệu dạng Canonical JSONL theo dòng, nén vi sai delta, tạo commit hằng ngày, chụp binary snapshot) kết hợp đồng bộ dự phòng lên DB Host. Viết tài liệu trước rồi mới thực hiện code."*
+* **Kết quả đạt được:** 
+  * Cấu hình SQLite WAL làm Primary DB cho toàn bộ Repositories.
+  * Hợp nhất `AppDbContext` và `LocalAppDbContext`, tự động khởi tạo bảng `NguoiDung` và seed tài khoản admin.
+  * Tích hợp `LibGit2Sharp` thực hiện sao lưu vi sai theo dòng 8 bảng và khôi phục du hành thời gian (`Time-Travel Restore` kèm `Pre-Restore Safety Commit`).
+  * Xây dựng `RemoteBackupDbContext` đẩy vi sai một chiều lên máy chủ PostgreSQL.
+  * Hoàn thành bộ tài liệu `F11-local-sqlite-git-backup.md`, `F11b-co-che-git-backup-chi-tiet.md`, `ADR-12`, `ADR-13` và 47/47 unit tests pass.
+
+---
+
+### Phiên 12: Nâng Cấp UI Master-Detail Lịch Sử Sao Lưu, Export/Import File Zip & Khắc Phục Lỗi Treo Khi Thoát
+* **Thời gian:** 09/11/2026 10:25
+* **Tài liệu tham chiếu:** `docs/01-dac-ta-ung-dung/chuc-nang/F11b-co-che-git-backup-chi-tiet.md`
+* **Prompt chính đã thực hiện:**
+  > *"Nâng cấp giao diện sao lưu: cho phép người dùng click vào hàng trong danh sách backup để xem biến động (+/- dòng và chi tiết bản ghi), xuất backup thành file .zip, thêm nút import file .zip để ghi đè CSDL kèm ghi chú yêu cầu định dạng. Tối đa hóa không gian hiển thị (tách tab riêng). Chẩn đoán và sửa lỗi ứng dụng bị treo khi thoát. Đo lường dữ liệu thực tế trên máy và bổ sung vào tài liệu."*
+* **Kết quả đạt được:**
+  * Tách 2 Tab trong `CauHinhView`, triển khai bố cục Master-Detail trực quan, phân tích diff chi tiết bản ghi bằng Tiếng Việt.
+  * Đóng gói và xác thực toàn vẹn file backup `.dkhp-backup.zip` với chữ ký `QuanLyDKHP-Backup-v1` và mã hash SHA-256 từng bảng; tự động tạo điểm lưu `[Pre-Import]` trước khi ghi đè.
+  * Chẩn đoán và giải quyết dứt điểm lỗi Async-over-Sync Deadlock tại `desktop.ShutdownRequested` bằng `Task.Run` trên ThreadPool (timeout 2s) và gỡ bỏ `Cache=Shared`.
+  * Đo lường thực nghiệm: 6.661 bản ghi, CSDL SQLite 1,85 MB, kho Git 352 KB (nén ~6,5x), tổng thư mục ứng dụng 8,7 MB.
+  * Bổ sung tài liệu `ADR-14`, `ADR-15`, cập nhật `ERR-08`, `ERR-09`, bộ kiểm thử đạt 53/53 tests passed (100%).
+
+---
+
 ## 3. Tổng Kết Giá Trị Ứng Dụng AI Vào Đồ Án
 
 Việc ứng dụng AI Agent vào đồ án môn học mang lại hiệu quả vượt trội:
