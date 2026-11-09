@@ -1,4 +1,6 @@
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
@@ -57,6 +59,40 @@ public class AuthServiceTests
         var result = await _authService.DangNhapAsync("admin", "wrong_password");
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task DangNhapAsync_WithSqliteDatabase_AdminUser_Succeeds()
+    {
+        var tempDb = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "AuthTest_" + System.Guid.NewGuid().ToString("N") + ".db");
+        try
+        {
+            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<QuanLyDKHP.Infrastructure.Data.AppDbContext>()
+                .UseSqlite($"Data Source={tempDb}")
+                .Options;
+
+            var factoryMock = new Mock<Microsoft.EntityFrameworkCore.IDbContextFactory<QuanLyDKHP.Infrastructure.Data.AppDbContext>>();
+            factoryMock.Setup(f => f.CreateDbContextAsync(default))
+                .ReturnsAsync(() => new QuanLyDKHP.Infrastructure.Data.AppDbContext(options));
+
+            using (var db = new QuanLyDKHP.Infrastructure.Data.AppDbContext(options))
+            {
+                await QuanLyDKHP.Infrastructure.Data.AppDbContext.EnsureTablesAndSeedAsync(db);
+            }
+
+            var repo = new QuanLyDKHP.Infrastructure.Repositories.NguoiDungRepository(factoryMock.Object);
+            var authService = new AuthService(repo);
+
+            var user = await authService.DangNhapAsync("admin", "admin");
+
+            Assert.NotNull(user);
+            Assert.Equal("admin", user.TenDangNhap);
+            Assert.Equal("Admin", user.Role);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(tempDb)) System.IO.File.Delete(tempDb);
+        }
     }
 
     [Fact]
