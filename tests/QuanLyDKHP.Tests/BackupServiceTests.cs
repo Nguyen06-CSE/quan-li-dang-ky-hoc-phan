@@ -226,4 +226,97 @@ public class BackupServiceTests : IDisposable
             Assert.NotNull(await dbAfterUndo.SinhViens.FindAsync("SV002"));
         }
     }
+
+    [Fact]
+    public async Task GetCommitDetailAsync_ReturnsTableStatsAndReadableChanges()
+    {
+        var backupService = new BackupService(_dbContextFactory, null, _testDir);
+
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            db.SinhViens.Add(new SinhVien { MaSV = "SV001", HoTen = "Nguyễn Văn A", LopSinhHoat = "CNTT1", KhoaHoc = "K26" });
+            await db.SaveChangesAsync();
+        }
+        var commit1 = await backupService.CreateLocalGitBackupAsync("Manual", "Commit 1");
+        Assert.NotNull(commit1);
+
+        var detail = await backupService.GetCommitDetailAsync(commit1.CommitSha);
+        Assert.Equal(commit1.CommitSha, detail.CommitSha);
+        Assert.Equal(8, detail.TableStats.Count);
+
+        var svStat = System.Linq.Enumerable.First(detail.TableStats, t => t.TableName == "SinhVien");
+        Assert.Equal(1, svStat.LinesAdded);
+        Assert.Equal(0, svStat.LinesDeleted);
+        Assert.Equal(1, svStat.TotalRecordsInSnapshot);
+        Assert.Contains(detail.ReadableChanges, line => line.Contains("SV001") && line.Contains("Nguyễn Văn A"));
+    }
+
+    [Fact]
+    public async Task ExportAndImportBackupArchive_ValidatesAndOverwritesDatabase()
+    {
+        var backupService = new BackupService(_dbContextFactory, null, _testDir);
+
+        // 1. Tạo dữ liệu ban đầu và xuất file .dkhp-backup.zip
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            db.SinhViens.Add(new SinhVien { MaSV = "SV_EXPORT", HoTen = "Trần Xuất File", LopSinhHoat = "KTPM1", KhoaHoc = "K26" });
+            await db.SaveChangesAsync();
+        }
+        var commit = await backupService.CreateLocalGitBackupAsync("Manual", "Bản xuất file");
+        Assert.NotNull(commit);
+
+        var archiveBytes = await backupService.ExportCommitToArchiveBytesAsync(commit.CommitSha);
+        Assert.NotEmpty(archiveBytes);
+
+        // 2. Kiểm tra InspectAndValidateBackupArchiveAsync
+        using (var checkStream = new MemoryStream(archiveBytes))
+        {
+            var manifest = await backupService.InspectAndValidateBackupArchiveAsync(checkStream);
+            Assert.Equal(BackupArchiveManifestDto.ExpectedFormatSignature, manifest.FormatSignature);
+            Assert.Equal(commit.CommitSha, manifest.SourceCommitSha);
+            Assert.Equal(1, manifest.TableRecordCounts["SinhVien"]);
+        }
+
+        // 3. Xóa sạch SV_EXPORT và thêm SV_OTHER trong DB hiện tại
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            db.SinhViens.RemoveRange(db.SinhViens);
+            db.SinhViens.Add(new SinhVien { MaSV = "SV_OTHER", HoTen = "Sinh Viên Khác", LopSinhHoat = "HTTT1", KhoaHoc = "K27" });
+            await db.SaveChangesAsync();
+        }
+
+        // 4. Import file backup để ghi đè CSDL
+        using (var importStream = new MemoryStream(archiveBytes))
+        {
+            await backupService.ImportFromBackupArchiveAsync(importStream);
+        }
+
+        // 5. Xác minh CSDL đã quay về trạng thái trong file backup (có SV_EXPORT, không còn SV_OTHER)
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            Assert.NotNull(await db.SinhViens.FindAsync("SV_EXPORT"));
+            Assert.Null(await db.SinhViens.FindAsync("SV_OTHER"));
+        }
+
+        // 6. Xác minh file rác không đúng định dạng sẽ bị từ chối
+        using var invalidStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("not a valid zip archive"));
+        await Assert.ThrowsAsync<InvalidDataException>(() => backupService.InspectAndValidateBackupArchiveAsync(invalidStream));
+    }
+
+    [Fact]
+    public async Task AutoOnExitBackup_CompletesFast_WithoutDeadlock()
+    {
+        var backupService = new BackupService(_dbContextFactory, null, _testDir);
+
+        // Chạy sao lưu kiểu Auto-OnExit trên ThreadPool với timeout tương tự luồng ShutdownRequested
+        var backupTask = Task.Run(async () =>
+        {
+            return await backupService.CreateLocalGitBackupAsync("Auto-OnExit", skipIfNoChanges: true);
+        });
+
+        // Đảm bảo hoàn tất trong vòng 2 giây mà không bị deadlock
+        var delayTask = Task.Delay(TimeSpan.FromSeconds(2));
+        var completedTask = await Task.WhenAny(backupTask, delayTask);
+        Assert.Equal(backupTask, completedTask);
+    }
 }

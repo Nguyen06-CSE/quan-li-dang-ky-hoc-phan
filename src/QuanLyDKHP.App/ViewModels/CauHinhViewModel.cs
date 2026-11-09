@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,6 +19,10 @@ public partial class CauHinhViewModel : ObservableObject
     private readonly ISinhVienService _sinhVienService;
     private readonly IBackupService _backupService;
     private readonly IMemoryCacheStore _memoryCacheStore;
+
+    // Delegates tương tác hộp thoại File từ View
+    public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
+    public Func<Task<(string FileName, Stream Content)?>>? OpenBackupFileDialogFunc { get; set; }
 
     [ObservableProperty]
     private int _soTinChiToiThieu = 10;
@@ -54,6 +59,9 @@ public partial class CauHinhViewModel : ObservableObject
     private BackupCommitInfoDto? _selectedBackupCommit;
 
     [ObservableProperty]
+    private BackupCommitDetailDto? _selectedCommitDetail;
+
+    [ObservableProperty]
     private string _ghiChuSaoLuu = string.Empty;
 
     [ObservableProperty]
@@ -64,6 +72,21 @@ public partial class CauHinhViewModel : ObservableObject
 
     [ObservableProperty]
     private string _thongBaoKhoiPhuc = string.Empty;
+
+    // --- Thuộc tính Import file Backup ---
+    [ObservableProperty]
+    private bool _hienThiXacNhanImportFile;
+
+    [ObservableProperty]
+    private string _pendingImportFileName = string.Empty;
+
+    [ObservableProperty]
+    private BackupArchiveManifestDto? _pendingImportManifest;
+
+    [ObservableProperty]
+    private string _thongBaoImportFile = string.Empty;
+
+    private byte[]? _pendingImportBytes;
 
     public CauHinhViewModel(
         ICauHinhService cauHinhService,
@@ -123,16 +146,167 @@ public partial class CauHinhViewModel : ObservableObject
         try
         {
             BackupStatus = await _backupService.GetStatusAsync();
-            var commits = await _backupService.GetCommitHistoryAsync(30);
+            var commits = await _backupService.GetCommitHistoryAsync(50);
             BackupHistory.Clear();
             foreach (var c in commits)
             {
                 BackupHistory.Add(c);
             }
+
+            if (SelectedBackupCommit == null && BackupHistory.Count > 0)
+            {
+                await ChonXemChiTietCommitAsync(BackupHistory[0]);
+            }
+            else if (SelectedBackupCommit != null)
+            {
+                var match = BackupHistory.FirstOrDefault(x => x.CommitSha == SelectedBackupCommit.CommitSha) ?? BackupHistory.FirstOrDefault();
+                if (match != null) await ChonXemChiTietCommitAsync(match);
+            }
         }
         catch (Exception ex)
         {
             ShowMessage($"Lỗi tải lịch sử sao lưu: {ex.Message}", true);
+        }
+    }
+
+    partial void OnSelectedBackupCommitChanged(BackupCommitInfoDto? value)
+    {
+        if (value != null && _backupService != null)
+        {
+            _ = LoadCommitDetailInternalAsync(value.CommitSha);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ChonXemChiTietCommitAsync(BackupCommitInfoDto? commit)
+    {
+        if (commit == null) return;
+        SelectedBackupCommit = commit;
+        await LoadCommitDetailInternalAsync(commit.CommitSha);
+    }
+
+    private async Task LoadCommitDetailInternalAsync(string commitSha)
+    {
+        if (_backupService == null) return;
+        try
+        {
+            SelectedCommitDetail = await _backupService.GetCommitDetailAsync(commitSha);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Không thể đọc chi tiết bản sao lưu: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public async Task XuatFileBackupAsync(BackupCommitInfoDto? commit)
+    {
+        var target = commit ?? SelectedBackupCommit;
+        if (_backupService == null || target == null) return;
+
+        if (SaveFileDialogFunc == null)
+        {
+            ShowMessage("Không thể mở hộp thoại lưu tệp.", true);
+            return;
+        }
+
+        try
+        {
+            IsBackingUp = true;
+            var bytes = await _backupService.ExportCommitToArchiveBytesAsync(target.CommitSha);
+            var suggestedName = $"QLDKHP_Backup_{target.CommittedAtLocal:yyyyMMdd_HHmm}_{target.ShortSha}.dkhp-backup.zip";
+            var savedPath = await SaveFileDialogFunc(suggestedName, "zip", bytes);
+            if (!string.IsNullOrEmpty(savedPath))
+            {
+                ShowMessage($"Đã xuất bản sao lưu {target.ShortSha} ra tệp: {savedPath}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi khi xuất tệp sao lưu: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task ChonFileImportBackupAsync()
+    {
+        if (_backupService == null || OpenBackupFileDialogFunc == null) return;
+
+        try
+        {
+            var picked = await OpenBackupFileDialogFunc();
+            if (picked == null) return;
+
+            await using (picked.Value.Content)
+            {
+                using var ms = new MemoryStream();
+                await picked.Value.Content.CopyToAsync(ms);
+                var rawBytes = ms.ToArray();
+
+                using var checkStream = new MemoryStream(rawBytes);
+                var manifest = await _backupService.InspectAndValidateBackupArchiveAsync(checkStream);
+
+                _pendingImportBytes = rawBytes;
+                PendingImportFileName = picked.Value.FileName;
+                PendingImportManifest = manifest;
+
+                int totalRecords = manifest.TableRecordCounts.Values.Sum();
+                var shortSha = manifest.SourceCommitSha.Length >= 7 ? manifest.SourceCommitSha[..7] : manifest.SourceCommitSha;
+                ThongBaoImportFile =
+                    $"Tệp sao lưu hợp lệ (Chữ ký chuẩn: {manifest.FormatSignature} & Toàn vẹn SHA-256 đã xác thực).\n\n" +
+                    $"• Tên tệp: {picked.Value.FileName}\n" +
+                    $"• Mã phiên bản gốc: {shortSha} ({manifest.BackupType})\n" +
+                    $"• Thời điểm tạo bản gốc: {manifest.CreatedAtLocal:dd/MM/yyyy HH:mm}\n" +
+                    $"• Tổng số bản ghi trong gói: {totalRecords:N0} bản ghi trên {manifest.TableRecordCounts.Count} bảng\n\n" +
+                    $"Bạn có chắc chắn muốn GHI ĐÈ toàn bộ CSDL hiện tại bằng tệp này không? (Hệ thống sẽ tự động tạo điểm lưu [Pre-Import] trước khi ghi đè).";
+
+                HienThiXacNhanImportFile = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Tệp không hợp lệ: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public void HuyImportGhiDe()
+    {
+        HienThiXacNhanImportFile = false;
+        _pendingImportBytes = null;
+        PendingImportManifest = null;
+        PendingImportFileName = string.Empty;
+    }
+
+    [RelayCommand]
+    public async Task XacNhanImportGhiDeAsync()
+    {
+        if (_backupService == null || _pendingImportBytes == null) return;
+        HienThiXacNhanImportFile = false;
+
+        try
+        {
+            IsBackingUp = true;
+            using var ms = new MemoryStream(_pendingImportBytes);
+            await _backupService.ImportFromBackupArchiveAsync(ms);
+            await _memoryCacheStore.InitializeAsync(forceReload: true);
+            await LoadCauHinhAsync();
+            await LoadBackupInfoAsync();
+            ShowMessage($"Đã nhập tệp '{PendingImportFileName}' và ghi đè CSDL thành công!", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi khi ghi đè CSDL từ tệp backup: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+            _pendingImportBytes = null;
+            PendingImportManifest = null;
         }
     }
 

@@ -69,14 +69,17 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Tự động sao lưu khi tắt ứng dụng nếu có dữ liệu mới
+            // Tự động sao lưu khi tắt ứng dụng nếu có dữ liệu mới (chạy ngầm trên ThreadPool với timeout 2s để không bao giờ treo giao diện khi thoát)
             desktop.ShutdownRequested += (s, e) =>
             {
                 try
                 {
-                    using var exitScope = ServiceProvider.CreateScope();
-                    var backupService = exitScope.ServiceProvider.GetRequiredService<IBackupService>();
-                    backupService.CreateLocalGitBackupAsync("Auto-OnExit", skipIfNoChanges: true).GetAwaiter().GetResult();
+                    Task.Run(async () =>
+                    {
+                        using var exitScope = ServiceProvider.CreateScope();
+                        var backupService = exitScope.ServiceProvider.GetRequiredService<IBackupService>();
+                        await backupService.CreateLocalGitBackupAsync("Auto-OnExit", skipIfNoChanges: true);
+                    }).Wait(TimeSpan.FromSeconds(2));
                 }
                 catch { }
             };
@@ -99,7 +102,7 @@ public partial class App : Application
 
         // 2. Đăng ký CSDL chính: SQLite Local (chạy độc lập tại máy tính văn phòng)
         string sqlitePath = AppDbContext.GetPrimarySqlitePath();
-        string sqliteConnStr = $"Data Source={sqlitePath};Cache=Shared";
+        string sqliteConnStr = $"Data Source={sqlitePath}";
 
         services.AddDbContextFactory<AppDbContext>(options =>
             options.UseSqlite(sqliteConnStr));

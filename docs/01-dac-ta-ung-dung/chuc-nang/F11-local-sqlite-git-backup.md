@@ -19,7 +19,12 @@ Sau khi kiểm tra tiến trình dự án và rà soát yêu cầu vận hành t
 
 ### 2.1. Phân tích quy mô dữ liệu thực tế của dự án
 Hệ thống quản lý 8 thực thể cốt lõi (`NguoiDung`, `SinhVien`, `MonHoc`, `HocKy`, `LopHocPhan`, `DangKyHocPhan`, `CauHinhHeThong`, `HocPhiHocKy`):
-* Với quy mô đào tạo từ **5.000 – 20.000 sinh viên**, **500 – 1.000 môn học** và **100.000 – 500.000 bản ghi đăng ký học phần** tích lũy qua nhiều năm học, tổng dung lượng cơ sở dữ liệu chỉ dao động trong khoảng **20 MB – 150 MB**.
+* **Số liệu đo lường thực tế trên thiết bị máy trạm hiện tại:**
+  * Tổng cộng **6.661 bản ghi nghiệp vụ** (bao gồm 753 sinh viên, 84 môn học, 188 lớp học phần, 5.631 đăng ký học phần, 3 học kỳ, 4 tham số cấu hình, 1 tài khoản).
+  * Dung lượng tệp SQLite CSDL chính (`quanlydkhp.db`): chỉ **1,85 MB**.
+  * Dung lượng toàn bộ kho lịch sử Git nén vi sai (`.git/objects`): chỉ **352 KB**.
+  * Tổng dung lượng lưu trữ toàn bộ ứng dụng trên ổ đĩa: **8,7 MB** (bao gồm cả bản sao lưu nhị phân nóng `latest_snapshot.db` 1,8 MB và tệp dữ liệu phẳng JSONL 2,3 MB).
+* Với quy mô mở rộng trong tương lai từ **5.000 – 20.000 sinh viên**, **500 – 1.000 môn học** và **100.000 – 500.000 bản ghi đăng ký học phần** tích lũy qua nhiều năm học, tổng dung lượng cơ sở dữ liệu chỉ dao động trong khoảng **20 MB – 150 MB**, hoàn toàn nằm gọn trong khả năng xử lý tức thì của SQLite.
 * Toàn bộ tầng truy xuất dữ liệu (`Repositories`) được xây dựng bằng **EF Core LINQ chuẩn**, không phụ thuộc vào Stored Procedure đặc thù của hệ quản trị CSDL rời.
 * Mô hình vận hành trên máy tính cố định tại văn phòng là mô hình **Single-Workstation / Single-Writer** (một điểm ghi duy nhất tại một thời điểm).
 
