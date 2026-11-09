@@ -138,4 +138,92 @@ public class BackupServiceTests : IDisposable
             Assert.Null(sv2);
         }
     }
+
+    [Fact]
+    public async Task GitBackup_CanonicalJsonl_LineLevelDeltaDiff_TracksExactRowChanges()
+    {
+        var backupService = new BackupService(_dbContextFactory, null, _testDir);
+
+        // 1. Chèn 3 sinh viên theo thứ tự ngẫu nhiên (SV003 -> SV001 -> SV002)
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            db.SinhViens.AddRange(
+                new SinhVien { MaSV = "SV003", HoTen = "Lê Văn C", LopSinhHoat = "CNTT1", KhoaHoc = "K26" },
+                new SinhVien { MaSV = "SV001", HoTen = "Nguyễn Văn A", LopSinhHoat = "CNTT1", KhoaHoc = "K26" },
+                new SinhVien { MaSV = "SV002", HoTen = "Trần Thị B", LopSinhHoat = "CNTT1", KhoaHoc = "K26" }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        // Tạo Commit 1 (Baseline)
+        var commit1 = await backupService.CreateLocalGitBackupAsync("Auto-Daily", "Baseline ngày 1");
+        Assert.NotNull(commit1);
+        Assert.Contains("SinhVien (+3)", commit1.ChangedTablesSummary);
+
+        // Kiểm tra file SinhVien.jsonl đã được chuẩn hóa thứ tự (ORDER BY MaSV: SV001 -> SV002 -> SV003)
+        var svJsonlPath = Path.Combine(_testDir, "GitRepo", "tables", "SinhVien.jsonl");
+        var linesDay1 = await File.ReadAllLinesAsync(svJsonlPath);
+        Assert.Equal(3, linesDay1.Length);
+        Assert.Contains("\"MaSV\":\"SV001\"", linesDay1[0]);
+        Assert.Contains("\"MaSV\":\"SV002\"", linesDay1[1]);
+        Assert.Contains("\"MaSV\":\"SV003\"", linesDay1[2]);
+
+        // 2. Nếu gọi lại Auto-Daily khi không có dữ liệu gì thay đổi (skipIfNoChanges: true) -> Bỏ qua, không tạo commit rác
+        var skippedCommit = await backupService.CreateLocalGitBackupAsync("Auto-Daily", "Không đổi", skipIfNoChanges: true);
+        Assert.Null(skippedCommit);
+
+        // 3. Ngày 2: Sửa lớp của SV002 ("CNTT1" -> "KTPM2") và thêm mới SV004
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            var sv2 = await db.SinhViens.FindAsync("SV002");
+            Assert.NotNull(sv2);
+            sv2.LopSinhHoat = "KTPM2";
+
+            db.SinhViens.Add(new SinhVien { MaSV = "SV004", HoTen = "Phạm Văn D", LopSinhHoat = "HTTT1", KhoaHoc = "K27" });
+            await db.SaveChangesAsync();
+        }
+
+        // Tạo Commit 2 (Delta): Sửa 1 dòng (-1 dòng cũ, +1 dòng mới) + Thêm 1 dòng mới (+1) => Tổng cộng (+2, -1) trên bảng SinhVien
+        var commit2 = await backupService.CreateLocalGitBackupAsync("Auto-Daily", "Cập nhật cuối ngày 2");
+        Assert.NotNull(commit2);
+        Assert.Equal("SinhVien (+2, -1)", commit2.ChangedTablesSummary);
+    }
+
+    [Fact]
+    public async Task RestoreFromGitCommit_CreatesPreRestoreSafetyCommit()
+    {
+        var backupService = new BackupService(_dbContextFactory, null, _testDir);
+
+        // 1. Tạo Commit 1 với SV001
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            db.SinhViens.Add(new SinhVien { MaSV = "SV001", HoTen = "Nguyễn Văn A", LopSinhHoat = "CNTT1", KhoaHoc = "K26" });
+            await db.SaveChangesAsync();
+        }
+        var commit1 = await backupService.CreateLocalGitBackupAsync("Manual", "Bản lưu 1");
+        Assert.NotNull(commit1);
+
+        // 2. Thêm SV002 vào DB nhưng CHƯA bấm sao lưu thủ công
+        using (var db = _dbContextFactory.CreateDbContext())
+        {
+            db.SinhViens.Add(new SinhVien { MaSV = "SV002", HoTen = "Trần Thị B", LopSinhHoat = "CNTT2", KhoaHoc = "K26" });
+            await db.SaveChangesAsync();
+        }
+
+        // 3. Khôi phục về Commit 1 -> Hệ thống phải tự động chụp 1 bản [Pre-Restore] chứa SV002 trước khi quay về Commit 1
+        await backupService.RestoreFromGitCommitAsync(commit1.CommitSha);
+
+        var history = await backupService.GetCommitHistoryAsync();
+        Assert.Contains(history, c => c.BackupType == "Pre-Restore");
+
+        // Và nếu người dùng đổi ý, có thể khôi phục lại ngay bản Pre-Restore để lấy lại SV002!
+        var safetyCommit = System.Linq.Enumerable.First(history, c => c.BackupType == "Pre-Restore");
+        await backupService.RestoreFromGitCommitAsync(safetyCommit.CommitSha);
+
+        using (var dbAfterUndo = _dbContextFactory.CreateDbContext())
+        {
+            Assert.NotNull(await dbAfterUndo.SinhViens.FindAsync("SV001"));
+            Assert.NotNull(await dbAfterUndo.SinhViens.FindAsync("SV002"));
+        }
+    }
 }

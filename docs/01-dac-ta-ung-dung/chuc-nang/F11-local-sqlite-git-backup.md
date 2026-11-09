@@ -125,6 +125,11 @@ Tệp SQLite (`.db`) là tệp nhị phân có cấu trúc B-Tree theo trang (4K
    * Cán bộ có thể chọn bất kỳ bản Commit nào trong lịch sử (hôm qua, tuần trước, hoặc trước khi Import Excel) để khôi phục.
    * **Cơ chế bảo vệ kép (`Pre-Restore Safety Commit`):** Ngay trước khi nạp lại dữ liệu từ bản Commit cũ, nếu CSDL hiện tại đang có thay đổi chưa lưu, hệ thống tự động chụp một bản Commit `[Pre-Restore Safety Point]`. Nhờ đó, ngay cả khi cán bộ khôi phục nhầm phiên bản, họ vẫn có thể quay lại trạng thái vừa rồi chỉ với 1 cú nhấp chuột.
 
+:::info[Tài liệu giải phẫu chuyên sâu & Ví dụ thực tế từ Unit Test]
+Để xem chi tiết từng bước cách `LibGit2Sharp` chuyển đổi bảng SQLite sang dòng văn bản `.jsonl`, tính toán `git diff` từng dòng (`+LinesAdded / -LinesDeleted`), luồng khôi phục nguyên tử và **ví dụ minh họa thực tế trích từ bộ kiểm thử `BackupServiceTests.cs`**, mời xem tài liệu chuyên đề:
+👉 **[F11b - Giải Phẫu Cơ Chế Sao Lưu CSDL Kiểu Git & Ví Dụ Thực Tế](./F11b-co-che-git-backup-chi-tiet.md)**
+:::
+
 ---
 
 ### 3.2. Tầng Sao Lưu 2: Đồng Bộ Đẩy Vi Sai Lên DB Host (`One-Way Push Replica`)

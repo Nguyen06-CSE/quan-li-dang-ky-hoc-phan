@@ -413,12 +413,16 @@ public class BackupService : IBackupService
 
     private string BuildDiffSummary(Repository repo)
     {
-        var status = repo.RetrieveStatus();
+        var patch = repo.Diff.Compare<Patch>(repo.Head.Tip?.Tree, DiffTargets.Index);
         var changes = new List<string>();
-        foreach (var item in status)
+        foreach (var entry in patch)
         {
-            var name = Path.GetFileNameWithoutExtension(item.FilePath);
-            changes.Add($"{name} ({item.State})");
+            if (entry.LinesAdded == 0 && entry.LinesDeleted == 0) continue;
+            var name = Path.GetFileNameWithoutExtension(entry.Path);
+            var parts = new List<string>();
+            if (entry.LinesAdded > 0) parts.Add($"+{entry.LinesAdded}");
+            if (entry.LinesDeleted > 0) parts.Add($"-{entry.LinesDeleted}");
+            changes.Add($"{name} ({string.Join(", ", parts)})");
         }
         return changes.Count > 0 ? string.Join(", ", changes) : "Không có thay đổi dữ liệu";
     }
