@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Interfaces;
 
 namespace QuanLyDKHP.App.ViewModels;
@@ -14,6 +16,8 @@ public partial class CauHinhViewModel : ObservableObject
     private readonly IHocPhiService _hocPhiService;
     private readonly IHocKyService _hocKyService;
     private readonly ISinhVienService _sinhVienService;
+    private readonly IBackupService _backupService;
+    private readonly IMemoryCacheStore _memoryCacheStore;
 
     [ObservableProperty]
     private int _soTinChiToiThieu = 10;
@@ -39,18 +43,45 @@ public partial class CauHinhViewModel : ObservableObject
     [ObservableProperty]
     private bool _hienThiHoiTinhLaiHocPhi;
 
+    // --- Thuộc tính quản lý Sao lưu & Phục hồi ---
+    [ObservableProperty]
+    private BackupDatabaseStatusDto? _backupStatus;
+
+    [ObservableProperty]
+    private ObservableCollection<BackupCommitInfoDto> _backupHistory = new();
+
+    [ObservableProperty]
+    private BackupCommitInfoDto? _selectedBackupCommit;
+
+    [ObservableProperty]
+    private string _ghiChuSaoLuu = string.Empty;
+
+    [ObservableProperty]
+    private bool _isBackingUp;
+
+    [ObservableProperty]
+    private bool _hienThiXacNhanKhoiPhuc;
+
+    [ObservableProperty]
+    private string _thongBaoKhoiPhuc = string.Empty;
+
     public CauHinhViewModel(
         ICauHinhService cauHinhService,
         IHocPhiService hocPhiService,
         IHocKyService hocKyService,
-        ISinhVienService sinhVienService)
+        ISinhVienService sinhVienService,
+        IBackupService backupService,
+        IMemoryCacheStore memoryCacheStore)
     {
         _cauHinhService = cauHinhService;
         _hocPhiService = hocPhiService;
         _hocKyService = hocKyService;
         _sinhVienService = sinhVienService;
+        _backupService = backupService;
+        _memoryCacheStore = memoryCacheStore;
 
         _ = LoadCauHinhAsync();
+        _ = LoadBackupInfoAsync();
     }
 
     public CauHinhViewModel()
@@ -59,6 +90,8 @@ public partial class CauHinhViewModel : ObservableObject
         _hocPhiService = null!;
         _hocKyService = null!;
         _sinhVienService = null!;
+        _backupService = null!;
+        _memoryCacheStore = null!;
     }
 
     [RelayCommand]
@@ -80,6 +113,110 @@ public partial class CauHinhViewModel : ObservableObject
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadBackupInfoAsync()
+    {
+        if (_backupService == null) return;
+        try
+        {
+            BackupStatus = await _backupService.GetStatusAsync();
+            var commits = await _backupService.GetCommitHistoryAsync(30);
+            BackupHistory.Clear();
+            foreach (var c in commits)
+            {
+                BackupHistory.Add(c);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi tải lịch sử sao lưu: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public async Task TaoBanSaoLuuGitAsync()
+    {
+        if (_backupService == null) return;
+        try
+        {
+            IsBackingUp = true;
+            var result = await _backupService.CreateLocalGitBackupAsync("Manual", GhiChuSaoLuu, skipIfNoChanges: false);
+            GhiChuSaoLuu = string.Empty;
+            await LoadBackupInfoAsync();
+            ShowMessage($"Tạo bản sao lưu Git thành công! (Phiên bản: {result?.ShortSha})", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi tạo bản sao lưu: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task DongBoLenDbHostAsync()
+    {
+        if (_backupService == null) return;
+        try
+        {
+            IsBackingUp = true;
+            var (count, msg) = await _backupService.PushDeltaToRemoteHostAsync();
+            await LoadBackupInfoAsync();
+            ShowMessage(msg, false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi đồng bộ lên DB Host: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+        }
+    }
+
+    [RelayCommand]
+    public void MoXacNhanKhoiPhuc(BackupCommitInfoDto commit)
+    {
+        SelectedBackupCommit = commit;
+        ThongBaoKhoiPhuc = $"Bạn có chắc chắn muốn khôi phục toàn bộ dữ liệu CSDL về phiên bản ngày {commit.CommittedAtLocal:dd/MM/yyyy HH:mm} (Mã: {commit.ShortSha}) không?\n\nHệ thống sẽ tự động tạo một điểm lưu an toàn trước khi khôi phục.";
+        HienThiXacNhanKhoiPhuc = true;
+    }
+
+    [RelayCommand]
+    public void HuyKhoiPhuc()
+    {
+        HienThiXacNhanKhoiPhuc = false;
+        SelectedBackupCommit = null;
+    }
+
+    [RelayCommand]
+    public async Task XacNhanKhoiPhucAsync()
+    {
+        if (_backupService == null || SelectedBackupCommit == null) return;
+        HienThiXacNhanKhoiPhuc = false;
+
+        try
+        {
+            IsBackingUp = true;
+            await _backupService.RestoreFromGitCommitAsync(SelectedBackupCommit.CommitSha);
+            await _memoryCacheStore.InitializeAsync(forceReload: true);
+            await LoadCauHinhAsync();
+            await LoadBackupInfoAsync();
+            ShowMessage($"Đã khôi phục thành công CSDL về phiên bản {SelectedBackupCommit.ShortSha}!", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi khi khôi phục dữ liệu: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+            SelectedBackupCommit = null;
         }
     }
 

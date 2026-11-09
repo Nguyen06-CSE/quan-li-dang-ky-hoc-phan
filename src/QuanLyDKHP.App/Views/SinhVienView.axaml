@@ -8,93 +8,552 @@
              x:Class="QuanLyDKHP.App.Views.SinhVienView"
              x:DataType="vm:SinhVienViewModel">
 
-    <!-- 2. KHAI BÁO RESOURCE SO SÁNH -->
     <UserControl.Resources>
-        <helpers:VietnameseNameComparer x:Key="VietnameseNameComparer"/>
+        <helpers:VietnameseNameComparer x:Key="VietnameseNameComparer" />
     </UserControl.Resources>
 
-    <!-- Đổi RowDefinitions: Auto (Header), Auto (Toolbar), Auto (Progress), * (DataGrid cuộn vô tận) -->
-    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24">
-        
-        <!-- 1. Header & Count -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="0,0,0,16">
-            <TextBlock Text="Sinh viên" Classes="h1" />
-            <TextBlock Text="{Binding TotalItems, StringFormat='(Tổng số: {0})'}" Classes="caption" VerticalAlignment="Bottom" Margin="0,0,0,4" />
-        </StackPanel>
+    <UserControl.Styles>
+        <!-- Style cho Segmented Control (Pill Button Group - đồng bộ với Môn học & Ảnh 2) -->
+        <Style Selector="ListBox.segmented-bar">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="3" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" />
+                </ItemsPanelTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.segmented-bar ListBoxItem">
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ListBox.segmented-bar ListBoxItem:selected">
+            <Setter Property="Background" Value="#93C5FD" />
+            <Setter Property="Foreground" Value="#0F172A" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style Selector="ListBox.segmented-bar ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#93C5FD" />
+            <Setter Property="Foreground" Value="#0F172A" />
+        </Style>
 
-        <!-- Status Message Banner -->
-        <Border Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" 
-                IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="6" Padding="12,6">
-            <TextBlock Text="{Binding StatusMessage}" Classes="status" Classes.error="{Binding IsStatusError}" />
-        </Border>
+        <!-- Style cho nút Dropdown Lọc có tìm kiếm (Lớp sinh hoạt / Khóa học) -->
+        <Style Selector="Button.filter-dropdown">
+            <Setter Property="Background" Value="{DynamicResource BrushBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.filter-dropdown:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
+        </Style>
+        <Style Selector="Button.filter-dropdown.active">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimaryDark}" />
+        </Style>
 
-        <!-- 2. Toolbar -->
-        <Grid Grid.Row="1" ColumnDefinitions="280,180,180,*,Auto" Margin="0,0,0,8">
-            <TextBox Grid.Column="0" Text="{Binding TuKhoa, Mode=TwoWay}" PlaceholderText="Tìm theo Mã SV hoặc Họ tên..." Margin="0,0,8,0" />
+        <!-- ListBox bên trong Flyout lọc -->
+        <Style Selector="ListBox.filter-popup-list">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ListBox.filter-popup-list ListBoxItem">
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
 
-            <ComboBox Grid.Column="1" ItemsSource="{Binding DsLopSinhHoat}" SelectedItem="{Binding LopFilter}" HorizontalAlignment="Stretch" Margin="0,0,8,0" />
+        <!-- Nút thao tác nhanh trên từng hàng (đồng bộ Môn học) -->
+        <Style Selector="Button.row-action">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.row-action:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}" />
+        </Style>
+        <Style Selector="Button.row-action.register:pointerover">
+            <Setter Property="Background" Value="#DBEAFE" />
+        </Style>
+        <Style Selector="Button.row-action.delete:pointerover">
+            <Setter Property="Background" Value="#FEE2E2" />
+        </Style>
+    </UserControl.Styles>
 
-            <ComboBox Grid.Column="2" ItemsSource="{Binding DsKhoaHoc}" SelectedItem="{Binding KhoaHocFilter}" HorizontalAlignment="Stretch" Margin="0,0,8,0" />
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="24">
 
-            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8">
-                <Button Command="{Binding ExportExcelCommand}" Content="Xuất Excel" Classes="btn-secondary" />
-                <Button Command="{Binding ImportExcelCommand}" Content="Import Excel" Classes="btn-secondary" IsVisible="{Binding CanThemSuaXoa}" />
-                <Button Command="{Binding ThemCommand}" Content="+ Thêm sinh viên" Classes="btn-primary" IsVisible="{Binding CanThemSuaXoa}" />
+        <!-- 1. Header & Status -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Sinh viên" Classes="h1" FontWeight="Bold" FontSize="24" VerticalAlignment="Center" />
+                <Border Background="{DynamicResource BrushSurfaceAlt}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="12" Padding="10,3" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TotalItems, StringFormat='{}{0} sinh viên'}"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextSecondary}" />
+                </Border>
+                <!-- Hiển thị trạng thái đang lọc nếu có bộ lọc kích hoạt -->
+                <Border IsVisible="{Binding HasAnyFilter}"
+                        Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1"
+                        CornerRadius="12" Padding="10,3" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FilterSummaryText}"
+                               FontSize="12" FontWeight="Medium" Foreground="#1D4ED8" />
+                </Border>
+            </StackPanel>
+
+            <!-- Status Message Banner -->
+            <Border Grid.Column="2"
+                    IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Background="{DynamicResource BrushSurfaceAlt}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1"
+                    CornerRadius="6" Padding="12,6"
+                    VerticalAlignment="Center">
+                <TextBlock Text="{Binding StatusMessage}" Classes="status" Classes.error="{Binding IsStatusError}" />
+            </Border>
+        </Grid>
+
+        <!-- 2. Toolbar: Search mở rộng + Dropdown lọc có tìm kiếm + Segmented Sort + Action Buttons -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="0,0,0,12">
+            <!-- 2.1. Thanh tìm kiếm mở rộng & nổi bật -->
+            <TextBox Grid.Column="0"
+                     MinWidth="240" Height="38"
+                     Text="{Binding TuKhoa, Mode=TwoWay}"
+                     PlaceholderText="Tìm nhanh theo Mã SV, Họ tên hoặc Lớp..."
+                     Classes="clearButton"
+                     CornerRadius="8"
+                     VerticalContentAlignment="Center"
+                     Margin="0,0,10,0">
+                <TextBox.InnerLeftContent>
+                    <PathIcon Data="M 15.5 14 L 14.71 14 L 14.43 13.73 C 15.41 12.59 16 11.11 16 9.5 C 16 5.91 13.09 3 9.5 3 C 5.91 3 3 5.91 3 9.5 C 3 13.09 5.91 16 9.5 16 C 11.11 16 12.59 15.41 13.73 14.43 L 14 14.71 L 14 15.5 L 19 20.49 L 20.49 19 L 15.5 14 Z M 9.5 14 C 7.01 14 5 11.99 5 9.5 C 5 7.01 7.01 5 9.5 5 C 11.99 5 14 7.01 14 9.5 C 14 11.99 11.99 14 9.5 14 Z"
+                              Width="15" Height="15" Margin="10,0,4,0" Foreground="{DynamicResource BrushTextSecondary}" />
+                </TextBox.InnerLeftContent>
+            </TextBox>
+
+            <!-- 2.2. Dropdown 1: Lọc theo Lớp sinh hoạt (có ô nhập tìm kiếm trực tiếp) -->
+            <Button Grid.Column="1"
+                    x:Name="BtnFilterLop"
+                    Classes="filter-dropdown"
+                    Classes.active="{Binding HasLopFilter}"
+                    Margin="0,0,8,0"
+                    ToolTip.Tip="Nhấn để lọc và tìm nhanh Lớp sinh hoạt (VD: CNTT)">
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="M 10 18 L 14 18 L 14 16 L 10 16 L 10 18 Z M 3 6 L 3 8 L 21 8 L 21 6 L 3 6 Z M 6 13 L 18 13 L 18 11 L 6 11 L 6 13 Z"
+                              Width="13" Height="13" Foreground="{DynamicResource BrushTextSecondary}" />
+                    <TextBlock Text="Lớp:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="13" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding LopFilter}" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" />
+                    <PathIcon Data="M 7 10 L 12 15 L 17 10 Z"
+                              Width="10" Height="10" Margin="2,0,0,0" Foreground="{DynamicResource BrushTextSecondary}" />
+                </StackPanel>
+                <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft" Opened="OnLopFlyoutOpened">
+                        <Border Width="250" Padding="4">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Lọc theo Lớp sinh hoạt" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Content="Đặt lại" Classes="btn-icon-ghost" FontSize="11" Padding="6,2"
+                                            Command="{Binding XoaLocLopCommand}"
+                                            IsVisible="{Binding HasLopFilter}" />
+                                </Grid>
+
+                                <TextBox x:Name="TxtSearchLop"
+                                         Text="{Binding TimKiemLop, Mode=TwoWay}"
+                                         PlaceholderText="Nhập tên lớp (VD: CNTT)..."
+                                         Classes="clearButton"
+                                         Height="34" CornerRadius="6" FontSize="13"
+                                         VerticalContentAlignment="Center">
+                                    <TextBox.InnerLeftContent>
+                                        <PathIcon Data="M 15.5 14 L 14.71 14 L 14.43 13.73 C 15.41 12.59 16 11.11 16 9.5 C 16 5.91 13.09 3 9.5 3 C 5.91 3 3 5.91 3 9.5 C 3 13.09 5.91 16 9.5 16 C 11.11 16 12.59 15.41 13.73 14.43 L 14 14.71 L 14 15.5 L 19 20.49 L 20.49 19 L 15.5 14 Z M 9.5 14 C 7.01 14 5 11.99 5 9.5 C 5 7.01 7.01 5 9.5 5 C 11.99 5 14 7.01 14 9.5 C 14 11.99 11.99 14 9.5 14 Z"
+                                                  Width="13" Height="13" Margin="8,0,4,0" Foreground="{DynamicResource BrushTextSecondary}" />
+                                    </TextBox.InnerLeftContent>
+                                </TextBox>
+
+                                <ListBox Classes="filter-popup-list"
+                                         ItemsSource="{Binding DsLopSinhHoat}"
+                                         SelectedItem="{Binding LopFilter, Mode=TwoWay}"
+                                         MaxHeight="240"
+                                         Tapped="OnLopFilterItemTapped" />
+                            </StackPanel>
+                        </Border>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+
+            <!-- 2.3. Dropdown 2: Lọc theo Khóa học (có ô nhập tìm kiếm trực tiếp) -->
+            <Button Grid.Column="2"
+                    x:Name="BtnFilterKhoaHoc"
+                    Classes="filter-dropdown"
+                    Classes.active="{Binding HasKhoaHocFilter}"
+                    Margin="0,0,8,0"
+                    ToolTip.Tip="Nhấn để lọc và tìm nhanh Khóa học">
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="M 12 3 L 1 9 L 12 15 L 21 10.09 L 21 17 L 23 17 L 23 9 L 12 3 Z M 5 13.18 L 5 17.18 L 12 21 L 19 17.18 L 19 13.18 L 12 17 L 5 13.18 Z"
+                              Width="13" Height="13" Foreground="{DynamicResource BrushTextSecondary}" />
+                    <TextBlock Text="Khóa:" Foreground="{DynamicResource BrushTextSecondary}" FontSize="13" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding KhoaHocFilter}" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" />
+                    <PathIcon Data="M 7 10 L 12 15 L 17 10 Z"
+                              Width="10" Height="10" Margin="2,0,0,0" Foreground="{DynamicResource BrushTextSecondary}" />
+                </StackPanel>
+                <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft" Opened="OnKhoaHocFlyoutOpened">
+                        <Border Width="230" Padding="4">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Lọc theo Khóa học" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Content="Đặt lại" Classes="btn-icon-ghost" FontSize="11" Padding="6,2"
+                                            Command="{Binding XoaLocKhoaHocCommand}"
+                                            IsVisible="{Binding HasKhoaHocFilter}" />
+                                </Grid>
+
+                                <TextBox x:Name="TxtSearchKhoaHoc"
+                                         Text="{Binding TimKiemKhoaHoc, Mode=TwoWay}"
+                                         PlaceholderText="Nhập khóa học (VD: 45)..."
+                                         Classes="clearButton"
+                                         Height="34" CornerRadius="6" FontSize="13"
+                                         VerticalContentAlignment="Center">
+                                    <TextBox.InnerLeftContent>
+                                        <PathIcon Data="M 15.5 14 L 14.71 14 L 14.43 13.73 C 15.41 12.59 16 11.11 16 9.5 C 16 5.91 13.09 3 9.5 3 C 5.91 3 3 5.91 3 9.5 C 3 13.09 5.91 16 9.5 16 C 11.11 16 12.59 15.41 13.73 14.43 L 14 14.71 L 14 15.5 L 19 20.49 L 20.49 19 L 15.5 14 Z M 9.5 14 C 7.01 14 5 11.99 5 9.5 C 5 7.01 7.01 5 9.5 5 C 11.99 5 14 7.01 14 9.5 C 14 11.99 11.99 14 9.5 14 Z"
+                                                  Width="13" Height="13" Margin="8,0,4,0" Foreground="{DynamicResource BrushTextSecondary}" />
+                                    </TextBox.InnerLeftContent>
+                                </TextBox>
+
+                                <ListBox Classes="filter-popup-list"
+                                         ItemsSource="{Binding DsKhoaHoc}"
+                                         SelectedItem="{Binding KhoaHocFilter, Mode=TwoWay}"
+                                         MaxHeight="240"
+                                         Tapped="OnKhoaHocFilterItemTapped" />
+                            </StackPanel>
+                        </Border>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+
+            <!-- Nút xóa nhanh toàn bộ bộ lọc -->
+            <Button Grid.Column="3"
+                    Command="{Binding DatLaiBoLocCommand}"
+                    IsVisible="{Binding HasAnyFilter}"
+                    Classes="btn-icon-ghost"
+                    Height="38" Padding="8,0" Margin="0,0,8,0"
+                    ToolTip.Tip="Xóa tất cả điều kiện lọc">
+                <PathIcon Data="M 19 6.41 L 17.59 5 L 12 10.59 L 6.41 5 L 5 6.41 L 10.59 12 L 5 17.59 L 6.41 19 L 12 13.41 L 17.59 19 L 19 17.59 L 13.41 12 L 19 6.41 Z"
+                          Width="13" Height="13" Foreground="{DynamicResource BrushDanger}" />
+            </Button>
+
+            <!-- 2.4. Thanh sắp xếp Segmented Control (như Ảnh 2 & Môn học) -->
+            <ListBox Grid.Column="4"
+                     Classes="segmented-bar"
+                     SelectedIndex="{Binding SelectedSortIndex, Mode=TwoWay}"
+                     SelectionMode="Single"
+                     Margin="0,0,10,0">
+                <ListBoxItem Content="Tên A → Z" />
+                <ListBoxItem Content="Tên Z → A" />
+                <ListBoxItem Content="Mã SV" />
+                <ListBoxItem Content="Tín chỉ ↓" />
+            </ListBox>
+
+            <!-- 2.5. Các nút hành động (Đồng bộ phong cách Môn học) -->
+            <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Command="{Binding ExportExcelCommand}" Classes="btn-secondary" Height="38" Padding="12,0" CornerRadius="8" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <PathIcon Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z M 16 18 L 8 18 L 8 16 L 16 16 L 16 18 Z M 16 14 L 8 14 L 8 12 L 16 12 L 16 14 Z M 13 9 L 13 3.5 L 18.5 9 L 13 9 Z" Width="15" Height="15" />
+                        <TextBlock Text="Xuất Excel" VerticalAlignment="Center" FontWeight="Medium" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding ImportExcelCommand}" Classes="btn-secondary" Height="38" Padding="12,0" CornerRadius="8" Cursor="Hand"
+                        IsVisible="{Binding CanThemSuaXoa}">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <PathIcon Data="M 9 16 L 15 16 L 15 10 L 19 10 L 12 3 L 5 10 L 9 10 L 9 16 Z M 5 18 L 19 18 L 19 20 L 5 20 L 5 18 Z" Width="15" Height="15" />
+                        <TextBlock Text="Import Excel" VerticalAlignment="Center" FontWeight="Medium" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding ThemCommand}" Classes="btn-primary" Height="38" Padding="14,0" CornerRadius="8" Cursor="Hand"
+                        IsVisible="{Binding CanThemSuaXoa}">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <PathIcon Data="M 19 13 L 13 13 L 13 19 L 11 19 L 11 13 L 5 13 L 5 11 L 11 11 L 11 5 L 13 5 L 13 11 L 19 11 L 19 13 Z" Width="15" Height="15" />
+                        <TextBlock Text="Thêm sinh viên" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Grid>
 
-        <!-- Thanh loading chạy vô tận khi đang lọc hoặc lấy data -->
-        <ProgressBar Grid.Row="2" IsIndeterminate="True" 
-                     IsVisible="{Binding IsLoading}" 
-                     Height="2" Margin="0,0,0,8" 
-                     HorizontalAlignment="Stretch"/>
+        <!-- 3. Thanh thao tác hàng loạt (Bulk Action Bar - đồng bộ Môn học) -->
+        <Border Grid.Row="2"
+                IsVisible="{Binding HasSelectedItems}"
+                Background="#EFF6FF"
+                BorderBrush="#93C5FD"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,8"
+                Margin="0,0,0,12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="Đã chọn:" FontWeight="Medium" Foreground="#1E40AF" VerticalAlignment="Center" />
+                    <Border Background="#DBEAFE" CornerRadius="10" Padding="8,2">
+                        <TextBlock Text="{Binding SelectedCount, StringFormat='{}{0} sinh viên'}" FontWeight="Bold" Foreground="#1D4ED8" />
+                    </Border>
+                </StackPanel>
 
-        <!-- 3. DataGrid (Virtualization & Infinite Scrolling tự động kích hoạt khi ở trong lưới *) -->
-        <DataGrid Grid.Row="3" 
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+                    <Button Command="{Binding SaoChepCacMaSvDaChonCommand}"
+                            Background="White" BorderBrush="#BFDBFE" BorderThickness="1"
+                            Height="32" Padding="12,0" CornerRadius="6" Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <PathIcon Data="M 16 1 L 4 1 C 2.9 1 2 1.9 2 3 L 2 17 L 4 17 L 4 3 L 16 3 L 16 1 Z M 19 5 L 8 5 C 6.9 5 6 5.9 6 7 L 6 21 C 6 22.1 6.9 23 8 23 L 19 23 C 20.1 23 21 22.1 21 21 L 21 7 C 21 5.9 20.1 5 19 5 Z M 19 21 L 8 21 L 8 7 L 19 7 L 19 21 Z" Width="13" Height="13" Foreground="#2563EB" />
+                            <TextBlock Text="Sao chép mã SV đã chọn" Foreground="#1E40AF" FontWeight="Medium" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ExportSelectedExcelCommand}"
+                            Background="White" BorderBrush="#BFDBFE" BorderThickness="1"
+                            Height="32" Padding="12,0" CornerRadius="6" Cursor="Hand">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <PathIcon Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z M 16 18 L 8 18 L 8 16 L 16 16 L 16 18 Z M 16 14 L 8 14 L 8 12 L 16 12 L 16 14 Z M 13 9 L 13 3.5 L 18.5 9 L 13 9 Z" Width="13" Height="13" Foreground="#2563EB" />
+                            <TextBlock Text="Xuất Excel mục đã chọn" Foreground="#1E40AF" FontWeight="Medium" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding XoaCacSinhVienDaChonCommand}"
+                            Background="#FEE2E2" BorderBrush="#FCA5A5" BorderThickness="1"
+                            Height="32" Padding="12,0" CornerRadius="6" Cursor="Hand"
+                            IsVisible="{Binding CanThemSuaXoa}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <PathIcon Data="M 6 19 C 6 20.1 6.9 21 8 21 L 16 21 C 17.1 21 18 20.1 18 19 L 18 7 L 6 7 L 6 19 Z M 19 4 L 15.5 4 L 14.5 3 L 9.5 3 L 8.5 4 L 5 4 L 5 6 L 19 6 L 19 4 Z" Width="13" Height="13" Foreground="#DC2626" />
+                            <TextBlock Text="Xóa các SV đã chọn" Foreground="#B91C1C" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding BoChonTatCaCommand}"
+                            Background="Transparent" BorderThickness="0" Height="32" Width="32" Padding="0" Cursor="Hand"
+                            ToolTip.Tip="Bỏ chọn tất cả">
+                        <PathIcon Data="M 19 6.41 L 17.59 5 L 12 10.59 L 6.41 5 L 5 6.41 L 10.59 12 L 5 17.59 L 6.41 19 L 12 13.41 L 17.59 19 L 19 17.59 L 13.41 12 L 19 6.41 Z" Width="14" Height="14" Foreground="#6B7280" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 4. Loading Bar -->
+        <ProgressBar Grid.Row="3"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsLoading}"
+                     Height="2" Margin="0,0,0,8"
+                     HorizontalAlignment="Stretch" />
+
+        <!-- 5. DataGrid (Đồng bộ style với Môn học + nổi bật thông tin quan trọng) -->
+        <DataGrid Grid.Row="4"
                   x:Name="SinhVienDataGrid"
-                  ItemsSource="{Binding DanhSach}" 
-                  AutoGenerateColumns="False" 
+                  ItemsSource="{Binding DanhSach}"
+                  AutoGenerateColumns="False"
                   IsReadOnly="True"
-                  GridLinesVisibility="All" 
-                  BorderThickness="1" 
-                  BorderBrush="{DynamicResource BrushBorder}" 
-                  CornerRadius="6"
+                  GridLinesVisibility="Horizontal"
+                  BorderThickness="1"
+                  BorderBrush="{DynamicResource BrushBorder}"
+                  CornerRadius="8"
                   SelectionMode="Single"
+                  RowHeight="42"
                   DoubleTapped="OnDataGridDoubleTapped">
-            
-            <!-- ContextMenu cho từng row: click chuột phải để ĐKHP/Sửa/Xóa -->
-            <DataGrid.Styles>
-                <Style Selector="DataGridRow">
-                    <Setter Property="ContextMenu">
-                        <ContextMenu>
-                            <MenuItem Header="Đăng ký học phần" 
-                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).DangKyHocPhanCommand}"
-                                      CommandParameter="{Binding}" />
-                            <Separator />
-                            <MenuItem Header="Sửa" 
-                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).SuaCommand}"
-                                      CommandParameter="{Binding}"
-                                      IsEnabled="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}" />
-                            <MenuItem Header="Xóa" 
-                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).XoaCommand}"
-                                      CommandParameter="{Binding}"
-                                      IsEnabled="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}" />
-                        </ContextMenu>
-                    </Setter>
-                </Style>
-            </DataGrid.Styles>
-            
+
+            <!-- ContextMenu cấp DataGrid dùng chung an toàn -->
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Đăng ký học phần"
+                              Command="{Binding DangKyHocPhanCommand}"
+                              CommandParameter="{Binding #SinhVienDataGrid.SelectedItem}">
+                        <MenuItem.Icon>
+                            <PathIcon Data="M 19 3 L 5 3 C 3.9 3 3 3.9 3 5 L 3 19 C 3 20.1 3.9 21 5 21 L 19 21 C 20.1 21 21 20.1 21 19 L 21 5 C 21 3.9 20.1 3 19 3 Z M 9 17 L 7 17 L 7 10 L 9 10 L 9 17 Z M 13 17 L 11 17 L 11 7 L 13 7 L 13 17 Z M 17 17 L 15 17 L 15 13 L 17 13 L 17 17 Z" Width="14" Height="14" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Sao chép mã SV"
+                              Command="{Binding SaoChepMaSvCommand}"
+                              CommandParameter="{Binding #SinhVienDataGrid.SelectedItem}">
+                        <MenuItem.Icon>
+                            <PathIcon Data="M 16 1 L 4 1 C 2.9 1 2 1.9 2 3 L 2 17 L 4 17 L 4 3 L 16 3 L 16 1 Z M 19 5 L 8 5 C 6.9 5 6 5.9 6 7 L 6 21 C 6 22.1 6.9 23 8 23 L 19 23 C 20.1 23 21 22.1 21 21 L 21 7 C 21 5.9 20.1 5 19 5 Z M 19 21 L 8 21 L 8 7 L 19 7 L 19 21 Z" Width="14" Height="14" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Sửa thông tin sinh viên"
+                              Command="{Binding SuaCommand}"
+                              CommandParameter="{Binding #SinhVienDataGrid.SelectedItem}"
+                              IsEnabled="{Binding CanThemSuaXoa}">
+                        <MenuItem.Icon>
+                            <PathIcon Data="M 3 17.25 L 3 21 L 6.75 21 L 17.81 9.94 L 14.06 6.19 L 3 17.25 Z M 20.71 7.04 C 21.1 6.65 21.1 6.02 20.71 5.63 L 18.37 3.29 C 17.98 2.9 17.35 2.9 16.96 3.29 L 15.13 5.12 L 18.88 8.87 L 20.71 7.04 Z" Width="14" Height="14" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Xóa sinh viên"
+                              Foreground="#DC2626"
+                              Command="{Binding XoaCommand}"
+                              CommandParameter="{Binding #SinhVienDataGrid.SelectedItem}"
+                              IsEnabled="{Binding CanThemSuaXoa}">
+                        <MenuItem.Icon>
+                            <PathIcon Data="M 6 19 C 6 20.1 6.9 21 8 21 L 16 21 C 17.1 21 18 20.1 18 19 L 18 7 L 6 7 L 6 19 Z M 19 4 L 15.5 4 L 14.5 3 L 9.5 3 L 8.5 4 L 5 4 L 5 6 L 19 6 L 19 4 Z" Width="14" Height="14" Foreground="#DC2626" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Mã SV" Binding="{Binding MaSV}" Width="140" />
-                
-                <!-- 3. GẮN THUỘC TÍNH CustomSortComparer VÀO CỘT HỌ VÀ TÊN -->
-                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" 
-                                    CustomSortComparer="{StaticResource VietnameseNameComparer}"/>
-                                    
-                <DataGridTextColumn Header="Lớp sinh hoạt" Binding="{Binding LopSinhHoat}" Width="160" />
-                <DataGridTextColumn Header="Khóa học" Binding="{Binding KhoaHoc}" Width="140" />
-                <DataGridTextColumn Header="Số TC ĐK (HK hiện tại)" Binding="{Binding SoTinChiDangKy}" Width="180" />
+                <!-- Cột 1: Checkbox chọn hàng loạt (giống Ảnh 3 & Môn học) -->
+                <DataGridTemplateColumn Width="46" CanUserSort="False">
+                    <DataGridTemplateColumn.HeaderTemplate>
+                        <DataTemplate x:CompileBindings="False">
+                            <CheckBox IsChecked="{ReflectionBinding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.HeaderTemplate>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="dtos:SinhVienDto">
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CapNhatSoLuongChonCommand}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Cột 2: Mã SV (in đậm nổi bật) -->
+                <DataGridTemplateColumn Header="Mã SV" Width="135" SortMemberPath="MaSV">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="dtos:SinhVienDto">
+                            <TextBlock Text="{Binding MaSV}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextPrimary}"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Cột 3: Họ và tên (hỗ trợ sắp xếp theo Tên tiếng Việt giống bản gốc & Môn học) -->
+                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*"
+                                    CustomSortComparer="{StaticResource VietnameseNameComparer}" />
+
+                <!-- Cột 4: Lớp sinh hoạt (hiển thị dạng Tag/Badge nổi bật dễ nhìn) -->
+                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="150" SortMemberPath="LopSinhHoat">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="dtos:SinhVienDto">
+                            <Border HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Margin="12,0"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="6" Padding="8,2">
+                                <TextBlock Text="{Binding LopSinhHoat, FallbackValue='--'}"
+                                           FontWeight="SemiBold" FontSize="12"
+                                           Foreground="{DynamicResource BrushTextPrimary}" />
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Cột 5: Khóa học -->
+                <DataGridTemplateColumn Header="Khóa học" Width="130" SortMemberPath="KhoaHoc">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="dtos:SinhVienDto">
+                            <TextBlock Text="{Binding KhoaHoc, FallbackValue='--'}"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       FontWeight="Medium"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Cột 6: Số TC ĐK (HK hiện tại) - Hiển thị Pill Badge nổi bật theo trạng thái -->
+                <DataGridTemplateColumn Header="Số TC ĐK (HK hiện tại)" Width="175" SortMemberPath="SoTinChiDangKy">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="dtos:SinhVienDto">
+                            <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Khi đã đăng ký (> 0 TC): Badge nổi bật -->
+                                <Border IsVisible="{Binding DaDangKyTinChi}"
+                                        Background="{DynamicResource BrushPrimaryLight}"
+                                        BorderBrush="{DynamicResource BrushPrimary}"
+                                        BorderThickness="1"
+                                        CornerRadius="10" Padding="10,2">
+                                    <TextBlock Text="{Binding SoTinChiDangKy, StringFormat='{}{0} TC'}"
+                                               FontWeight="Bold" FontSize="12"
+                                               Foreground="{DynamicResource BrushPrimaryDark}"
+                                               HorizontalAlignment="Center" />
+                                </Border>
+                                <!-- Khi chưa đăng ký (0 TC): Badge nhạt -->
+                                <Border IsVisible="{Binding ChuaDangKyTinChi}"
+                                        Background="{DynamicResource BrushSurfaceAlt}"
+                                        CornerRadius="10" Padding="10,2">
+                                    <TextBlock Text="0 TC"
+                                               FontWeight="Medium" FontSize="12"
+                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                               HorizontalAlignment="Center" />
+                                </Border>
+                            </Panel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Cột 7: Thao tác nhanh (Đăng ký HP / Sửa / Xóa) -->
+                <DataGridTemplateColumn Header="Thao tác" Width="120" CanUserSort="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="dtos:SinhVienDto">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Nút mở nhanh Đăng ký học phần -->
+                                <Button Classes="row-action register"
+                                        ClickMode="Release"
+                                        ContextMenu="{x:Null}"
+                                        Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).DangKyHocPhanCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Đăng ký học phần cho sinh viên này">
+                                    <PathIcon Data="M 19 3 L 5 3 C 3.9 3 3 3.9 3 5 L 3 19 C 3 20.1 3.9 21 5 21 L 19 21 C 20.1 21 21 20.1 21 19 L 21 5 C 21 3.9 20.1 3 19 3 Z M 9 17 L 7 17 L 7 10 L 9 10 L 9 17 Z M 13 17 L 11 17 L 11 7 L 13 7 L 13 17 Z M 17 17 L 15 17 L 15 13 L 17 13 L 17 17 Z"
+                                              Width="14" Height="14" Foreground="#2563EB" />
+                                </Button>
+
+                                <!-- Nút Sửa -->
+                                <Button Classes="row-action"
+                                        ClickMode="Release"
+                                        ContextMenu="{x:Null}"
+                                        Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).SuaCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsEnabled="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}"
+                                        ToolTip.Tip="Chỉnh sửa sinh viên">
+                                    <PathIcon Data="M 3 17.25 L 3 21 L 6.75 21 L 17.81 9.94 L 14.06 6.19 L 3 17.25 Z M 20.71 7.04 C 21.1 6.65 21.1 6.02 20.71 5.63 L 18.37 3.29 C 17.98 2.9 17.35 2.9 16.96 3.29 L 15.13 5.12 L 18.88 8.87 L 20.71 7.04 Z"
+                                              Width="14" Height="14" Foreground="{DynamicResource BrushTextSecondary}" />
+                                </Button>
+
+                                <!-- Nút Xóa -->
+                                <Button Classes="row-action delete"
+                                        ClickMode="Release"
+                                        ContextMenu="{x:Null}"
+                                        Command="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).XoaCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsEnabled="{Binding $parent[UserControl].((vm:SinhVienViewModel)DataContext).CanThemSuaXoa}"
+                                        ToolTip.Tip="Xóa sinh viên">
+                                    <PathIcon Data="M 6 19 C 6 20.1 6.9 21 8 21 L 16 21 C 17.1 21 18 20.1 18 19 L 18 7 L 6 7 L 6 19 Z M 19 4 L 15.5 4 L 14.5 3 L 9.5 3 L 8.5 4 L 5 4 L 5 6 L 19 6 L 19 4 Z"
+                                              Width="14" Height="14" Foreground="#EF4444" />
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

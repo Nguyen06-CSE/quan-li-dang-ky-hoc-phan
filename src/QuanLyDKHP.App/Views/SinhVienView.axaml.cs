@@ -1,7 +1,11 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using QuanLyDKHP.App.ViewModels;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
@@ -12,7 +16,22 @@ public partial class SinhVienView : UserControl
 {
     public SinhVienView()
     {
-        InitializeComponent();
+        try
+        {
+            InitializeComponent();
+        }
+        catch (System.Exception ex)
+        {
+            System.Console.WriteLine("=== LỖI KHỞI TẠO SINHVIENVIEW ===");
+            System.Console.WriteLine(ex.ToString());
+            Content = new TextBlock
+            {
+                Text = "=== LỖI KHỞI TẠO SINHVIENVIEW ===\n\n" + ex.ToString(),
+                Foreground = Avalonia.Media.Brushes.Red,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(20)
+            };
+        }
     }
 
     private void OnDataGridDoubleTapped(object? sender, TappedEventArgs e)
@@ -20,6 +39,52 @@ public partial class SinhVienView : UserControl
         if (sender is DataGrid dg && dg.SelectedItem is SinhVienDto sv && DataContext is SinhVienViewModel vm)
         {
             vm.DangKyHocPhanCommand.Execute(sv);
+        }
+    }
+
+    private void OnLopFlyoutOpened(object? sender, EventArgs e)
+    {
+        var txt = this.FindControl<TextBox>("TxtSearchLop")
+                  ?? ((sender as Flyout)?.Content as ILogical)?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault();
+        if (txt != null)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                txt.Focus();
+                txt.SelectAll();
+            });
+        }
+    }
+
+    private void OnLopFilterItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is ListBox lb && lb.SelectedItem != null &&
+            this.FindControl<Button>("BtnFilterLop")?.Flyout is Flyout flyout)
+        {
+            flyout.Hide();
+        }
+    }
+
+    private void OnKhoaHocFlyoutOpened(object? sender, EventArgs e)
+    {
+        var txt = this.FindControl<TextBox>("TxtSearchKhoaHoc")
+                  ?? ((sender as Flyout)?.Content as ILogical)?.GetLogicalDescendants().OfType<TextBox>().FirstOrDefault();
+        if (txt != null)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                txt.Focus();
+                txt.SelectAll();
+            });
+        }
+    }
+
+    private void OnKhoaHocFilterItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is ListBox lb && lb.SelectedItem != null &&
+            this.FindControl<Button>("BtnFilterKhoaHoc")?.Flyout is Flyout flyout)
+        {
+            flyout.Hide();
         }
     }
 
@@ -33,6 +98,7 @@ public partial class SinhVienView : UserControl
             vm.SaveFileDialogFunc = ShowSaveFileDialogAsync;
         }
     }
+
 
     private async Task<string?> ShowSaveFileDialogAsync(string suggestedFileName, string extension, byte[] data)
     {

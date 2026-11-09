@@ -74,21 +74,24 @@ Giải pháp này giải quyết triệt để vấn đề tranh chấp luồng 
 
 ---
 
-## 4. Kiến Trúc Bộ Nhớ Đệm Hai Tầng (Hybrid Caching Architecture)
+## 4. Kiến Trúc CSDL Cục Bộ (Local-First SQLite Primary) & Sao Lưu Đa Tầng Kiểu Git
 
-Để giải quyết vấn đề độ trễ mạng khi truy vấn cơ sở dữ liệu Cloud (Neon PostgreSQL), hệ thống thiết kế kiến trúc bộ nhớ đệm 2 tầng:
+Trong giai đoạn đầu ([F10](./chuc-nang/F10-hybrid-cache-delta-sync.md)), hệ thống sử dụng Cloud PostgreSQL làm CSDL chính kết hợp SQLite làm bộ nhớ đệm đọc. Tuy nhiên, để đáp ứng quy định bảo mật vận hành thực tế — **cán bộ nội vụ chỉ thực hiện nghiệp vụ trên máy tính cố định tại văn phòng** — kiến trúc đã được nâng cấp lên mô hình **Local-First SQLite Primary kết hợp Sao lưu Đa tầng ([F11](./chuc-nang/F11-local-sqlite-git-backup.md))**:
 
 ```mermaid
 graph LR
-    UI["Giao Diện Người Dùng (ViewModel)"] --> L1["Tầng 1: In-Memory Cache (RAM) - 0ms"]
-    L1 -->|Nếu không có trong Cache| L2["Tầng 2: SQLite Local Database"]
-    L2 -->|Đồng bộ nền Delta Sync| Cloud["Cơ sở dữ liệu Cloud (PostgreSQL Neon)"]
+    UI["Giao Diện Người Dùng (ViewModel)"] -->|Danh mục tĩnh: 0ms| L1["Tầng 1: In-Memory Cache (RAM)"]
+    UI <-->|Đọc/Ghi nghiệp vụ: 0.1ms - 2ms| L2["CSDL Chính: SQLite Local (WAL Mode)"]
+    L2 -->|Sao lưu vi sai mỗi ngày| GitBackup["Backup Tầng 1: Local Git Repo (LibGit2Sharp + JSONL)"]
+    L2 -.->|Đồng bộ đẩy một chiều| HostBackup["Backup Tầng 2: DB Host (PostgreSQL Replica)"]
 ```
 
-1. **Tầng 1 - In-Memory Cache Store (Singleton):**
+1. **Tầng 1 - In-Memory Cache Store (Singleton - 0ms):**
    * Lưu trữ các bảng dữ liệu danh mục tĩnh hoặc ít biến động: Học kỳ, Khóa học, Danh mục Môn học, Lớp sinh hoạt.
-   * Dữ liệu được nạp song song một lần duy nhất ngay sau khi đăng nhập thành công thông qua `Task.WhenAll`.
-   * Các combobox và bộ lọc lấy dữ liệu trực tiếp từ RAM với độ trễ phản hồi **0ms**, loại bỏ hoàn toàn các câu truy vấn dư thừa lên Cloud.
-2. **Tầng 2 - SQLite Local Database & Delta Sync:**
-   * Hệ thống duy trì một file cơ sở dữ liệu SQLite cục bộ tại máy trạm.
-   * Cơ chế **Delta Sync** theo dõi cột `NgayCapNhat` (Timestamp) để chỉ đồng bộ các bản ghi thay đổi từ Cloud về Local, giúp ứng dụng vẫn có thể đọc dữ liệu siêu tốc ngay cả khi kết nối mạng chập chờn.
+   * Dữ liệu được nạp song song ngay khi khởi động thông qua `Task.WhenAll`. Các combobox và bộ lọc lấy dữ liệu trực tiếp từ RAM với độ trễ phản hồi **0ms**.
+2. **CSDL Chính - SQLite Local Database (`WAL Mode` - 0.1ms đến 2ms):**
+   * Toàn bộ thao tác đọc và ghi nghiệp vụ diễn ra trực tiếp trên tệp SQLite cục bộ (`quanlydkhp.db`) tại máy tính cố định ở văn phòng với chế độ `PRAGMA journal_mode = WAL;` và `PRAGMA foreign_keys = ON;`.
+   * Thiết kế tương thích sẵn sàng với **SQLCipher (mã hóa AES-256 cấp độ tệp)** khi cần nâng cấp bảo mật vật lý.
+3. **Hệ thống Sao lưu Đa tầng (Git-Style Local Backup & Remote DB Host):**
+   * **Sao lưu cục bộ kiểu Git (`LibGit2Sharp`):** Cuối mỗi ngày làm việc (hoặc theo thao tác thủ công), hệ thống xuất 8 bảng ra định dạng văn bản chuẩn hóa theo dòng (`Canonical Sorted JSONL`) và thực hiện `git commit` tự động. Nhờ thuật toán nén vi sai của Git, mỗi bản lưu hằng ngày chỉ ghi nhận đúng những dòng dữ liệu thay đổi (tốn vài KB) và cho phép khôi phục (`Time-Travel Restore`) về bất kỳ ngày nào trong quá khứ.
+   * **Sao lưu lên DB Host (`One-Way Push Replica`):** Tùy chọn đẩy các bản ghi mới/chỉnh sửa (`NgayCapNhat > LastBackupUtc`) từ máy Local lên máy chủ PostgreSQL văn phòng hoặc dịch vụ Host để phòng ngừa sự cố phần cứng máy trạm.

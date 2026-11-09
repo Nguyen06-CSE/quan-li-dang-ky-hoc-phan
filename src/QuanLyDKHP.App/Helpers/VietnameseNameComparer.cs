@@ -2,34 +2,59 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
 using QuanLyDKHP.Core.Dtos;
 
 namespace QuanLyDKHP.App.Helpers;
 
-public class VietnameseNameComparer : IComparer
+public class VietnameseNameComparer : IComparer, IComparer<SinhVienDto>, IComparer<string>
 {
+    public static readonly VietnameseNameComparer Instance = new();
+
+    private static readonly StringComparer ViStringComparer =
+        StringComparer.Create(CultureInfo.GetCultureInfo("vi-VN"), ignoreCase: true);
+
     public int Compare(object? x, object? y)
     {
-        // Avalonia DataGrid truyền vào 2 object của cả dòng (SinhVienDto)
-        string name1 = x is SinhVienDto sv1 ? (sv1.HoTen ?? "") : "";
-        string name2 = y is SinhVienDto sv2 ? (sv2.HoTen ?? "") : "";
+        if (x is SinhVienDto sv1 && y is SinhVienDto sv2)
+            return Compare(sv1, sv2);
 
-        var parts1 = ExtractNameParts(name1);
-        var parts2 = ExtractNameParts(name2);
+        string name1 = x as string ?? "";
+        string name2 = y as string ?? "";
+        return Compare(name1, name2);
+    }
 
-        // 1. So sánh Tên (Ưu tiên cao nhất)
-        int nameCmp = string.Compare(parts1.Ten, parts2.Ten, StringComparison.CurrentCultureIgnoreCase);
+    public int Compare(SinhVienDto? x, SinhVienDto? y)
+    {
+        if (ReferenceEquals(x, y)) return 0;
+        if (x is null) return -1;
+        if (y is null) return 1;
+
+        int cmp = Compare(x.HoTen, y.HoTen);
+        if (cmp != 0) return cmp;
+
+        return ViStringComparer.Compare(x.MaSV ?? "", y.MaSV ?? "");
+    }
+
+    public int Compare(string? name1, string? name2)
+    {
+        var parts1 = ExtractNameParts(name1 ?? "");
+        var parts2 = ExtractNameParts(name2 ?? "");
+
+        // 1. So sánh Tên (Ưu tiên cao nhất) theo chuẩn tiếng Việt
+        int nameCmp = ViStringComparer.Compare(parts1.Ten, parts2.Ten);
         if (nameCmp != 0) return nameCmp;
 
         // 2. Nếu Tên giống nhau -> So sánh Tên lót
-        int middleCmp = string.Compare(parts1.TenLot, parts2.TenLot, StringComparison.CurrentCultureIgnoreCase);
+        int middleCmp = ViStringComparer.Compare(parts1.TenLot, parts2.TenLot);
         if (middleCmp != 0) return middleCmp;
 
         // 3. Nếu Tên & Lót giống nhau -> So sánh Họ
-        return string.Compare(parts1.Ho, parts2.Ho, StringComparison.CurrentCultureIgnoreCase);
+        return ViStringComparer.Compare(parts1.Ho, parts2.Ho);
     }
 
-    private (string Ho, string TenLot, string Ten) ExtractNameParts(string fullName)
+    private static (string Ho, string TenLot, string Ten) ExtractNameParts(string fullName)
     {
         if (string.IsNullOrWhiteSpace(fullName)) 
             return ("", "", "");

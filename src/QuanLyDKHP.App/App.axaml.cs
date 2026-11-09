@@ -33,54 +33,89 @@ public partial class App : Application
         ConfigureServices(services);
         ServiceProvider = services.BuildServiceProvider();
 
-        // 🚀 CHẠY NỀN: Ngay khi app vừa mở lên, kích hoạt Task kéo dữ liệu ngầm vào RAM
+        // 1. Khởi tạo CSDL SQLite Local, đảm bảo đầy đủ các bảng và bật chế độ WAL
+        using (var initScope = ServiceProvider.CreateScope())
+        {
+            var appDbFactory = initScope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            using var db = appDbFactory.CreateDbContext();
+            AppDbContext.EnsureTablesAndSeedAsync(db).GetAwaiter().GetResult();
+            try
+            {
+                db.Database.ExecuteSqlRaw("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SQLite PRAGMA Warning]: {ex.Message}");
+            }
+        }
+
+        // 2. CHẠY NỀN: Nạp dữ liệu vào In-Memory Cache Store (0ms) & Tự động sao lưu hàng ngày (Git)
         var cacheStore = ServiceProvider.GetRequiredService<IMemoryCacheStore>();
         _ = Task.Run(async () =>
         {
             try
             {
                 await cacheStore.InitializeAsync();
+
+                using var backupScope = ServiceProvider.CreateScope();
+                var backupService = backupScope.ServiceProvider.GetRequiredService<IBackupService>();
+                await backupService.EnsureDailyBackupAsync();
             }
             catch (Exception ex)
             {
-                // Log nếu cần, không chặn luồng UI của Login
-                System.Diagnostics.Debug.WriteLine($"[Cache Preload Error]: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Startup Background Error]: {ex.Message}");
             }
         });
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Tự động sao lưu khi tắt ứng dụng nếu có dữ liệu mới
+            desktop.ShutdownRequested += (s, e) =>
+            {
+                try
+                {
+                    using var exitScope = ServiceProvider.CreateScope();
+                    var backupService = exitScope.ServiceProvider.GetRequiredService<IBackupService>();
+                    backupService.CreateLocalGitBackupAsync("Auto-OnExit", skipIfNoChanges: true).GetAwaiter().GetResult();
+                }
+                catch { }
+            };
+
             ShowLoginWindow(desktop);
         }
 
         base.OnFrameworkInitializationCompleted();
     }
+
     private static void ConfigureServices(IServiceCollection services)
     {
-        // 1. Khởi tạo Configuration để đọc file appsettings.json từ thư mục chạy ứng dụng
+        // 1. Khởi tạo Configuration
         IConfiguration configuration = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
-            // Biến môi trường ConnectionStrings__DefaultConnection có ưu tiên cao nhất
             .AddEnvironmentVariables()
             .Build();
 
-        string? connectionString = configuration.GetConnectionString("DefaultConnection");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException(
-                "Chưa cấu hình chuỗi kết nối CSDL. Hãy tạo file appsettings.Local.json (sao chép từ " +
-                "appsettings.Local.example.json) hoặc đặt biến môi trường ConnectionStrings__DefaultConnection.");
+        // 2. Đăng ký CSDL chính: SQLite Local (chạy độc lập tại máy tính văn phòng)
+        string sqlitePath = AppDbContext.GetPrimarySqlitePath();
+        string sqliteConnStr = $"Data Source={sqlitePath};Cache=Shared";
 
-        // 2. Đăng ký AppDbContext sử dụng PostgreSQL (Npgsql)
-        // Dùng DbContextFactory: mỗi thao tác DB tạo 1 DbContext riêng rồi hủy ngay.
-        // Không dùng AddDbContext vì app desktop không có "request scope" -> DbContext sẽ bị
-        // dùng chung cho toàn app và gây lỗi "A second operation was started on this context...".
         services.AddDbContextFactory<AppDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseSqlite(sqliteConnStr));
 
         services.AddDbContextFactory<LocalAppDbContext>(options =>
-            options.UseSqlite($"Data Source={LocalAppDbContext.GetDatabasePath()}"));
+            options.UseSqlite(sqliteConnStr));
+
+        // 3. Đăng ký DB Host từ xa nếu cấu hình có chuỗi kết nối PostgreSQL (Backup tầng 2)
+        string? remoteConn = configuration.GetConnectionString("RemoteBackupConnection") 
+            ?? configuration.GetConnectionString("DefaultConnection");
+
+        if (!string.IsNullOrWhiteSpace(remoteConn) && remoteConn.Contains("Host=", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddDbContextFactory<RemoteBackupDbContext>(options =>
+                options.UseNpgsql(remoteConn));
+        }
 
         // Repositories
         services.AddScoped<INguoiDungRepository, NguoiDungRepository>();
@@ -111,6 +146,7 @@ public partial class App : Application
         services.AddScoped<IExcelExportService, QuanLyDKHP.Infrastructure.Export.ExcelExportService>();
         services.AddScoped<ISyncService, SyncService>();
         services.AddScoped<ILocalReadService, LocalReadService>();
+        services.AddScoped<IBackupService, BackupService>();
 
         // ViewModels
         services.AddTransient<LoginViewModel>();

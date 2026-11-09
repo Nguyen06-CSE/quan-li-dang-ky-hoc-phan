@@ -84,3 +84,19 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
 * **Bối cảnh:** Emoji gõ phím hiển thị không đồng nhất trên các hệ điều hành khác nhau, có hiện tượng đè chữ lên nhãn tiêu đề khi Avalonia đo đạc font metrics, và thiếu tính nghiêm túc của một phần mềm quản trị đại học.
 * **Quyết định:** Gỡ bỏ toàn bộ emoji văn bản; tích hợp thư viện vector icon tối giản `Material.Icons.Avalonia`.
 * **Lý do:** Đồng bộ giao diện, nét vẽ thanh lịch, tự động đổi màu theo Light/Dark mode và sắc nét ở mọi độ phân giải màn hình.
+
+---
+
+## ADR-12: Chuyển Đổi CSDL Chính Sang SQLite Local (WAL Mode) Theo Yêu Cầu Bảo Mật Máy Trạm Văn Phòng
+* **Bối cảnh:** Ở giai đoạn đầu (F10), dự án đặt CSDL chính trên Cloud (Neon PostgreSQL) và dùng SQLite làm bộ nhớ đệm đọc. Tuy nhiên, theo yêu cầu vận hành thực tế, cán bộ nội vụ chỉ được phép thực hiện nghiệp vụ trên máy tính cố định tại văn phòng để bảo mật dữ liệu đào tạo và học phí; đồng thời quy mô dữ liệu của trường/khoa (vài chục đến vài trăm nghìn bản ghi đăng ký học phần, tương đương 20MB–150MB) nằm hoàn toàn trong ngưỡng hiệu năng tối ưu của SQLite.
+* **Quyết định:** Chuyển CSDL chính (Primary Read/Write Database) sang **SQLite Local (`quanlydkhp.db`)** chạy ở chế độ `PRAGMA journal_mode = WAL;` và `PRAGMA foreign_keys = ON;`. Hợp nhất luồng truy xuất của `AppDbContext` và `LocalAppDbContext` về cùng một tệp SQLite duy nhất trên máy trạm, đồng thời thiết kế sẵn khả năng tích hợp **SQLCipher (AES-256)** khi cần mã hóa tệp vật lý.
+* **Lý do:** Đảm bảo cô lập bảo mật tại máy tính văn phòng, triệt tiêu 100% độ trễ mạng cho cả thao tác Đọc lẫn Ghi (0.1ms–2ms), loại bỏ sự phức tạp và nguy cơ lệch dữ liệu khi phải đồng bộ hai chiều giữa Cloud và Local, không cần cài đặt dịch vụ Database Server chạy ngầm trên máy văn phòng.
+
+---
+
+## ADR-13: Thiết Kế Hệ Thống Sao Lưu Đa Tầng Kiểu Git (`LibGit2Sharp` + Canonical JSONL) Kết Hợp DB Host Replica
+* **Bối cảnh:** Khi CSDL chính đặt tại máy tính cố định ở văn phòng, hệ thống cần cơ chế sao lưu dữ liệu hằng ngày vừa chống mất mát dữ liệu vừa không làm đầy ổ cứng (nếu mỗi ngày sao chép nguyên tệp nhị phân `.db` nặng hàng chục MB thì sẽ tốn rất nhiều dung lượng và không biết dữ liệu gì đã thay đổi), đồng thời cho phép khôi phục về bất kỳ ngày nào.
+* **Quyết định:** Triển khai kiến trúc sao lưu kết hợp 2 tầng (Lựa chọn C):
+  1. **Tầng 1 (Local Git-Style Backup):** Xuất dữ liệu 8 bảng ra định dạng văn bản chuẩn hóa theo dòng (`Canonical Sorted JSONL`, sắp xếp cố định theo khóa chính `ORDER BY PrimaryKey`) và sử dụng thư viện `LibGit2Sharp` để tự động tạo bản `Commit` mỗi ngày vào kho Git nội bộ (`.db-backup-git`), kèm 1 bản chụp nhị phân nóng (`SqliteConnection.BackupDatabase`).
+  2. **Tầng 2 (Remote DB Host Replica):** Đảo chiều cơ chế Delta Sync cũ thành đẩy vi sai một chiều (`Local SQLite -> Remote PostgreSQL Host`) dựa trên mốc thời gian `NgayCapNhat`.
+* **Lý do:** Biểu diễn `Canonical Sorted JSONL` giúp thuật toán nén vi sai (Delta Compression) của Git chỉ lưu đúng những dòng bản ghi thay đổi trong ngày (tốn vài KB mỗi ngày thay vì hàng chục MB), hỗ trợ xem lịch sử thay đổi tường minh và khôi phục (`Time-Travel Restore` kèm `Pre-Restore Safety Commit`) về bất kỳ thời điểm nào, trong khi tầng DB Host bảo vệ dữ liệu trước rủi ro hỏng phần cứng máy trạm.

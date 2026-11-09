@@ -51,7 +51,7 @@ Cung cấp toàn bộ bằng chứng xác thực về quá trình làm việc đ
 | **[Thiết kế Cơ sở dữ liệu & ERD](01-dac-ta-ung-dung/03-co-so-du-lieu-erd.md)** | Sơ đồ quan hệ thực thể, ràng buộc toàn vẹn, migration | Độ chuẩn hóa và toàn vẹn dữ liệu |
 | **[Ma trận Phân quyền](01-dac-ta-ung-dung/04-ma-tran-phan-quyen.md)** | Quyền hạn 4 vai trò: Admin, Trợ lý giáo vụ, Giáo vụ BM, Giảng viên | Bảo mật và quản trị người dùng |
 | **[Hệ thống Giao diện UI/UX](01-dac-ta-ung-dung/05-design-system-ui-ux.md)** | Avalonia UI, App Shell, Liquid Glass Theme, Material Icons | Trải nghiệm và thẩm mỹ Desktop |
-| **[Đặc tả 10 Chức năng](01-dac-ta-ung-dung/chuc-nang/F01-xac-thuc-dang-nhap.md)** | Chi tiết luồng nghiệp vụ F01 đến F10 | Độ sâu nghiệp vụ đào tạo đại học |
+| **[Đặc tả 11 Chức năng](01-dac-ta-ung-dung/chuc-nang/F01-xac-thuc-dang-nhap.md)** | Chi tiết luồng nghiệp vụ F01 đến F11 (bao gồm CSDL SQLite Local & Git Backup) | Độ sâu nghiệp vụ đào tạo đại học |
 | **[Tổng kết & Đối chiếu Tính năng](02-ket-qua-dat-duoc/01-tong-ket-chuc-nang.md)** | Ma trận hoàn thành 9 yêu cầu cốt lõi + 4 yêu cầu mở rộng | Đạt chuẩn nghiệm thu đề tài |
 | **[Báo cáo Kiểm thử Unit Test](02-ket-qua-dat-duoc/02-kiem-thu-unit-test.md)** | Kết quả 42/42 Unit Tests đạt 100% Passed | Chất lượng và độ tin cậy của mã nguồn |
 | **[Tối ưu Hiệu năng](02-ket-qua-dat-duoc/03-toi-uu-hieu-nang.md)** | Debounce, UI Virtualization, In-Memory Caching 0ms | Tối ưu hóa ứng dụng Desktop |

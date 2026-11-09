@@ -22,15 +22,15 @@ public class SyncService : ISyncService
         nameof(HocPhiHocKy)
     ];
 
-    private readonly IDbContextFactory<AppDbContext> _remoteFactory;
+    private readonly IDbContextFactory<RemoteBackupDbContext>? _remoteFactory;
     private readonly IDbContextFactory<LocalAppDbContext> _localFactory;
 
     public SyncService(
-        IDbContextFactory<AppDbContext> remoteFactory,
-        IDbContextFactory<LocalAppDbContext> localFactory)
+        IDbContextFactory<LocalAppDbContext> localFactory,
+        IDbContextFactory<RemoteBackupDbContext>? remoteFactory = null)
     {
-        _remoteFactory = remoteFactory;
         _localFactory = localFactory;
+        _remoteFactory = remoteFactory;
     }
 
     public async Task<bool> HasLocalDataAsync()
@@ -59,6 +59,8 @@ public class SyncService : ISyncService
     {
         try
         {
+            if (_remoteFactory == null) return;
+
             await using var local = await _localFactory.CreateDbContextAsync();
             await local.Database.EnsureCreatedAsync();
 
@@ -159,6 +161,14 @@ public class SyncService : ISyncService
 
     private async Task RefreshLocalStoreAsync(IProgress<(double Percent, string Status)>? progress)
     {
+        if (_remoteFactory == null)
+        {
+            await using var localOnly = await _localFactory.CreateDbContextAsync();
+            await localOnly.Database.EnsureCreatedAsync();
+            progress?.Report((100, "CSDL cục bộ đã sẵn sàng."));
+            return;
+        }
+
         await using var remote = await _remoteFactory.CreateDbContextAsync();
         await using var local = await _localFactory.CreateDbContextAsync();
         await local.Database.EnsureDeletedAsync();

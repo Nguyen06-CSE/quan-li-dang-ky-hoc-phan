@@ -39,6 +39,7 @@ artifacts/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+Library/
 
 # --- Các file cấu hình môi trường (như secrets) ---
 .env

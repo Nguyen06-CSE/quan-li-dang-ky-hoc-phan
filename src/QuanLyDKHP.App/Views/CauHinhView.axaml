@@ -7,11 +7,11 @@
     <Grid Margin="24">
         <!-- Panel Card Cấu hình ở chính giữa -->
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="24" MaxWidth="680" HorizontalAlignment="Left">
+            <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
                 <!-- Header -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="Cấu hình hệ thống" Classes="h1" />
-                    <TextBlock Text="Thiết lập các thông số toàn hệ thống: giới hạn tín chỉ đăng ký và đơn giá tín chỉ" 
+                    <TextBlock Text="Thiết lập các thông số toàn hệ thống &amp; Quản lý sao lưu phục hồi dữ liệu CSDL" 
                                Foreground="{DynamicResource BrushTextSecondary}" FontSize="13"/>
                 </StackPanel>
 
@@ -25,7 +25,7 @@
                                Foreground="{DynamicResource BrushTextPrimary}" />
                 </Border>
 
-                <!-- Card Form -->
+                <!-- Card Form 1: Cấu hình chung -->
                 <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="24">
                     <StackPanel Spacing="20">
                         <TextBlock Text="GIỚI HẠN TÍN CHỈ HỌC KỲ" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource BrushPrimaryDark}" Margin="0,0,0,4"/>
@@ -91,6 +91,87 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
+
+                <!-- Card Form 2: Quản lý Sao lưu & Phục hồi CSDL -->
+                <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="24">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="HỆ THỐNG SAO LƯU &amp; PHỤC HỒI DỮ LIỆU (CSDL LOCAL &amp; DB HOST)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource BrushPrimaryDark}"/>
+
+                        <!-- Bảng trạng thái tóm tắt -->
+                        <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" Padding="14">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*">
+                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,0,8">
+                                    <TextBlock Text="CSDL Chính (Local SQLite):" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock Text="quanlydkhp.db (Chế độ WAL: Bật)" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="0,0,0,8">
+                                    <TextBlock Text="Dung lượng tệp CSDL:" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock Text="{Binding BackupStatus.FormattedSize, FallbackValue='0 KB'}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
+                                    <TextBlock Text="Tổng bản lưu Git Local:" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock Text="{Binding BackupStatus.TotalCommits, StringFormat='{}{0} commits', FallbackValue='0 commits'}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="Lần sao lưu gần nhất:" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock Text="{Binding BackupStatus.LastLocalBackupAt, StringFormat='{}{0:dd/MM/yyyy HH:mm}', FallbackValue='Chưa sao lưu'}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Hàng thao tác tạo bản sao lưu -->
+                        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,0">
+                            <TextBox Grid.Column="0" 
+                                     Text="{Binding GhiChuSaoLuu, Mode=TwoWay}"
+                                     PlaceholderText="Nhập ghi chú sao lưu (tùy chọn)..."
+                                     VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <Button Grid.Column="1" 
+                                    Content="Sao lưu ngay (Git)" 
+                                    Command="{Binding TaoBanSaoLuuGitCommand}" 
+                                    IsEnabled="{Binding !IsBackingUp}"
+                                    Classes="btn-primary" Margin="0,0,10,0"/>
+                            <Button Grid.Column="2" 
+                                    Content="Đồng bộ lên DB Host" 
+                                    Command="{Binding DongBoLenDbHostCommand}" 
+                                    IsEnabled="{Binding !IsBackingUp}"
+                                    Classes="btn-secondary"/>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{DynamicResource BrushBorder}" Margin="0,8"/>
+
+                        <!-- Bảng lịch sử bản sao lưu -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="LỊCH SỬ PHIÊN BẢN SAO LƯU (GIT COMMITS):" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"/>
+                            
+                            <Border BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6" MaxHeight="240">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding BackupHistory}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1" Padding="12,10">
+                                                    <Grid ColumnDefinitions="Auto,90,110,*,Auto">
+                                                        <TextBlock Grid.Column="0" Text="{Binding CommittedAtLocal, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" 
+                                                                   FontWeight="SemiBold" VerticalAlignment="Center" Width="130"/>
+                                                        <Border Grid.Column="1" Background="{DynamicResource BrushSurfaceAlt}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding ShortSha}" FontFamily="Consolas, monospace" FontSize="11"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="2" Text="{Binding BackupType}" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" FontSize="12"/>
+                                                        <TextBlock Grid.Column="3" Text="{Binding Message}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0" FontSize="12"/>
+                                                        <Button Grid.Column="4" Content="Khôi phục" 
+                                                                Command="{Binding $parent[UserControl].((vm:CauHinhViewModel)DataContext).MoXacNhanKhoiPhucCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                Classes="btn-secondary" FontSize="11" Padding="8,4"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
@@ -107,6 +188,24 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
                         <Button Content="Không, để sau" Command="{Binding TuChoiTinhLaiHocPhiCommand}" Classes="btn-secondary"/>
                         <Button Content="Có, tính lại ngay" Command="{Binding DongYTinhLaiHocPhiCommand}" Classes="btn-primary"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- Overlay Dialog xác nhận khôi phục CSDL -->
+        <Border Background="#50000000" IsVisible="{Binding HienThiXacNhanKhoiPhuc}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
+            <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" 
+                    CornerRadius="8" Padding="24" MaxWidth="520" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BoxShadow="0 8 24 0 #30000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Xác nhận khôi phục cơ sở dữ liệu" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                    <TextBlock Text="{Binding ThongBaoKhoiPhuc}" 
+                               TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
+                        <Button Content="Hủy bỏ" Command="{Binding HuyKhoiPhucCommand}" Classes="btn-secondary"/>
+                        <Button Content="Khôi phục ngay" Command="{Binding XacNhanKhoiPhucCommand}" Classes="btn-primary"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
