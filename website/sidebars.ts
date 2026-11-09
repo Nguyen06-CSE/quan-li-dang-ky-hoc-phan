@@ -20,7 +20,7 @@ const sidebars: SidebarsConfig = {
         'dac-ta-ung-dung/quy-chuan-lap-trinh',
         {
           type: 'category',
-          label: 'Đặc Tả 10 Chức Năng',
+          label: 'Đặc Tả 11 Chức Năng',
           collapsed: false,
           items: [
             'dac-ta-ung-dung/chuc-nang/F01-xac-thuc-dang-nhap',
@@ -33,6 +33,8 @@ const sidebars: SidebarsConfig = {
             'dac-ta-ung-dung/chuc-nang/F08-bao-cao-thong-ke',
             'dac-ta-ung-dung/chuc-nang/F09-import-excel-du-lieu-lon',
             'dac-ta-ung-dung/chuc-nang/F10-hybrid-cache-delta-sync',
+            'dac-ta-ung-dung/chuc-nang/F11-local-sqlite-git-backup',
+            'dac-ta-ung-dung/chuc-nang/F11b-co-che-git-backup-chi-tiet',
           ],
         },
       ],
