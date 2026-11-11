@@ -14,11 +14,14 @@ using Avalonia.Threading;                       // ✅ THÊM MỚI
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using QuanLyDKHP.App.Dtos;
 using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
+using QuanLyDKHP.Infrastructure.Data;
 
 namespace QuanLyDKHP.App.ViewModels;
 
@@ -75,6 +78,39 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
     //    → cho phép gán mới TOÀN BỘ collection 1 lần (nhanh hơn .Clear()/.Add() từng dòng)
     [ObservableProperty]
     private ObservableCollection<LopHocPhanDisplayDto> _danhSachLHP = new();
+
+    // ==================== NÂNG CẤP 2: SỔ TAY ĐIỀU PHỐI LỚP HỌC PHẦN DÀNH CHO GIÁO VIÊN ====================
+    private List<ClassRosterStudentDto> _allRosterStudents = new();
+
+    [ObservableProperty]
+    private bool _isRosterDrawerOpen;
+
+    [ObservableProperty]
+    private LopHocPhanDisplayDto? _activeRosterLhp;
+
+    [ObservableProperty]
+    private string? _rosterSearchQuery;
+
+    [ObservableProperty]
+    private string? _quickAddMaSv;
+
+    [ObservableProperty]
+    private LopHocPhanDisplayDto? _targetTransferLhp;
+
+    [ObservableProperty]
+    private string _rosterDemographicsText = "Chưa có sinh viên";
+
+    [ObservableProperty]
+    private int _rosterDebtCount;
+
+    public ObservableCollection<ClassRosterStudentDto> RosterStudents { get; } = new();
+    public ObservableCollection<LopHocPhanDisplayDto> AlternativeTransferClasses { get; } = new();
+    public bool HasAlternativeTransferClasses => AlternativeTransferClasses.Count > 0;
+
+    partial void OnRosterSearchQueryChanged(string? value)
+    {
+        ApplyRosterSearchFilter();
+    }
 
     public HocKyLopHocPhanViewModel(
         IHocKyService hocKyService,
@@ -484,6 +520,272 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
     {
         if (lhp == null) return;
         WeakReferenceMessenger.Default.Send(new NavigateToImportExcelMessage(SelectedHocKy?.MaHocKy, lhp.MaLHP));
+    }
+
+    // ==================== NÂNG CẤP 2: CÁC LỆNH ĐIỀU PHỐI LỚP HỌC PHẦN ====================
+
+    [RelayCommand]
+    public async Task MoBangDieuPhoiLopAsync(LopHocPhanDisplayDto? lhp)
+    {
+        if (lhp == null) return;
+        ActiveRosterLhp = lhp;
+        IsRosterDrawerOpen = true;
+        RosterSearchQuery = string.Empty;
+        QuickAddMaSv = string.Empty;
+        await ReloadActiveRosterAsync();
+    }
+
+    [RelayCommand]
+    public void DongBangDieuPhoiLop()
+    {
+        IsRosterDrawerOpen = false;
+    }
+
+    public async Task ReloadActiveRosterAsync()
+    {
+        if (ActiveRosterLhp == null || App.ServiceProvider == null) return;
+
+        try
+        {
+            string maLhp = ActiveRosterLhp.MaLHP;
+            string maMon = ActiveRosterLhp.MaMon;
+            string maHk = ActiveRosterLhp.Entity?.MaHocKy ?? SelectedHocKy?.MaHocKy ?? string.Empty;
+
+            // Cập nhật danh sách các nhóm lớp học phần khác cùng môn học để Giáo viên chuyển lớp 1-chạm
+            AlternativeTransferClasses.Clear();
+            foreach (var other in _masterLhpList.Where(x => x.Entity?.MaHocKy == maHk && x.MaMon == maMon && x.MaLHP != maLhp))
+            {
+                AlternativeTransferClasses.Add(other);
+            }
+            OnPropertyChanged(nameof(HasAlternativeTransferClasses));
+            TargetTransferLhp = AlternativeTransferClasses.FirstOrDefault();
+
+            var dbFactory = App.ServiceProvider.GetService<IDbContextFactory<AppDbContext>>();
+            if (dbFactory == null) return;
+
+            await using var db = await dbFactory.CreateDbContextAsync();
+
+            var enrollments = await db.DangKyHocPhans.AsNoTracking()
+                .Include(d => d.SinhVien)
+                .Where(d => d.MaLHP == maLhp && d.TrangThai == "DangHoc" && d.SinhVien != null && !d.SinhVien.IsDeleted)
+                .OrderBy(d => d.MaSV)
+                .ToListAsync();
+
+            var svIds = enrollments.Select(e => e.MaSV).ToList();
+            var debtDict = await db.HocPhiHocKys.AsNoTracking()
+                .Where(h => h.MaHocKy == maHk && svIds.Contains(h.MaSV))
+                .ToDictionaryAsync(h => h.MaSV, h => h.ConNo);
+
+            var list = new List<ClassRosterStudentDto>(enrollments.Count);
+            int stt = 1;
+            foreach (var dk in enrollments)
+            {
+                var sv = dk.SinhVien!;
+                decimal conNo = debtDict.TryGetValue(sv.MaSV, out var no) ? no : 0m;
+                list.Add(new ClassRosterStudentDto
+                {
+                    STT = stt++,
+                    MaSV = sv.MaSV,
+                    HoTen = sv.HoTen,
+                    LopSinhHoat = sv.LopSinhHoat ?? "--",
+                    KhoaHoc = sv.KhoaHoc ?? "--",
+                    NgayDK = dk.NgayDK,
+                    ConNoHocPhi = conNo
+                });
+            }
+
+            _allRosterStudents = list;
+            RosterDebtCount = list.Count(x => x.IsConNo);
+
+            if (list.Count == 0)
+            {
+                RosterDemographicsText = "Chưa có sinh viên nào đăng ký lớp này.";
+            }
+            else
+            {
+                var groups = list
+                    .GroupBy(x => x.LopSinhHoat)
+                    .OrderByDescending(g => g.Count())
+                    .Take(4)
+                    .Select(g => $"{g.Key}: {g.Count()} SV");
+                RosterDemographicsText = "Cơ cấu lớp: " + string.Join(" • ", groups);
+            }
+
+            // Đồng bộ lại sĩ số hiển thị trên thẻ ActiveRosterLhp
+            ActiveRosterLhp.SiSoDangKy = list.Count;
+            ApplyRosterSearchFilter();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi tải danh sách lớp: {ex.Message}", true);
+        }
+    }
+
+    private void ApplyRosterSearchFilter()
+    {
+        RosterStudents.Clear();
+        var query = _allRosterStudents.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(RosterSearchQuery))
+        {
+            string key = RosterSearchQuery.Trim().ToLowerInvariant();
+            query = query.Where(s =>
+                s.MaSV.ToLowerInvariant().Contains(key) ||
+                s.HoTen.ToLowerInvariant().Contains(key) ||
+                s.LopSinhHoat.ToLowerInvariant().Contains(key));
+        }
+
+        int stt = 1;
+        foreach (var item in query)
+        {
+            item.STT = stt++;
+            RosterStudents.Add(item);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ThemNhanhSvVaoLopAsync()
+    {
+        if (ActiveRosterLhp == null || string.IsNullOrWhiteSpace(QuickAddMaSv) || App.ServiceProvider == null) return;
+        string maSv = QuickAddMaSv.Trim();
+        string maLhp = ActiveRosterLhp.MaLHP;
+
+        try
+        {
+            using var scope = App.ServiceProvider.CreateScope();
+            var dkService = scope.ServiceProvider.GetRequiredService<IDangKyHocPhanService>();
+            var result = await dkService.DangKyAsync(maSv, maLhp, boQuaCanhBaoTrungMon: false);
+
+            if (!result.Success)
+            {
+                ShowMessage(result.Message, true);
+                return;
+            }
+
+            QuickAddMaSv = string.Empty;
+            ShowMessage($"✔ Đã thêm nhanh sinh viên {maSv} vào lớp {maLhp} thành công!", false);
+
+            await LoadMasterLhpAsync();
+            ApplyLhpFiltersInMemory();
+            ActiveRosterLhp = _masterLhpList.FirstOrDefault(x => x.MaLHP == maLhp) ?? ActiveRosterLhp;
+            await ReloadActiveRosterAsync();
+            WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(new QuanLyDKHP.Core.Dtos.KetQuaImportDto()));
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Không thể thêm sinh viên: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ChuyenNhomLopSvAsync(ClassRosterStudentDto? sv)
+    {
+        if (sv == null || ActiveRosterLhp == null || App.ServiceProvider == null) return;
+        if (TargetTransferLhp == null)
+        {
+            ShowMessage("Vui lòng chọn nhóm lớp học phần đích cùng môn để chuyển sinh viên sang.", true);
+            return;
+        }
+
+        string sourceLhp = ActiveRosterLhp.MaLHP;
+        string targetLhp = TargetTransferLhp.MaLHP;
+
+        try
+        {
+            using var scope = App.ServiceProvider.CreateScope();
+            var dkService = scope.ServiceProvider.GetRequiredService<IDangKyHocPhanService>();
+
+            // Bước 1: Hủy đăng ký ở lớp hiện tại
+            await dkService.HuyDangKyAsync(sv.MaSV, sourceLhp);
+
+            // Bước 2: Đăng ký vào lớp đích cùng môn
+            var enrollResult = await dkService.DangKyAsync(sv.MaSV, targetLhp, boQuaCanhBaoTrungMon: true);
+            if (!enrollResult.Success)
+            {
+                // Khôi phục lại lớp cũ nếu lớp mới bị trùng lịch hoặc đầy sĩ số
+                await dkService.DangKyAsync(sv.MaSV, sourceLhp, boQuaCanhBaoTrungMon: true);
+                ShowMessage($"⚠ Không thể chuyển sang {targetLhp}: {enrollResult.Message}. Đã giữ nguyên sinh viên ở lớp {sourceLhp}.", true);
+                return;
+            }
+
+            ShowMessage($"✔ Đã chuyển sinh viên {sv.HoTen} ({sv.MaSV}) từ {sourceLhp} sang {targetLhp} thành công!", false);
+
+            await LoadMasterLhpAsync();
+            ApplyLhpFiltersInMemory();
+            ActiveRosterLhp = _masterLhpList.FirstOrDefault(x => x.MaLHP == sourceLhp) ?? ActiveRosterLhp;
+            await ReloadActiveRosterAsync();
+            WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(new QuanLyDKHP.Core.Dtos.KetQuaImportDto()));
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi khi chuyển nhóm lớp: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public async Task RutSvKhoiLopAsync(ClassRosterStudentDto? sv)
+    {
+        if (sv == null || ActiveRosterLhp == null || App.ServiceProvider == null) return;
+        string maLhp = ActiveRosterLhp.MaLHP;
+
+        if (ShowConfirmDeleteFunc != null)
+        {
+            bool ok = await ShowConfirmDeleteFunc($"Bạn có chắc chắn muốn rút sinh viên {sv.HoTen} ({sv.MaSV}) khỏi lớp {maLhp}?");
+            if (!ok) return;
+        }
+
+        try
+        {
+            using var scope = App.ServiceProvider.CreateScope();
+            var dkService = scope.ServiceProvider.GetRequiredService<IDangKyHocPhanService>();
+            await dkService.HuyDangKyAsync(sv.MaSV, maLhp);
+
+            ShowMessage($"✔ Đã rút sinh viên {sv.HoTen} ({sv.MaSV}) khỏi lớp {maLhp}.", false);
+
+            await LoadMasterLhpAsync();
+            ApplyLhpFiltersInMemory();
+            ActiveRosterLhp = _masterLhpList.FirstOrDefault(x => x.MaLHP == maLhp) ?? ActiveRosterLhp;
+            await ReloadActiveRosterAsync();
+            WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(new QuanLyDKHP.Core.Dtos.KetQuaImportDto()));
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi khi rút học phần: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public void MoHoSoSvTrongDkhp(ClassRosterStudentDto? sv)
+    {
+        if (sv == null) return;
+        WeakReferenceMessenger.Default.Send(new NavigateToRegistrationMessage(sv.MaSV));
+    }
+
+    [RelayCommand]
+    public async Task SaoChepPhieuDiemDanhAsync()
+    {
+        if (ActiveRosterLhp == null || _allRosterStudents.Count == 0)
+        {
+            ShowMessage("Lớp học phần chưa có sinh viên để xuất danh sách điểm danh.", true);
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"PHIẾU ĐIỂM DANH LỚP HỌC PHẦN: {ActiveRosterLhp.MaLHP} - {ActiveRosterLhp.TenMon}");
+        sb.AppendLine($"Giảng viên: {ActiveRosterLhp.TenGiangVien}\tLịch học: {ActiveRosterLhp.LichHocHienThi}\tSĩ số: {_allRosterStudents.Count} SV");
+        sb.AppendLine("STT\tMã SV\tHọ và Tên\tLớp Sinh Hoạt\tKhóa\tBuổi 1\tBuổi 2\tBuổi 3\tBuổi 4\tBuổi 5\tGhi chú");
+
+        int stt = 1;
+        foreach (var sv in _allRosterStudents)
+        {
+            sb.AppendLine($"{stt++}\t{sv.MaSV}\t{sv.HoTen}\t{sv.LopSinhHoat}\t{sv.KhoaHoc}\t\t\t\t\t\t{(sv.IsConNo ? sv.TrangThaiHocPhiText : "")}");
+        }
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow?.Clipboard != null)
+        {
+            await desktop.MainWindow.Clipboard.SetTextAsync(sb.ToString());
+            ShowMessage($"✔ Đã sao chép Phiếu điểm danh ({_allRosterStudents.Count} SV) vào Clipboard! Bạn có thể dán (Ctrl+V) ngay vào Excel/Word.", false);
+        }
     }
 
     private void ShowMessage(string msg, bool isError)

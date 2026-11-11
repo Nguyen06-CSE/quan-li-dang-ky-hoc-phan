@@ -261,19 +261,30 @@
                      IsVisible="{Binding IsLoading}"
                      Margin="0,0,0,8" />
 
-        <!-- 5. DataGrid Lớp học phần chuẩn Avalonia -->
-        <Border Grid.Row="4" Classes="table-container">
+        <!-- 5. Bố cục Chính + Ngăn kéo Điều phối Lớp học phần (Sổ Tay Điều Phối Lớp - Nâng Cấp 2) -->
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+        <Border Grid.Column="0" Classes="table-container">
             <DataGrid x:Name="LhpDataGrid"
                       ItemsSource="{Binding DanhSachLHP}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       SelectionMode="Single"
                       RowHeight="46"
+                      CanUserResizeColumns="True"
+                      HorizontalScrollBarVisibility="Auto"
                       DoubleTapped="OnDataGridDoubleTapped">
 
             <!-- ContextMenu chuẩn chỉ mở khi nhấp chuột phải -->
             <DataGrid.ContextMenu>
                 <ContextMenu>
+                    <MenuItem Header="Quản lý danh sách &amp; Điều phối SV trong lớp"
+                              Command="{Binding MoBangDieuPhoiLopCommand}"
+                              CommandParameter="{Binding #LhpDataGrid.SelectedItem}">
+                        <MenuItem.Icon>
+                            <PathIcon Data="M 16 11 C 17.66 11 18.99 9.66 18.99 8 C 18.99 6.34 17.66 5 16 5 C 14.34 5 13 6.34 13 8 C 13 9.66 14.34 11 16 11 Z M 8 11 C 9.66 11 10.99 9.66 10.99 8 C 10.99 6.34 9.66 5 8 5 C 6.34 5 5 6.34 5 8 C 5 9.66 6.34 11 8 11 Z M 8 13 C 5.67 13 1 14.17 1 16.5 V 19 H 15 V 16.5 C 15 14.17 10.33 13 8 13 Z M 16 13 C 15.71 13 15.38 13.02 15.03 13.05 C 16.19 13.89 17 15.02 17 16.5 V 19 H 23 V 16.5 C 23 14.17 18.33 13 16 13 Z"
+                                      Width="14" Height="14" Foreground="#7C3AED" />
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <MenuItem Header="Sao chép mã LHP"
                               Command="{Binding SaoChepMaLhpCommand}"
                               CommandParameter="{Binding #LhpDataGrid.SelectedItem}">
@@ -307,43 +318,44 @@
 
             <DataGrid.Columns>
                 <!-- Cột 1: Mã LHP (in đậm) -->
-                <DataGridTemplateColumn Header="Mã LHP" Width="135" SortMemberPath="MaLHP">
+                <DataGridTemplateColumn Header="Mã LHP" Width="130" MinWidth="115" SortMemberPath="MaLHP">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <TextBlock Text="{Binding MaLHP}"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextPrimary}"
                                        VerticalAlignment="Center"
-                                       Margin="12,0" />
+                                       Margin="10,0" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Cột 2: Môn học -->
-                <DataGridTemplateColumn Header="Môn học" Width="*" SortMemberPath="TenMon">
+                <!-- Cột 2: Môn học (rộng rãi, hiển thị đầy đủ không bị co rút) -->
+                <DataGridTemplateColumn Header="Môn học" Width="2*" MinWidth="200" SortMemberPath="TenMon">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <TextBlock Text="{Binding TenMon}"
                                        FontWeight="Medium"
                                        Foreground="{DynamicResource BrushTextPrimary}"
                                        VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"
-                                       Margin="12,0" />
+                                       ToolTip.Tip="{Binding TenMon}"
+                                       Margin="10,0" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
                 <!-- Cột 3: Giảng viên phụ trách (có badge trạng thái phân công) -->
-                <DataGridTemplateColumn Header="Giảng viên" Width="185" SortMemberPath="TenGiangVien">
+                <DataGridTemplateColumn Header="Giảng viên" Width="135" MinWidth="110" SortMemberPath="TenGiangVien">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
-                            <Panel VerticalAlignment="Center" Margin="10,0">
+                            <Panel VerticalAlignment="Center" Margin="8,0">
                                 <!-- Đã phân công GV -->
                                 <TextBlock Text="{Binding TenGiangVien}"
                                            FontWeight="Medium"
                                            Foreground="{DynamicResource BrushTextPrimary}"
                                            VerticalAlignment="Center"
                                            IsVisible="{Binding CoGiangVien}"
+                                           ToolTip.Tip="{Binding TenGiangVien}"
                                            TextTrimming="CharacterEllipsis" />
 
                                 <!-- Chưa phân công GV -->
@@ -351,7 +363,7 @@
                                         BorderBrush="#FDE68A"
                                         BorderThickness="1"
                                         CornerRadius="6"
-                                        Padding="8,2"
+                                        Padding="6,2"
                                         HorizontalAlignment="Left"
                                         IsVisible="{Binding !CoGiangVien}">
                                     <TextBlock Text="Chưa phân công"
@@ -365,19 +377,19 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 4: Loại hình ĐT (hiển thị dạng Pill Tag) -->
-                <DataGridTemplateColumn Header="Loại hình ĐT" Width="130" SortMemberPath="LoaiHinhDT">
+                <DataGridTemplateColumn Header="Loại hình" Width="85" MinWidth="75" SortMemberPath="LoaiHinhDT">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <Border Background="{DynamicResource BrushSurfaceAlt}"
                                     BorderBrush="{DynamicResource BrushBorder}"
                                     BorderThickness="1"
                                     CornerRadius="6"
-                                    Padding="8,2"
+                                    Padding="6,2"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
-                                    Margin="10,0">
-                                <TextBlock Text="{Binding LoaiHinhDT, FallbackValue='Chính quy'}"
-                                           FontSize="12"
+                                    Margin="8,0">
+                                <TextBlock Text="{Binding LoaiHinhDT, FallbackValue='CQ'}"
+                                           FontSize="11.5"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource BrushTextPrimary}" />
                             </Border>
@@ -386,31 +398,33 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 5: Lịch học -->
-                <DataGridTemplateColumn Header="Lịch học" Width="180" SortMemberPath="LichHocHienThi">
+                <DataGridTemplateColumn Header="Lịch học" Width="135" MinWidth="115" SortMemberPath="LichHocHienThi">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <TextBlock Text="{Binding LichHocHienThi}"
                                        Foreground="{DynamicResource BrushTextSecondary}"
                                        FontWeight="Medium"
                                        VerticalAlignment="Center"
-                                       Margin="10,0" />
+                                       ToolTip.Tip="{Binding LichHocHienThi}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="8,0" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
                 <!-- Cột 6: Sĩ số (ĐK / Tối đa) kèm ProgressBar hiển thị tỷ lệ lấp đầy -->
-                <DataGridTemplateColumn Header="Sĩ số (ĐK / Tối đa)" Width="175" SortMemberPath="SiSoDangKy">
+                <DataGridTemplateColumn Header="Sĩ số (ĐK/Tối đa)" Width="120" MinWidth="105" SortMemberPath="SiSoDangKy">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
-                            <StackPanel VerticalAlignment="Center" Margin="10,4" Spacing="4">
+                            <StackPanel VerticalAlignment="Center" Margin="8,4" Spacing="4">
                                 <TextBlock Text="{Binding SiSoHienThi}"
                                            HorizontalAlignment="Center"
-                                           FontSize="12"
+                                           FontSize="11.5"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource BrushTextPrimary}" />
                                 <ProgressBar Value="{Binding TyLeLapDay}"
                                              Maximum="100"
-                                             Height="6"
+                                             Height="5"
                                              CornerRadius="3" />
                             </StackPanel>
                         </DataTemplate>
@@ -418,18 +432,18 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 7: Hình thức Online -->
-                <DataGridTemplateColumn Header="Online" Width="85">
+                <DataGridTemplateColumn Header="Online" Width="68" MinWidth="58">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Border Background="#DBEAFE"
                                         BorderBrush="#93C5FD"
                                         BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="8,2"
+                                        CornerRadius="8"
+                                        Padding="6,2"
                                         IsVisible="{Binding GiangDayOnline}">
                                     <TextBlock Text="Online"
-                                               FontSize="11"
+                                               FontSize="10.5"
                                                FontWeight="Bold"
                                                Foreground="#1D4ED8" />
                                 </Border>
@@ -441,11 +455,24 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Cột 8: Thao tác nhanh (Sao chép / Nạp SV / Sửa / Xóa) -->
-                <DataGridTemplateColumn Header="Thao tác" Width="150" CanUserSort="False">
+                <!-- Cột 8: Thao tác nhanh (Điều phối SV / Smart Import / Sao chép / Sửa / Xóa) -->
+                <DataGridTemplateColumn Header="Thao tác" Width="170" MinWidth="160" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Nút Mở Bảng Điều phối Danh sách Lớp (Nâng Cấp 2) -->
+                                <Button Classes="row-action"
+                                        Background="#F5F3FF"
+                                        BorderBrush="#DDD6FE"
+                                        ClickMode="Release"
+                                        ContextMenu="{x:Null}"
+                                        Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).MoBangDieuPhoiLopCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Mở Sổ tay Điều phối Lớp học phần (Xem DS SV, Chuyển nhóm 1-chạm, Điểm danh)">
+                                    <PathIcon Data="M 16 11 C 17.66 11 18.99 9.66 18.99 8 C 18.99 6.34 17.66 5 16 5 C 14.34 5 13 6.34 13 8 C 13 9.66 14.34 11 16 11 Z M 8 11 C 9.66 11 10.99 9.66 10.99 8 C 10.99 6.34 9.66 5 8 5 C 6.34 5 5 6.34 5 8 C 5 9.66 6.34 11 8 11 Z M 8 13 C 5.67 13 1 14.17 1 16.5 V 19 H 15 V 16.5 C 15 14.17 10.33 13 8 13 Z M 16 13 C 15.71 13 15.38 13.02 15.03 13.05 C 16.19 13.89 17 15.02 17 16.5 V 19 H 23 V 16.5 C 23 14.17 18.33 13 16 13 Z"
+                                              Width="14" Height="14" Foreground="#7C3AED" />
+                                </Button>
+
                                 <!-- Nút sao chép mã LHP -->
                                 <Button Classes="row-action copy"
                                         ClickMode="Release"
@@ -500,5 +527,287 @@
             </DataGrid.Columns>
         </DataGrid>
         </Border>
+
+        <!-- NGĂN KÉO ĐIỀU PHỐI LỚP HỌC PHẦN (SỔ TAY ĐIỀU PHỐI LỚP HỌC - NÂNG CẤP 2) -->
+        <Border Grid.Column="1"
+                Width="470"
+                Margin="14,0,0,0"
+                Background="{DynamicResource BrushBackground}"
+                BorderBrush="{DynamicResource BrushPrimary}"
+                BorderThickness="1.5"
+                CornerRadius="12"
+                BoxShadow="0 10 30 0 #1A000000"
+                Padding="16"
+                IsVisible="{Binding IsRosterDrawerOpen}">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
+
+                <!-- 1. Header Sổ tay Lớp học phần -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="3">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Border Background="{DynamicResource BrushPrimaryLight}"
+                                    CornerRadius="6" Padding="8,2">
+                                <TextBlock Text="{Binding ActiveRosterLhp.MaLHP}"
+                                           FontFamily="Consolas, Menlo, Monospace"
+                                           FontWeight="Bold" FontSize="12.5"
+                                           Foreground="{DynamicResource BrushPrimaryDark}" />
+                            </Border>
+                            <Border Background="{DynamicResource BrushBadgeInfoBg}"
+                                    BorderBrush="{DynamicResource BrushBadgeInfoBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="8,2">
+                                <TextBlock Text="{Binding ActiveRosterLhp.SiSoHienThi, StringFormat='Sĩ số: {0} SV'}"
+                                           FontFamily="Consolas, Menlo, Monospace"
+                                           FontWeight="Bold" FontSize="11.5"
+                                           Foreground="{DynamicResource BrushBadgeInfoFg}" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding ActiveRosterLhp.TenMon}"
+                                   FontWeight="Bold" FontSize="15.5"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding ActiveRosterLhp.TenMon}" />
+                        <TextBlock Text="{Binding ActiveRosterLhp.LichHocHienThi, StringFormat='Lịch học: {0}'}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource BrushTextSecondary}" />
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Command="{Binding DongBangDieuPhoiLopCommand}"
+                            Classes="btn-icon-ghost"
+                            VerticalAlignment="Top"
+                            ToolTip.Tip="Đóng bảng điều phối lớp">
+                        <TextBlock Text="✕" FontWeight="Bold" FontSize="14" />
+                    </Button>
+                </Grid>
+
+                <!-- 2. Thống kê Cơ cấu Lớp & Công nợ -->
+                <Border Grid.Row="1"
+                        Background="{DynamicResource BrushSurfaceAlt}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding RosterDemographicsText}"
+                                   FontSize="11.5"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+                        <Border Grid.Column="1"
+                                Background="{DynamicResource BrushBadgeDangerBg}"
+                                BorderBrush="{DynamicResource BrushBadgeDangerBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="7,2"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding RosterDebtCount}">
+                            <TextBlock Text="{Binding RosterDebtCount, StringFormat='{}{0} SV nợ HP'}"
+                                       FontSize="11" FontWeight="Bold"
+                                       Foreground="{DynamicResource BrushBadgeDangerFg}" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- 3. Thêm nhanh 1 Sinh viên bằng Mã SV & Chuyển nhóm lớp 1-chạm -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource BrushSurfaceAlt}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,8">
+                    <StackPanel Spacing="8">
+                        <!-- Dòng 1: Thêm nhanh SV vào lớp -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding QuickAddMaSv, Mode=TwoWay}"
+                                     PlaceholderText="Nhập Mã SV để thêm nhanh vào lớp..."
+                                     Height="34" CornerRadius="6"
+                                     FontSize="12.5"
+                                     VerticalContentAlignment="Center">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding ThemNhanhSvVaoLopCommand}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                            <Button Grid.Column="1"
+                                    Command="{Binding ThemNhanhSvVaoLopCommand}"
+                                    Classes="btn-primary"
+                                    Height="34" Padding="12,0"
+                                    CornerRadius="6"
+                                    ToolTip.Tip="Kiểm tra trùng lịch và ghi danh tức thì vào lớp này">
+                                <TextBlock Text="+ Thêm SV" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                            </Button>
+                        </Grid>
+
+                        <!-- Dòng 2: Chọn Nhóm lớp đích cùng môn để Chuyển nhóm 1-chạm -->
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8"
+                              IsVisible="{Binding HasAlternativeTransferClasses}">
+                            <TextBlock Grid.Column="0"
+                                       Text="Nhóm đích chuyển lớp:"
+                                       FontSize="11.5" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding AlternativeTransferClasses}"
+                                      SelectedItem="{Binding TargetTransferLhp}"
+                                      HorizontalAlignment="Stretch"
+                                      Height="32" CornerRadius="6"
+                                      FontSize="12">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="dtos:LopHocPhanDisplayDto">
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} ({1}) - {2}">
+                                                    <Binding Path="MaLHP" />
+                                                    <Binding Path="SiSoHienThi" />
+                                                    <Binding Path="LichHocHienThi" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 4. Tìm kiếm trong lớp & Nút Copy Điểm Danh -->
+                <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding RosterSearchQuery, Mode=TwoWay}"
+                             PlaceholderText="Lọc sinh viên trong lớp (Mã SV, Họ tên, Lớp SH)..."
+                             Height="34" CornerRadius="6"
+                             FontSize="12.5"
+                             VerticalContentAlignment="Center" />
+                    <Button Grid.Column="1"
+                            Command="{Binding SaoChepPhieuDiemDanhCommand}"
+                            Classes="btn-secondary"
+                            Height="34" Padding="10,0"
+                            CornerRadius="6"
+                            ToolTip.Tip="Sao chép bảng điểm danh 5 buổi chuẩn Excel vào Clipboard">
+                        <TextBlock Text="📋 Copy Điểm Danh" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                    </Button>
+                </Grid>
+
+                <!-- 5. Danh sách Sinh viên trong Lớp học phần -->
+                <Border Grid.Row="4"
+                        Background="{DynamicResource BrushBackground}"
+                        BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        ClipToBounds="True">
+                    <Grid RowDefinitions="Auto,*">
+                        <Border Grid.Row="0"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="0,0,0,1"
+                                Padding="10,6">
+                            <Grid ColumnDefinitions="28,76,*,62,88">
+                                <TextBlock Grid.Column="0" Text="#" Classes="caption" FontWeight="Bold" />
+                                <TextBlock Grid.Column="1" Text="Mã SV" Classes="caption" FontWeight="Bold" />
+                                <TextBlock Grid.Column="2" Text="Họ tên &amp; Lớp" Classes="caption" FontWeight="Bold" />
+                                <TextBlock Grid.Column="3" Text="Học phí" Classes="caption" FontWeight="Bold" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="4" Text="Điều phối" Classes="caption" FontWeight="Bold" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding RosterStudents}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="dtos:ClassRosterStudentDto">
+                                        <Border BorderBrush="{DynamicResource BrushTableDivider}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="10,7">
+                                            <Grid ColumnDefinitions="28,76,*,62,88" VerticalAlignment="Center">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding STT}"
+                                                           FontFamily="Consolas, Menlo, Monospace"
+                                                           FontSize="11.5"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding MaSV}"
+                                                           FontFamily="Consolas, Menlo, Monospace"
+                                                           FontWeight="Bold" FontSize="12"
+                                                           Foreground="{DynamicResource BrushPrimaryDark}"
+                                                           VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="2" Spacing="1" VerticalAlignment="Center" Margin="0,0,6,0">
+                                                    <TextBlock Text="{Binding HoTen}"
+                                                               FontWeight="SemiBold" FontSize="12.5"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip.Tip="{Binding HoTen}" />
+                                                    <TextBlock Text="{Binding LopSinhHoat, StringFormat='Lớp: {0}'}"
+                                                               FontSize="11"
+                                                               Foreground="{DynamicResource BrushTextSecondary}" />
+                                                </StackPanel>
+                                                <Panel Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Border Background="{DynamicResource BrushBadgeDangerBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeDangerBorder}"
+                                                            BorderThickness="1" CornerRadius="5" Padding="5,1"
+                                                            IsVisible="{Binding IsConNo}"
+                                                            ToolTip.Tip="{Binding TrangThaiHocPhiText}">
+                                                        <TextBlock Text="Nợ HP" FontSize="10.5" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeDangerFg}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                                                            BorderThickness="1" CornerRadius="5" Padding="5,1"
+                                                            IsVisible="{Binding !IsConNo}">
+                                                        <TextBlock Text="Đủ HP" FontSize="10.5" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeSuccessFg}" />
+                                                    </Border>
+                                                </Panel>
+                                                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <!-- Nút Chuyển sang nhóm lớp khác cùng môn 1-chạm -->
+                                                    <Button Classes="row-action"
+                                                            Width="26" Height="26" Padding="0"
+                                                            Background="#EFF6FF" BorderBrush="#BFDBFE"
+                                                            Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).ChuyenNhomLopSvCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            IsVisible="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).HasAlternativeTransferClasses}"
+                                                            ToolTip.Tip="Chuyển sinh viên này sang nhóm lớp đích đã chọn ở trên">
+                                                        <TextBlock Text="⇄" FontWeight="Bold" FontSize="12" Foreground="#1D4ED8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Button>
+                                                    <!-- Nút Mở hồ sơ ĐKHP của SV -->
+                                                    <Button Classes="row-action"
+                                                            Width="26" Height="26" Padding="0"
+                                                            Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).MoHoSoSvTrongDkhpCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Mở hồ sơ Đăng ký học phần của sinh viên này">
+                                                        <TextBlock Text="↗" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource BrushPrimaryDark}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Button>
+                                                    <!-- Nút Rút khỏi lớp -->
+                                                    <Button Classes="row-action delete"
+                                                            Width="26" Height="26" Padding="0"
+                                                            Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).RutSvKhoiLopCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Rút sinh viên khỏi lớp học phần này">
+                                                        <TextBlock Text="✕" FontWeight="Bold" FontSize="11" Foreground="#DC2626" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- 6. Chân trang Ngăn kéo: Nạp hàng loạt bằng Smart Import Studio -->
+                <Button Grid.Row="5"
+                        Command="{Binding NapSinhVienSmartCommand}"
+                        CommandParameter="{Binding ActiveRosterLhp}"
+                        Classes="btn-secondary"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="10,8">
+                    <TextBlock Text="📋 Mở Smart Import Studio (Dán danh sách Excel/Zalo vào lớp này)"
+                               FontWeight="SemiBold" FontSize="12" />
+                </Button>
+            </Grid>
+        </Border>
+        </Grid>
     </Grid>
 </UserControl>

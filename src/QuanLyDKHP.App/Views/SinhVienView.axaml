@@ -372,6 +372,7 @@
                       IsReadOnly="True"
                       SelectionMode="Single"
                       RowHeight="46"
+                      CanUserResizeColumns="True"
                       DoubleTapped="OnDataGridDoubleTapped">
 
             <!-- ContextMenu cấp DataGrid dùng chung an toàn -->
@@ -444,7 +445,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 3: Họ và tên (hỗ trợ sắp xếp theo Tên tiếng Việt giống bản gốc & Môn học) -->
-                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*"
+                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" MinWidth="180"
                                     CustomSortComparer="{StaticResource VietnameseNameComparer}" />
 
                 <!-- Cột 4: Lớp sinh hoạt (hiển thị dạng Tag/Badge nổi bật dễ nhìn) -->

@@ -90,7 +90,7 @@
                                   GridLinesVisibility="All" BorderThickness="0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Mã SV" Binding="{Binding MaSV}" Width="120" />
-                                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" />
+                                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" MinWidth="160" />
                                 <DataGridTextColumn Header="Lớp sinh hoạt" Binding="{Binding LopSinhHoat}" Width="140" />
                                 <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="120" />
                                 <DataGridTextColumn Header="Giảng viên" Binding="{Binding TenGiangVien}" Width="150" />
@@ -170,7 +170,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="60" />
                                 <DataGridTextColumn Header="Mã SV" Binding="{Binding MaSV}" Width="120" />
-                                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" />
+                                <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" MinWidth="160" />
                                 <DataGridTextColumn Header="Lớp sinh hoạt" Binding="{Binding LopSinhHoat}" Width="140" />
                                 <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="130" />
                                 <DataGridTextColumn Header="Giảng viên" Binding="{Binding TenGiangVien}" Width="160" />
@@ -204,7 +204,7 @@
                                   GridLinesVisibility="All" BorderThickness="0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Mã môn" Binding="{Binding MaMon}" Width="130" />
-                                <DataGridTextColumn Header="Tên môn học" Binding="{Binding TenMon}" Width="*" />
+                                <DataGridTextColumn Header="Tên môn học" Binding="{Binding TenMon}" Width="*" MinWidth="180" />
                                 <DataGridTextColumn Header="Số SV đăng ký" Binding="{Binding SoSinhVien}" Width="150" />
                                 <DataGridTextColumn Header="Số LHP đang mở" Binding="{Binding SoLhpDangMo}" Width="150" />
                             </DataGrid.Columns>

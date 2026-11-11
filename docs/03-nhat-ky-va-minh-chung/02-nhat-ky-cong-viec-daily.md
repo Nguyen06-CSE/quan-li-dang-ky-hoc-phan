@@ -6,7 +6,47 @@ sidebar_position: 2
 
 # Nhật Ký Công Việc Hằng Ngày (Daily Logs)
 
-## 0. Nhật Ký Ngày 12/11/2026: Nâng Cấp Desktop Ứng Dụng Thực Tế (Upgrade 1)
+## 0AA. Nhật Ký Ngày 12/11/2026 (Ca 3): Tinh Chỉnh Layout Chống Co Rút Chữ & Rà Soát Toàn Diện Logic Nghiệp Vụ
+
+* **Thực hiện:** LIAM (LÂM) & NGUYÊN
+* **Nội dung trọng tâm:**
+  1. Xử lý triệt để hiện tượng co rút văn bản (text truncation / column clipping) trên màn hình Học kỳ & LHP (`HocKyLopHocPhanView`) và Đăng ký học phần (`DangKyHocPhanView`).
+  2. Bổ sung `MinWidth`, kích hoạt `CanUserResizeColumns="True"` và `HorizontalScrollBarVisibility="Auto"` trên toàn bộ các DataGrid (`MonHocView`, `SinhVienView`, `BaoCaoView`).
+  3. Rà soát độc lập toàn diện các khối logic nghiệp vụ cốt lõi: đăng ký học phần, kiểm tra trùng lịch / sức chứa / học kỳ mở, tính toán học phí theo lô, và cơ chế chuyển nhóm lớp an toàn.
+
+### Các kết quả đạt được
+1. **Khắc phục triệt để hiện tượng co rút cột & văn bản trên giao diện:**
+   * **Màn hình Học kỳ & LHP (`HocKyLopHocPhanView`):** Cân đối lại độ rộng các cột cố định (`Mã LHP` 130px, `Giảng viên` 135px, `Loại hình` 85px, `Lịch học` 135px, `Sĩ số` 120px, `Online` 68px, `Thao tác` 170px), cấp phát `Width="2*"` kèm `MinWidth="200"` cho cột **Môn học**. Tên các môn dài như *"Tư tưởng Hồ Chí Minh"*, *"An toàn và bảo mật hệ thống thông tin"*, *"Blockchain và ứng dụng"* hiển thị trọn vẹn, không còn bị ép thành *"Tư t..."*, *"An ..."*, *"Blo..."*.
+   * **Màn hình Đăng ký học phần (`DangKyHocPhanView`):**
+     * Mở rộng cột Master danh sách sinh viên từ `340px` lên `370px`, tinh gọn padding thẻ con, giúp tên sinh viên 4 từ như *"Vũ Nguyễn Bình An"*, *"Huỳnh Nguyên Minh Tâm"* hiển thị 100% đầy đủ không bị dấu ba chấm.
+     * Cân chỉnh tỷ lệ bảng môn học đã đăng ký (`115,2*,55,120,65,125,95`), nới rộng cột Trạng thái lên 95px và giảm padding badge, huy hiệu *"Đang học"* hiển thị hoàn hảo không bị xén thành *"Dang h"*.
+   * **Bổ sung phòng thủ layout cho các màn hình khác:** Kích hoạt `CanUserResizeColumns="True"` và gán `MinWidth="180"` cho cột tên môn và họ tên trên `MonHocView`, `SinhVienView`, `BaoCaoView`.
+2. **Rà soát & kiểm chứng toàn diện logic nghiệp vụ:**
+   * Logic đăng ký học phần (`DangKyHocPhanService`): Tuân thủ nghiêm ngặt 5 bước kiểm tra (Học kỳ mở $\rightarrow$ Trùng LHP $\rightarrow$ Cảnh báo trùng môn $\rightarrow$ Sĩ số $\rightarrow$ Trùng lịch tiết/thứ $\rightarrow$ Giới hạn tín chỉ $\rightarrow$ Tái kích hoạt bản ghi nguyên tử).
+   * Logic tính học phí (`HocPhiService`): Khớp nối chính xác đơn giá lý thuyết / thực hành theo lô 500 bản ghi, tự động tính lại ngay sau khi đăng ký/hủy môn.
+   * Logic điều phối & chuyển nhóm lớp (`HocKyLopHocPhanViewModel`): Cơ chế transaction 2 bước có tự động rollback khôi phục lớp cũ nếu lớp đích không hợp lệ.
+3. **Kiểm thử tự động:** Toàn bộ 81/81 bài test tiếp tục vượt qua 100% (`Passed: 81, Failed: 0`).
+
+## 0A. Nhật Ký Ngày 12/11/2026 (Ca 2): Nâng Cấp Trải Nghiệm Giáo Viên & Cố Vấn Học Tập (Nâng Cấp 2)
+
+* **Thực hiện:** LIAM (LÂM) & NGUYÊN
+* **Nội dung trọng tâm:** Tập trung tối đa vào trải nghiệm thực tế hằng ngày của **Giáo viên / Giảng viên bộ môn và Cố vấn học tập** với 3 vũ khí chiến lược: **Sổ tay Điều phối Lớp học phần 1-Chạm (Teacher's Class Command Drawer)**, **Trợ lý Cố vấn Tự động Chọn lớp Không Trùng Lịch (Smart Auto-Fit Advisor)**, và **Ma trận Thời khóa biểu Tuần Trực quan (Visual Weekly Timetable Matrix)**.
+
+### Các kết quả đạt được
+1. **Ngăn Kéo Điều Phối Lớp Học Phần 1-Chạm (`Teacher's Class Command Drawer & Roster Studio` tại màn hình *Học kỳ / LHP*):**
+   * **Xem danh sách & cơ cấu lớp tức thì:** Giáo viên chỉ cần nhấp nút *"Điều phối SV"* trên bất kỳ dòng lớp học phần nào, ngăn kéo bên phải sẽ mở ngay danh sách sinh viên đang theo học trong lớp kèm thống kê cơ cấu lớp sinh hoạt (`CTK45A`, `CTK45B`...) và cảnh báo số lượng sinh viên còn nợ học phí trước kỳ thi.
+   * **Thêm nhanh 1 Sinh viên bằng Mã SV (`Quick Add`):** Giáo viên gõ trực tiếp `Mã SV` vào ô nhập nhanh và nhấn `Enter` (`+ Thêm SV`), hệ thống tự động kiểm tra trùng lịch và ghi danh tức thì mà không cần rời màn hình.
+   * **Chuyển Nhóm Lớp Học Phần 1-Chạm (`1-Click Section Transfer`):** Khi sinh viên xin đổi ca thực hành hoặc chuyển nhóm lớp cùng môn học, giáo viên chỉ cần chọn nhóm đích trên thanh công cụ và bấm nút **`⇄`** ngay trên dòng sinh viên đó. Hệ thống tự động hủy lớp cũ, ghi danh lớp mới; nếu lớp đích bị trùng lịch hoặc đầy chỗ, hệ thống **tự động khôi phục lại lớp cũ** bảo đảm an toàn tuyệt đối.
+   * **Xuất Phiếu Điểm Danh 5 Buổi Chuẩn Excel (`📋 Copy Điểm Danh`):** 1 cú nhấp chuột sao chép toàn bộ danh sách lớp định dạng bảng TSV (có sẵn cột *STT, Mã SV, Họ tên, Lớp SH, Khóa, Buổi 1..5, Ghi chú công nợ*) vào Clipboard để dán thẳng vào Excel/Google Sheets hoặc gửi Zalo.
+2. **Trợ Lý Cố Vấn Học Tập & Tự Động Chọn Lớp Không Trùng Lịch (`Smart Auto-Fit Schedule Assistant` tại màn hình *ĐKHP*):**
+   * **Phát hiện xung đột lịch học ngay trong ComboBox chọn lớp:** Khi giáo viên chọn một môn học cho sinh viên, từng lớp học phần trong danh sách xổ xuống được tự động đối chiếu với các môn sinh viên đang học và gắn nhãn trực tiếp: `✨ Gợi ý tối ưu (Ghép gọn buổi học trong ngày, không trùng ca)`, `✔ Hợp lệ`, hoặc `⚠ Trùng lịch (...)`.
+   * **Nút `"✨ Tự chọn lớp tối ưu"` & Nút `"⇄ Đổi nhóm"` 1-Chạm:** Giáo viên nhấn *"✨ Tự chọn lớp tối ưu"* để hệ thống tự động chọn nhóm lớp hoàn hảo nhất cho sinh viên, hoặc nhấn *"⇄ Đổi nhóm"* ngay trên bảng môn học đã đăng ký để tìm nhóm thay thế không trùng lịch.
+3. **Ma Trận Thời Khóa Biểu Tuần Trực Quan (`Interactive Visual Weekly Timetable Matrix`):**
+   * Đại tu toàn diện hộp thoại `ThoiKhoaBieuDialog`: Hiển thị 3 thẻ Bento thống kê (*Tổng số lớp, Tổng tín chỉ, Mật độ ca/tuần*), lưới 7 ngày từ Thứ 2 đến Chủ Nhật với thẻ ca học phân biệt `☀ Sáng` / `🌤 Chiều`, huy hiệu phòng học / `🌐 Trực tuyến`, và nút **`📋 Sao chép Lịch học gửi Sinh viên`** định dạng văn bản đẹp mắt để gửi ngay qua Zalo/Email.
+
+---
+
+## 0. Nhật Ký Ngày 12/11/2026 (Ca 1): Nâng Cấp Desktop Ứng Dụng Thực Tế (Nâng Cấp 1)
 
 * **Thực hiện:** LIAM (LÂM) & NGUYÊN
 * **Nội dung trọng tâm:** Hiện thực hóa nâng cấp thực tế cho Giảng viên / Giáo viên bộ môn theo Đề xuất 1 (Smart Import Studio & Clipboard Paste, Auto Mapping, Inline Editing) và Đề xuất 3 (Class Insights Dashboard, Sức chứa & Trợ lý Xung Đột Thời Khóa Biểu). Tạm thời hoãn Đề xuất 2 theo yêu cầu.

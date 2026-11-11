@@ -21,7 +21,7 @@ sidebar_position: 1
 | Thành Viên | Tài Khoản GitHub | Số Lượng Commits | Phạm Vi Đóng Góp Chính |
 |---|---|:---:|---|
 | **Nguyễn** (Trưởng nhóm) | `Nguyen06-CSE` | 29 commits | Khởi tạo dự án, Kiến trúc CSDL & EF Core, Chuyển đổi SQLite Local (WAL), Hệ thống sao lưu Git đa tầng (F11/F11b), Master-Detail Backup UI, Export/Import Zip, Sửa lỗi auth và deadlock khi thoát, Tối ưu hóa bộ nhớ đệm In-Memory. |
-| **Liam / Lâm** | `pliam1304` | 14 commits | Thiết kế App Shell & Navigation, Theme Liquid Glass, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu, Hoàn thiện Nhóm 1 (Excel 21 cột), Nhóm 2 (ĐKHP & Học phí), Nhóm 3 (Danh mục), Nhóm 4 (Báo cáo & Thống kê), Nhóm 5 (Hạ tầng dữ liệu & Đồng bộ an toàn), **Upgrade 1 (Smart Import Studio, Clipboard Parser & Trợ lý Class Insights)**. |
+| **Liam / Lâm** | `pliam1304` | 15 commits | Thiết kế App Shell & Navigation, Theme Liquid Glass, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu, Hoàn thiện Nhóm 1 (Excel 21 cột), Nhóm 2 (ĐKHP & Học phí), Nhóm 3 (Danh mục), Nhóm 4 (Báo cáo & Thống kê), Nhóm 5 (Hạ tầng dữ liệu & Đồng bộ an toàn), **Nâng cấp 1 (Studio Nhập liệu Thông minh, Phân tích Clipboard, Trợ lý Xung đột Lớp học & Spotlight Ctrl+K)**, **Nâng cấp 2 (Sổ tay Điều phối Lớp học phần 1-Chạm, Chuyển nhóm lớp an toàn, Trợ lý Xếp lịch Tối ưu & Ma trận Thời khóa biểu Tuần)**. |
 | **Ngô Quyền Linh** | `NgoQuyenLinh` | 1 commit | Soạn thảo bộ tài liệu đặc tả chi tiết từ Spec 011 đến Spec 016, hỗ trợ thiết kế luồng Import/Export. |
 
 ---
@@ -32,7 +32,8 @@ Dưới đây là trích xuất nguyên trạng lịch sử cam kết từ lện
 
 | Commit Hash | Ngày Ghi Nhận | Tác Giả | Thông Điệp Commit (Conventional Message) |
 |:---:|:---:|---|---|
-| `pending` | 2026-11-12 | pliam1304 | `feat(upgrade-1): smart import studio clipboard paste, auto column mapping and class insights conflict checker` |
+| `pending` | 2026-11-12 | pliam1304 | `feat(nang-cap-2): so tay dieu phoi lop hoc, chuyen nhom 1 cham, tro ly xep lich toi uu, ma tran tkb va phong thu layout chong co rut chu` |
+| `pending` | 2026-11-12 | pliam1304 | `feat(nang-cap-1): studio nhap lieu tu clipboard, tu dong nhan dien cot va tro ly phan tich suc chua xung dot lop hoc` |
 | `pending` | 2026-11-11 | pliam1304 | `feat(nhom-4-5): toi uu bao cao an pham, loai bo EnsureDeleted va dong bo du lieu cuc bo an toan` |
 | `2a2a631` | 2026-11-11 | pliam1304 | `feat(nhom-3): quan ly danh muc mon hoc, lop hoc phan, sinh vien va tai khoan` |
 | `8f82885` | 2026-11-11 | pliam1304 | `feat(nhom-3): quan ly danh muc mon hoc, lop hoc phan, sinh vien va tai khoan` |

@@ -22,7 +22,7 @@ sidebar_position: 2
 | Tệp Kiểm Thử (Test Suite) | Số Lượng Test | Trọng Tâm Kiểm Tra Nghiệp Vụ | Kết Quả |
 |---|:---:|---|:---:|
 | **`DangKyHocPhanServiceTests.cs`** | 19 | Kiểm tra tuần tự 6 bước: Chặn trùng LHP, cảnh báo trùng môn, xác nhận học lại, chặn quá sĩ số, chặn vượt tín chỉ tối đa, giao dịch nguyên tử `LuuDangKyAtomicAsync`, tái kích hoạt bản ghi cũ, hủy đăng ký và xử lý ngoại lệ. | [19/19 Passed] |
-| **`SmartImportServiceTests.cs`** | 8 | **[Upgrade 1]** Phân tích dữ liệu Clipboard TSV, tự động nhận diện header và ghép họ đệm + tên, suy luận khóa học từ MSSV, kiểm chứng sức chứa & tỷ lệ lấp đầy lớp, phát hiện xung đột trùng lịch/trùng môn, nạp sinh viên nguyên tử kèm tự tạo hồ sơ và kích hoạt tính toán lại học phí. | [8/8 Passed] |
+| **`SmartImportServiceTests.cs`** | 8 | **[Nâng Cấp 1]** Phân tích dữ liệu Clipboard TSV, tự động nhận diện header và ghép họ đệm + tên, suy luận khóa học từ MSSV, kiểm chứng sức chứa & tỷ lệ lấp đầy lớp, phát hiện xung đột trùng lịch/trùng môn, nạp sinh viên nguyên tử kèm tự tạo hồ sơ và kích hoạt tính toán lại học phí. | [8/8 Passed] |
 | **`HocPhiServiceTests.cs`** | 7 | Tính toán học phí kết hợp tín chỉ LT và TH, kiểm tra loại trừ học phần đã hủy, cập nhật trạng thái nợ/đã đóng, tính toán học phí theo lô và ghi nhận nộp tiền học phí. | [7/7 Passed] |
 | **`SinhVienMonHocServiceTests.cs`** | 8 | Thêm mới sinh viên, sắp xếp danh sách môn học theo bảng chữ cái tiếng Việt có dấu (`CultureInfo("vi-VN")`), chặn xóa môn học đang có lớp mở, cơ chế tái kích hoạt xóa mềm Soft Delete. | [8/8 Passed] |
 | **`BaoCaoServiceTests.cs`** | 6 | Lập danh sách sinh viên theo môn, danh sách thi kết thúc học phần, thống kê sĩ số theo kỳ, trích xuất phiếu kết quả ĐKHP và lọc phạm vi giảng dạy của giảng viên. | [6/6 Passed] |

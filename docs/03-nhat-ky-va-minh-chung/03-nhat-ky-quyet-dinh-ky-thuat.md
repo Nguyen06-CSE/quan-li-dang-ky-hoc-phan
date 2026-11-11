@@ -203,7 +203,7 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
 
 ---
 
-## ADR-23: Smart Import Studio, Phân Tích Clipboard & Trợ Lý Xung Đột Lớp Học Cho Giảng Viên (Upgrade 1)
+## ADR-23: Smart Import Studio, Phân Tích Clipboard & Trợ Lý Xung Đột Lớp Học Cho Giảng Viên (Nâng Cấp 1)
 * **Bối cảnh:**
   1. Trong quy trình đào tạo thực tế, giảng viên và giáo viên bộ môn thường xuyên tiếp nhận danh sách sinh viên đăng ký bổ sung, học ghép hoặc danh sách lớp từ các nguồn phi cấu trúc: bảng tính Excel đơn giản, Google Sheets, email hoặc nhóm chat Zalo.
   2. Việc bắt buộc người dùng phải gõ thủ công từng sinh viên trên màn hình ĐKHP hoặc phải định dạng lại thành file mẫu 21 cột phức tạp gây lãng phí thời gian và dễ nhầm lẫn.
@@ -229,3 +229,37 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
      * Phát sóng `DataImportedNotificationMessage` làm tươi đồng bộ toàn bộ ứng dụng.
      * Thêm phím tắt *"Nạp sinh viên vào lớp (Smart Import)"* trên từng dòng của bảng Lớp học phần tại màn hình *Học kỳ / LHP*.
 * **Lý do:** Rút ngắn thời gian nạp danh sách lớp của giảng viên từ 20 phút xuống dưới 5 giây, chủ động ngăn ngừa xung đột lịch học và quá tải sĩ số lớp học ngay từ khâu tiếp nhận sinh viên.
+
+---
+
+## ADR-24: Universal Command Palette (`Ctrl + K`), Sổ Tay Điều Phối Lớp Học 1-Chạm & Trợ Lý Xếp Lịch Smart Auto-Fit (Nâng Cấp 2)
+* **Bối cảnh:**
+  1. Để ứng dụng đạt đẳng cấp tương đương các phần mềm hàng đầu thị trường (như Raycast, Linear, Superhuman) và giải quyết triệt để các thao tác lặp đi lặp lại hằng ngày của Giảng viên / Cố vấn học tập, hệ thống cần giảm tối đa số lần nhấp chuột chuyển màn hình.
+  2. Tại màn hình *Học kỳ / LHP*, giảng viên trước đây chỉ xem được danh sách các lớp học phần mà không thể xem danh sách sinh viên bên trong lớp, không thể chuyển nhanh một sinh viên sang nhóm thực hành khác cùng môn học, và không thể lấy nhanh phiếu điểm danh.
+  3. Tại màn hình *Đăng ký học phần*, khi cố vấn học tập chọn lớp học phần cho sinh viên trong ComboBox, không có dấu hiệu trực quan cho biết nhóm lớp nào bị trùng lịch với thời khóa biểu hiện có của sinh viên hay nhóm nào ghép ca học tối ưu nhất.
+* **Quyết định:**
+  1. **Universal Command Palette & Live X-Ray Spotlight (`Ctrl + K` / `⌘K`):**
+     * Bắt sự kiện bàn phím ở tầng `RoutingStrategies.Tunnel` tại `MainWindow`, cho phép mở hộp thoại tìm kiếm và điều khiển toàn năng từ bất kỳ đâu.
+     * Thiết kế bố cục đôi (Split-View): Cột trái liệt kê kết quả đa thực thể & truy vấn thông minh (`!no-hoc-phi`, `!lop-sap-day`, `!chua-dang-ky`); cột phải hiển thị **Thẻ X-Ray trực tiếp (`< 2ms` trên SQLite WAL)** gồm tiến độ tín chỉ, công nợ học phí, danh sách môn đang học và các nút hành động Deep-Link.
+  2. **Ngăn Kéo Điều Phối Lớp Học Phần (`Teacher's Class Command Drawer` tại `HocKyLopHocPhanView`):**
+     * Tích hợp ngăn kéo trượt bên phải bảng Lớp học phần hiển thị danh sách sinh viên của lớp, cơ cấu lớp sinh hoạt, cảnh báo nợ học phí, ô thêm nhanh sinh viên bằng `Mã SV`, tính năng **Chuyển nhóm lớp học phần 1-chạm có cơ chế tự động khôi phục (Auto-Rollback)** nếu lớp đích trùng lịch/đầy chỗ, và nút sao chép Phiếu điểm danh 5 buổi chuẩn TSV vào Clipboard.
+  3. **Trợ Lý Cố Vấn Học Tập `Smart Auto-Fit` & Ma Trận Thời Khóa Biểu Tuần:**
+     * Tự động đối chiếu lịch học của mọi lớp học phần ứng viên với thời khóa biểu hiện tại của sinh viên ngay khi chọn môn học, gắn huy hiệu `✨ Gợi ý tối ưu`, `✔ Hợp lệ`, hoặc `⚠ Trùng lịch` ngay trong ComboBox kèm nút *"✨ Tự chọn lớp tối ưu"* và nút *"⇄ Đổi nhóm"* 1-chạm.
+     * Nâng cấp `ThoiKhoaBieuDialog` thành Ma trận 7 ngày phân tách Ca Sáng / Ca Chiều kèm nút sao chép lịch học định dạng đẹp để gửi cho sinh viên.
+* **Lý do:** Đưa trải nghiệm người dùng của giảng viên và cố vấn học tập lên chuẩn mực phần mềm SaaS hiện đại, rút gọn quy trình chuyển nhóm lớp hoặc tra cứu chéo từ 8 bước xuống chỉ còn 1 cú nhấp chuột.
+
+---
+
+## ADR-25: Kiến Trúc Phân Phối Độ Rộng Cột DataGrid Co Giãn Linh Hoạt & Phòng Thủ Tràn Văn Bản (Layout Hardening & Anti-Truncation)
+* **Bối cảnh:**
+  1. Trên màn hình *Học kỳ & Lớp học phần* (`HocKyLopHocPhanView`), tổng độ rộng các cột cố định trước đây lên tới `975px` (`Mã LHP` 150px, `Giảng viên` 160px, `Loại hình` 105px, `Lịch học` 150px, `Sĩ số` 130px, `Online` 80px, `Thao tác` 200px). Khi hiển thị trên màn hình laptop tiêu chuẩn (độ rộng khả dụng ~888px), cột *Môn học* (`Width="*"`) bị bóp nghẹt xuống gần 0px, khiến tiêu đề cột bị co thành `"M"` và tên môn học dài bị cắt cụt thành `"Tư t..."`, `"An ..."`, `"Blo..."`, `"Các..."`.
+  2. Tại màn hình *Đăng ký học phần* (`DangKyHocPhanView`), khung danh sách sinh viên bên trái cố định ở `340px` kèm lồng ghép nhiều lớp padding (56px) khiến họ tên 4 từ tiếng Việt như *"Vũ Nguyễn Bình An"*, *"Huỳnh Nguyên Minh Tâm"* bị co lại thành `"Vũ Nguyễn Bình ..."`. Đồng thời, cột *Trạng thái* ở bảng môn đã đăng ký chỉ có `90px` với padding badge `10,2` dẫn đến chữ *"Đang học"* bị xén thành `"Dang h"`.
+* **Quyết định:**
+  1. **Tái cân bằng ngân sách pixel trên `HocKyLopHocPhanView`:**
+     * Thu gọn các cột cố định về kích thước tối ưu: `Mã LHP` (130px), `Giảng viên` (135px), `Loại hình` (85px), `Lịch học` (135px), `Sĩ số` (120px), `Online` (68px), `Thao tác` (170px).
+     * Cấp phát trọng số `Width="2*"` và chốt chặn `MinWidth="200"` cho cột *Môn học*. Bật `CanUserResizeColumns="True"` và `HorizontalScrollBarVisibility="Auto"` trên DataGrid để bảo đảm cột môn học không bao giờ bị ép dưới 200px và tự động xuất hiện thanh cuộn ngang nếu cửa sổ bị thu nhỏ.
+  2. **Giải phóng không gian hiển thị trên `DangKyHocPhanView`:**
+     * Tăng độ rộng cột Master danh sách sinh viên từ `340px` lên `370px` (`MinWidth="300" MaxWidth="460"`), giảm padding từ 16px xuống 14px và thu gọn bề rộng nhãn Mã SV từ 82px về 74px, giải phóng hơn 50px cho cột họ tên hiển thị trọn vẹn 100%.
+     * Điều chỉnh tỷ lệ cột bảng môn học thành `115,2*,55,120,65,125,95`, tăng cột Trạng thái lên 95px và tinh chỉnh padding badge thành `8,2`, hiển thị đầy đủ nhãn *"Đang học"*.
+  3. **Thiết lập tiêu chuẩn phòng thủ layout cho toàn bộ hệ thống:** Áp dụng `MinWidth="180"` và `CanUserResizeColumns="True"` cho các bảng DataGrid tại `MonHocView`, `SinhVienView` và `BaoCaoView`.
+* **Lý do:** Đảm bảo tính thẩm mỹ, chuyên nghiệp và độ tin cậy hiển thị của giao diện trên mọi độ phân giải màn hình từ laptop nhỏ đến màn hình 4K.

@@ -3,68 +3,238 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+        xmlns:materialIcons="using:Material.Icons.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="1120" d:DesignHeight="680"
         x:Class="QuanLyDKHP.App.Views.ThoiKhoaBieuDialog"
         x:DataType="vm:ThoiKhoaBieuDialogViewModel"
-        Title="Thời khóa biểu"
-        Width="920" Height="620"
+        Title="Ma Trận Thời Khóa Biểu Tuần"
+        Width="1120" Height="680"
+        MinWidth="920" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BrushBackground}">
 
-    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="20">
-        <TextBlock Grid.Row="0" Text="THỜI KHÓA BIỂU" Classes="h2" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="22">
 
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Cols}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="8"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ThoiKhoaBieuCot">
-                        <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
-                                BorderThickness="1" Width="120" Padding="6" CornerRadius="8">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="{Binding TenThu}" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                <ItemsControl ItemsSource="{Binding CacLop}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:ThoiKhoaBieuOClass">
-                                            <Border Background="{DynamicResource BrushPrimaryLight}"
-                                                    BorderBrush="{DynamicResource BrushPrimary}" BorderThickness="1"
-                                                    CornerRadius="6" Padding="6" Margin="0,2">
-                                                <StackPanel Spacing="2">
-                                                    <TextBlock Text="{Binding HienThi}" TextWrapping="Wrap" FontSize="11"/>
-                                                    <TextBlock Text="{Binding TietHienThi}" FontSize="10" Opacity="0.7"/>
-                                                </StackPanel>
+        <!-- 1. HEADER & BENTO SUMMARY STRIP -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Border Width="42" Height="42" CornerRadius="12"
+                        Background="{DynamicResource BrushPrimaryLight}"
+                        BorderBrush="{DynamicResource BrushPrimary}"
+                        BorderThickness="1">
+                    <materialIcons:MaterialIcon Kind="CalendarRange" Width="22" Height="22"
+                                                Foreground="{DynamicResource BrushPrimaryDark}"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="MA TRẬN THỜI KHÓA BIỂU TRỰC QUAN"
+                               Classes="h2" FontWeight="Bold" />
+                    <TextBlock Text="Phân bổ lịch học theo Ca Sáng (Tiết 1–6) &amp; Ca Chiều (Tiết 7–12) từ Thứ 2 đến Chủ Nhật"
+                               Classes="caption" Foreground="{DynamicResource BrushTextSecondary}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 4 Huy hiệu Bento Thống kê nhanh -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
+                        BorderThickness="1" CornerRadius="10" Padding="12,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Tổng môn:" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding TongSoLop, StringFormat='{}{0} lớp'}"
+                                   FontFamily="Consolas, Menlo, Monospace"
+                                   FontWeight="Bold" FontSize="13"
+                                   Foreground="{DynamicResource BrushTextPrimary}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource BrushBadgeSuccessBg}" BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                        BorderThickness="1" CornerRadius="10" Padding="12,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Tín chỉ:" FontSize="12" Foreground="{DynamicResource BrushBadgeSuccessFg}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding TongTinChi, StringFormat='{}{0} TC'}"
+                                   FontFamily="Consolas, Menlo, Monospace"
+                                   FontWeight="Bold" FontSize="13"
+                                   Foreground="{DynamicResource BrushBadgeSuccessFg}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource BrushBadgeInfoBg}" BorderBrush="{DynamicResource BrushBadgeInfoBorder}"
+                        BorderThickness="1" CornerRadius="10" Padding="12,6">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Mật độ:" FontSize="12" Foreground="{DynamicResource BrushBadgeInfoFg}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding TongBuoiHocTuan, StringFormat='{}{0} ca/tuần'}"
+                                   FontFamily="Consolas, Menlo, Monospace"
+                                   FontWeight="Bold" FontSize="13"
+                                   Foreground="{DynamicResource BrushBadgeInfoFg}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- 2. LƯỚI MA TRẬN 7 NGÀY TRONG TUẦN -->
+        <Border Grid.Row="1"
+                Classes="table-container"
+                Padding="12">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Cols}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="10" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ThoiKhoaBieuCot">
+                            <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1"
+                                    Width="168"
+                                    CornerRadius="12"
+                                    Padding="10">
+                                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                    <!-- Tiêu đề Thứ trong tuần -->
+                                    <Border Grid.Row="0"
+                                            Background="{DynamicResource BrushBackground}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="10,6">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding TenThu}"
+                                                       FontWeight="Bold" FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                            <Border Grid.Column="1"
+                                                    Background="{DynamicResource BrushPrimaryLight}"
+                                                    CornerRadius="6" Padding="6,1"
+                                                    IsVisible="{Binding CoLopTrongNgay}">
+                                                <TextBlock Text="{Binding SoCaTrongNgay, StringFormat='{}{0} ca'}"
+                                                           FontFamily="Consolas, Menlo, Monospace"
+                                                           FontSize="10.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushPrimaryDark}" />
                                             </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                                        </Grid>
+                                    </Border>
 
-        <Border Grid.Row="2" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
-                BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,10,0,0"
+                                    <!-- Danh sách các thẻ ca học trong ngày -->
+                                    <StackPanel Grid.Row="1" Spacing="8">
+                                        <ItemsControl ItemsSource="{Binding CacLop}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ThoiKhoaBieuOClass">
+                                                    <Border Background="{DynamicResource BrushBackground}"
+                                                            BorderBrush="{DynamicResource BrushPrimary}"
+                                                            BorderThickness="1.5"
+                                                            CornerRadius="10"
+                                                            Padding="10,8"
+                                                            Margin="0,0,0,8"
+                                                            BoxShadow="0 4 12 0 #0D000000">
+                                                        <StackPanel Spacing="5">
+                                                            <!-- Hàng Badge Tiết học & Ca học -->
+                                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                                <Border Grid.Column="0"
+                                                                        Background="{DynamicResource BrushPrimaryLight}"
+                                                                        CornerRadius="5" Padding="6,2">
+                                                                    <TextBlock Text="{Binding TietHienThi}"
+                                                                               FontFamily="Consolas, Menlo, Monospace"
+                                                                               FontSize="10.5" FontWeight="Bold"
+                                                                               Foreground="{DynamicResource BrushPrimaryDark}" />
+                                                                </Border>
+                                                                <TextBlock Grid.Column="2"
+                                                                           Text="{Binding CaHocBadge}"
+                                                                           FontSize="10.5" FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                                           VerticalAlignment="Center" />
+                                                            </Grid>
+
+                                                            <!-- Tên môn học -->
+                                                            <TextBlock Text="{Binding TenMon}"
+                                                                       FontWeight="Bold"
+                                                                       FontSize="12.5"
+                                                                       TextWrapping="Wrap"
+                                                                       Foreground="{DynamicResource BrushTextPrimary}" />
+
+                                                            <!-- Mã LHP Monospace -->
+                                                            <TextBlock Text="{Binding MaLHP}"
+                                                                       FontFamily="Consolas, Menlo, Monospace"
+                                                                       FontSize="11" FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource BrushTextSecondary}" />
+
+                                                            <!-- Phòng học / Trực tuyến -->
+                                                            <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                                    BorderBrush="{DynamicResource BrushBorder}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="6" Padding="6,3">
+                                                                <TextBlock Text="{Binding PhongBadge}"
+                                                                           FontSize="11" FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource BrushPrimaryDark}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Trạng thái Ngày trống lịch -->
+                                        <Border BorderBrush="{DynamicResource BrushBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="10,24"
+                                                Opacity="0.55"
+                                                IsVisible="{Binding !CoLopTrongNgay}">
+                                            <TextBlock Text="Trống lịch"
+                                                       Classes="caption"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 3. CẢNH BÁO CÁC LỚP CHƯA XẾP LỊCH CỐ ĐỊNH -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource BrushBadgeWarningBg}"
+                BorderBrush="{DynamicResource BrushBadgeWarningBorder}"
+                BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,12,0,0"
                 IsVisible="{Binding CoLopChuaXepLich}">
             <StackPanel Spacing="4">
-                <TextBlock Text="Lớp chưa xếp lịch (không hiển thị trên lưới):" FontWeight="Bold"/>
+                <TextBlock Text="⚠ Các lớp học phần chưa được phân công tiết/phòng cố định:"
+                           FontWeight="Bold" FontSize="12.5"
+                           Foreground="{DynamicResource BrushBadgeWarningFg}" />
                 <ItemsControl ItemsSource="{Binding DsChuaXepLich}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="x:String">
-                            <TextBlock Text="{Binding}" Opacity="0.8" FontSize="12"/>
+                            <TextBlock Text="{Binding}" FontSize="12"
+                                       Foreground="{DynamicResource BrushBadgeWarningFg}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
         </Border>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button Content="Đóng" Command="{Binding CloseCommand}" Classes="btn-secondary"/>
-        </StackPanel>
+        <!-- 4. CHÂN TRANG: SAO CHÉP LỊCH HỌC GỬI SINH VIÊN & NÚT ĐÓNG -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,14,0,0" VerticalAlignment="Center">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding CopyStatusToast}"
+                       FontWeight="Bold" FontSize="12.5"
+                       Foreground="{DynamicResource BrushPrimaryDark}"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding CopyStatusToast, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                <Button Command="{Binding SaoChepLichHocCommand}"
+                        Classes="btn-secondary"
+                        Padding="14,8"
+                        ToolTip.Tip="Sao chép toàn bộ lịch học tuần dạng văn bản đẹp để gửi Zalo/Email cho sinh viên">
+                    <TextBlock Text="📋 Sao chép Lịch học gửi Sinh viên" FontWeight="SemiBold" />
+                </Button>
+                <Button Content="Đóng (Esc)"
+                        Command="{Binding CloseCommand}"
+                        Classes="btn-primary"
+                        Padding="18,8" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

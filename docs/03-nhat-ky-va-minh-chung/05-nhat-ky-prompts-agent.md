@@ -216,7 +216,7 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
 
 ---
 
-### Phiên 18: Nâng Cấp Thực Tế Cho Giảng Viên / Giáo Viên - Smart Import Studio & Class Insights (Upgrade 1)
+### Phiên 18: Nâng Cấp Thực Tế Cho Giảng Viên / Giáo Viên - Smart Import Studio & Class Insights (Nâng Cấp 1)
 * **Thời gian:** 12/11/2026 00:15
 * **Tài liệu tham chiếu:** `docs/01-dac-ta-ung-dung/chuc-nang/F09-import-excel-du-lieu-lon.md`, `ADR-23`, `SmartImportDtos.cs`
 * **Prompt chính đã thực hiện:**
@@ -230,6 +230,34 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
   * Viết mới bộ kiểm thử `tests/QuanLyDKHP.Tests/SmartImportServiceTests.cs` (8 bài test mới), nâng tổng số bài kiểm thử tự động của dự án lên **81/81 passed (100%)**.
   * Lột xác toàn diện giao diện (Visual Makeover) nhưng bảo toàn 100% bố cục công cụ: chuẩn hóa DataGrid không viền dọc, đường chia siêu mảnh, hàng 46px thoáng đãng, thẻ bao bọc `table-container` bo góc 12px bóng đổ mềm, thanh lọc Segmented Pill chuẩn Apple, huy hiệu Soft Pill Badges pastel, Header tích hợp phím tắt `Enter ↵` và chấm online `🟢`.
   * Cập nhật đầy đủ tài liệu Docusaurus: `F09`, `ADR-23`, Báo cáo Unit Test, Commit History, Daily Log và Prompts log.
+
+---
+
+### Phiên 19: Universal Command Palette (`Ctrl + K`), Sổ Tay Điều Phối Lớp Học 1-Chạm & Trợ Lý Cố Vấn Smart Auto-Fit (Nâng Cấp 2)
+* **Thời gian:** 12/11/2026 01:40
+* **Tài liệu tham chiếu:** `ADR-24`, `MainWindowViewModel.cs`, `HocKyLopHocPhanViewModel.cs`, `DangKyHocPhanViewModel.cs`, `ThoiKhoaBieuDialogViewModel.cs`
+* **Prompt chính đã thực hiện:**
+  > *"Tôi cần 1 ý tưởng để khiến app này đủ để so sánh với các app nổi bên ngoài thị trường... Tiếp theo tới phần upgrade2, tôi cần đánh mạnh về trải nghiệm của người dùng về tính năng, làm sao mà có thể khiến giáo viên hài lòng nhất."*
+* **Kết quả đạt được:**
+  * Xây dựng **Universal Command Palette & Live X-Ray Spotlight (`Ctrl + K` / `⌘K`)** chuẩn Raycast Pro / Linear với cơ chế soi chiếu X-Ray hồ sơ sinh viên, công nợ học phí, sức chứa lớp học phần và bộ lọc truy vấn thông minh (`⚡ SV nợ học phí`, `🔥 Lớp sắp đầy`, `⚠️ SV 0 tín chỉ`).
+  * Triển khai **Ngăn kéo Điều phối Lớp học phần (`Teacher's Class Command Drawer`)** ngay tại màn hình *Học kỳ / LHP*: xem danh sách sinh viên trong lớp kèm cảnh báo nợ học phí, thêm nhanh sinh viên bằng Mã SV, **chuyển nhóm lớp học phần 1-chạm (`⇄`)** có tự động khôi phục nếu lớp đích trùng lịch, và sao chép Phiếu điểm danh 5 buổi chuẩn Excel vào Clipboard.
+  * Nâng cấp **Trợ lý Cố vấn Học tập `Smart Auto-Fit`** tại màn hình *Đăng ký học phần*: tự động phát hiện trùng lịch và chấm điểm lớp học phần tối ưu ngay trong ComboBox, bổ sung nút *"✨ Tự chọn lớp tối ưu"* và nút *"⇄ Đổi nhóm"* trực tiếp trên từng dòng môn học.
+  * Đại tu **Ma trận Thời khóa biểu Tuần (`ThoiKhoaBieuDialog`)** với thống kê Bento, phân biệt Ca Sáng / Ca Chiều, huy hiệu phòng học / Online và nút sao chép lịch học gửi nhanh cho sinh viên.
+
+---
+
+### Phiên 20: Tinh Chỉnh Layout Chống Co Rút Chữ & Rà Soát Toàn Diện Logic Hệ Thống
+* **Thời gian:** 12/11/2026 02:05
+* **Tài liệu tham chiếu:** `ADR-25`, `HocKyLopHocPhanView.axaml`, `DangKyHocPhanView.axaml`, `DangKyHocPhanService.cs`, `HocPhiService.cs`
+* **Prompt chính đã thực hiện:**
+  > *"Bạn hãy chỉnh sơ 1 xíu về các giao diện như khúc môn học 'tư t....' rõ hơn và tương tự vậy, đồng thời check lại các logic của bài làm xem đã ok chưa; kèm 2 ảnh chụp màn hình hiển thị tên môn học và họ tên sinh viên bị co rút chữ."*
+* **Kết quả đạt được:**
+  * Khắc phục triệt để hiện tượng co rút cột & cắt chữ trên `HocKyLopHocPhanView`: Cân đối lại các cột cố định, cấp `Width="2*"` và `MinWidth="200"` cho cột *Môn học*, bật `CanUserResizeColumns="True"` và `HorizontalScrollBarVisibility="Auto"`. Tên các môn dài như *"Tư tưởng Hồ Chí Minh"*, *"An toàn và bảo mật hệ thống thông tin"* hiển thị trọn vẹn, không còn bị ép thành *"Tư t..."*, *"An ..."*.
+  * Khắc phục co rút họ tên sinh viên trên `DangKyHocPhanView`: Tăng độ rộng cột danh sách sinh viên bên trái lên `370px`, thu nhỏ nhãn MSSV xuống `74px` và tinh gọn padding, giúp họ tên 4 từ như *"Vũ Nguyễn Bình An"*, *"Huỳnh Nguyên Minh Tâm"* hiển thị 100% đầy đủ. Nới rộng cột Trạng thái lên `95px`, hiển thị trọn vẹn huy hiệu *"Đang học"*.
+  * Bổ sung `MinWidth="180"` và `CanUserResizeColumns="True"` trên các DataGrid khác (`MonHocView`, `SinhVienView`, `BaoCaoView`).
+  * Rà soát độc lập và kiểm chứng toàn bộ các khối logic nghiệp vụ: 5 bước kiểm tra đăng ký học phần, tính học phí theo lô, điều phối nhóm lớp kèm rollback an toàn, soft-delete phục hồi dữ liệu.
+  * Toàn bộ 81/81 bài test tự động vượt qua 100% (`Passed: 81, Failed: 0`).
+  * Cập nhật đầy đủ tài liệu Docusaurus: `ADR-25`, Daily Log, Commit History và Prompts log. Tên thành viên phụ trách được ghi nhận chuẩn xác là **Liam / Lâm**.
 
 ---
 

@@ -20,7 +20,7 @@ Nhằm giải quyết trọn vẹn bài toán thực tế này, hệ thống cun
 
 ---
 
-## 2. Phân Hệ 1: Smart Import Studio & Trợ Lý Xung Đột Lớp Học (Upgrade 1)
+## 2. Phân Hệ 1: Smart Import Studio & Trợ Lý Xung Đột Lớp Học (Nâng Cấp 1)
 
 ```mermaid
 flowchart TD

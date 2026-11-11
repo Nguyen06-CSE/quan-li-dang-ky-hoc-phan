@@ -158,7 +158,26 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient,
     private MonHoc? _monDangChon;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SmartAdvisorHintText))]
+    [NotifyPropertyChangedFor(nameof(IsAdvisorWarning))]
+    [NotifyPropertyChangedFor(nameof(HasSmartAdvisorHint))]
     private LopHocPhanDisplayDto? _lHPDangChon;
+
+    public bool IsAdvisorWarning => LHPDangChon?.IsConflictSchedule == true;
+    public bool HasSmartAdvisorHint => LHPDangChon != null;
+
+    public string SmartAdvisorHintText
+    {
+        get
+        {
+            if (LHPDangChon == null) return string.Empty;
+            if (LHPDangChon.IsConflictSchedule)
+                return $"⚠ Cảnh báo xung đột: Lớp {LHPDangChon.MaLHP} ({LHPDangChon.LichHocHienThi}) bị {LHPDangChon.ConflictReason}. Nhấn '✨ Tự chọn lớp tối ưu' để đổi nhóm!";
+            if (LHPDangChon.IsRecommendedFit)
+                return $"✨ Trợ lý Cố vấn: Lớp {LHPDangChon.MaLHP} ({LHPDangChon.LichHocHienThi}) là lựa chọn tối ưu ({LHPDangChon.RecommendationReason}, sĩ số {LHPDangChon.SiSoHienThi}).";
+            return $"✔ Hợp lệ: Lớp {LHPDangChon.MaLHP} ({LHPDangChon.LichHocHienThi}) hoàn toàn trống lịch (Sĩ số {LHPDangChon.SiSoHienThi}).";
+        }
+    }
 
     [ObservableProperty]
     private string? _statusMessage;
@@ -982,6 +1001,7 @@ public DangKyHocPhanViewModel(
             var maLhpList = lhps.Select(l => l.MaLHP).ToList();
             var siSoDict = await _localReadService.DemSiSoDangKyBulkLocalAsync(maLhpList);
 
+            var activeEnrollments = DsDaDangKy.Where(d => d.IsDangHoc && d.MaMon != mon.MaMon).ToList();
             var tempList = new List<LopHocPhanDisplayDto>();
 
             foreach (var lhp in lhps)
@@ -996,6 +1016,28 @@ public DangKyHocPhanViewModel(
                     ? $"{name} ({lhp.MaGV})"
                     : "Chưa phân công";
 
+                bool isConflict = false;
+                string? conflictReason = null;
+
+                if (lhp.Thu is int thu && lhp.TietBatDau is int tietBd && lhp.SoTiet is int soTiet)
+                {
+                    int tietKt = tietBd + soTiet - 1;
+                    foreach (var existing in activeEnrollments)
+                    {
+                        var exLhp = existing.Entity?.LopHocPhan;
+                        if (exLhp?.Thu == thu && exLhp.TietBatDau is int exBd && exLhp.SoTiet is int exSoTiet)
+                        {
+                            int exKt = exBd + exSoTiet - 1;
+                            if (tietBd <= exKt && exBd <= tietKt)
+                            {
+                                isConflict = true;
+                                conflictReason = $"trùng lịch {existing.MaLHP} ({existing.TenMon})";
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 tempList.Add(new LopHocPhanDisplayDto
                 {
                     MaLHP = lhp.MaLHP,
@@ -1007,12 +1049,41 @@ public DangKyHocPhanViewModel(
                     SiSoToiDa = lhp.SiSoToiDa,
                     SiSoDangKy = siSoRealtime,
                     GiangDayOnline = lhp.GiangDayOnline,
-                    Entity = lhp
+                    Entity = lhp,
+                    IsConflictSchedule = isConflict,
+                    ConflictReason = conflictReason
                 });
             }
 
-            DsLHPTheoMon = new ObservableCollection<LopHocPhanDisplayDto>(tempList);
-            LHPDangChon = DsLHPTheoMon.FirstOrDefault();
+            // Chấm điểm Smart Auto-Fit cho các lớp không bị trùng lịch
+            var validCandidates = tempList.Where(x => !x.IsConflictSchedule).ToList();
+            if (validCandidates.Count > 0)
+            {
+                var existingDays = activeEnrollments
+                    .Select(e => e.Entity?.LopHocPhan?.Thu)
+                    .Where(t => t.HasValue)
+                    .Select(t => t!.Value)
+                    .ToHashSet();
+
+                var bestCandidate = validCandidates
+                    .OrderByDescending(c => c.Entity?.Thu is int d && existingDays.Contains(d) ? 1 : 0)
+                    .ThenBy(c => c.TyLeLapDay)
+                    .First();
+
+                bestCandidate.IsRecommendedFit = true;
+                bestCandidate.RecommendationReason = bestCandidate.Entity?.Thu is int day && existingDays.Contains(day)
+                    ? "Ghép gọn buổi học trong ngày, không trùng ca"
+                    : "Trống lịch hoàn toàn, chỗ ngồi thoáng";
+            }
+
+            var orderedList = tempList
+                .OrderByDescending(x => x.IsRecommendedFit)
+                .ThenBy(x => x.IsConflictSchedule)
+                .ThenBy(x => x.MaLHP)
+                .ToList();
+
+            DsLHPTheoMon = new ObservableCollection<LopHocPhanDisplayDto>(orderedList);
+            LHPDangChon = DsLHPTheoMon.FirstOrDefault(x => !x.IsConflictSchedule) ?? DsLHPTheoMon.FirstOrDefault();
         }
         catch (Exception ex)
         {
@@ -1103,6 +1174,63 @@ public DangKyHocPhanViewModel(
         catch (Exception ex)
         {
             ShowMessage(ex.Message, true);
+        }
+    }
+
+    // ================== NÂNG CẤP 2: TRỢ LÝ CỐ VẤN HỌC TẬP & TỰ ĐỘNG CHỌN LỚP TỐI ƯU ==================
+
+    [RelayCommand]
+    public async Task GoiYTuDongChonLhpAsync()
+    {
+        if (SinhVienDangChon == null || HocKyHienHanh == null) return;
+
+        // Nếu giáo viên chưa chọn môn học, tự động tìm một môn học sinh viên chưa học trong kỳ này
+        if (MonDangChon == null)
+        {
+            var registeredMonSet = DsDaDangKy.Where(d => d.IsDangHoc).Select(d => d.MaMon).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var nextMon = DsMonHoc.FirstOrDefault(m => !registeredMonSet.Contains(m.MaMon));
+            if (nextMon != null)
+            {
+                MonDangChon = nextMon;
+                await LoadLHPTheoMonAsync(nextMon);
+            }
+        }
+
+        var optimal = DsLHPTheoMon.FirstOrDefault(x => x.IsRecommendedFit)
+                      ?? DsLHPTheoMon.FirstOrDefault(x => !x.IsConflictSchedule);
+
+        if (optimal != null)
+        {
+            LHPDangChon = optimal;
+            ShowMessage($"✨ Trợ lý Cố vấn đã chọn lớp tối ưu: {optimal.MaLHP} ({optimal.LichHocHienThi}) - Không trùng lịch!", false);
+        }
+        else
+        {
+            ShowMessage("⚠ Tất cả các lớp mở của môn học này hiện đều bị trùng lịch với thời khóa biểu của sinh viên.", true);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ChonMonDeDoiNhomAsync(DangKyHocPhanDisplayDto? dto)
+    {
+        if (dto == null) return;
+        var targetMon = DsMonHoc.FirstOrDefault(m => string.Equals(m.MaMon, dto.MaMon, StringComparison.OrdinalIgnoreCase));
+        if (targetMon == null) return;
+
+        MonDangChon = targetMon;
+        await LoadLHPTheoMonAsync(targetMon);
+
+        var altSection = DsLHPTheoMon.FirstOrDefault(x => x.MaLHP != dto.MaLHP && !x.IsConflictSchedule)
+                         ?? DsLHPTheoMon.FirstOrDefault(x => x.MaLHP != dto.MaLHP);
+
+        if (altSection != null)
+        {
+            LHPDangChon = altSection;
+            ShowMessage($"⇄ Đã chọn sẵn nhóm thay thế {altSection.MaLHP} ({altSection.LichHocHienThi}). Nhấn '+ Đăng ký' để chuyển sang nhóm này!", false);
+        }
+        else
+        {
+            ShowMessage($"Môn {dto.TenMon} hiện không còn nhóm lớp học phần nào khác đang mở.", true);
         }
     }
     [RelayCommand]

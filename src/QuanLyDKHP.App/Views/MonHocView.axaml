@@ -178,7 +178,8 @@
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       SelectionMode="Single"
-                      RowHeight="46">
+                      RowHeight="46"
+                      CanUserResizeColumns="True">
 
             <!-- ContextMenu cấp DataGrid: dùng chung an toàn tuyệt đối, tránh lỗi "Control already has a visual parent" -->
             <DataGrid.ContextMenu>
@@ -239,7 +240,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Tên môn -->
-                <DataGridTextColumn Header="Tên môn" Binding="{Binding TenMon}" Width="*" />
+                <DataGridTextColumn Header="Tên môn" Binding="{Binding TenMon}" Width="*" MinWidth="180" />
 
                 <!-- Các cột tín chỉ -->
                 <DataGridTemplateColumn Header="TC LT" Width="85">

@@ -35,6 +35,24 @@ public class LopHocPhanDisplayDto
     public bool GiangDayOnline { get; set; }
     public LopHocPhan Entity { get; set; } = null!;
 
+    // ===== Nâng Cấp 2: Trợ Lý Cố Vấn Học Tập & Nhận Diện Xung Đột Lịch Học =====
+    public bool IsConflictSchedule { get; set; }
+    public string? ConflictReason { get; set; }
+    public bool IsRecommendedFit { get; set; }
+    public string? RecommendationReason { get; set; }
+
+    public string SmartAdvisorBadgeText
+    {
+        get
+        {
+            if (IsConflictSchedule)
+                return $"⚠ Trùng lịch ({ConflictReason})";
+            if (IsRecommendedFit)
+                return string.IsNullOrWhiteSpace(RecommendationReason) ? "✨ Gợi ý tối ưu" : $"✨ {RecommendationReason}";
+            return "✔ Hợp lệ";
+        }
+    }
+
     private static readonly string[] TenThu =
         { "", "", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN" };
 
@@ -49,4 +67,20 @@ public class LopHocPhanDisplayDto
             return $"{TenThu[thu]}, tiết {Entity.TietBatDau}-{Entity.TietBatDau + Entity.SoTiet - 1}{phong}";
         }
     }
+}
+
+/// <summary>
+/// DTO biểu diễn một sinh viên trong Ngăn kéo Điều phối Lớp học phần (Sổ Tay Điều Phối Lớp - Nâng Cấp 2).
+/// </summary>
+public class ClassRosterStudentDto
+{
+    public int STT { get; set; }
+    public string MaSV { get; set; } = string.Empty;
+    public string HoTen { get; set; } = string.Empty;
+    public string LopSinhHoat { get; set; } = "--";
+    public string KhoaHoc { get; set; } = "--";
+    public DateTime NgayDK { get; set; }
+    public decimal ConNoHocPhi { get; set; }
+    public bool IsConNo => ConNoHocPhi > 0;
+    public string TrangThaiHocPhiText => ConNoHocPhi > 0 ? $"Nợ {ConNoHocPhi:N0} đ" : "Đủ HP";
 }
