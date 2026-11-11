@@ -2,15 +2,18 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Enums;
 using QuanLyDKHP.Core.Interfaces;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class DashboardViewModel : ObservableObject
+public partial class DashboardViewModel : ObservableObject, IRecipient<DataImportedNotificationMessage>
 {
     private readonly IBaoCaoService _baoCaoService;
     private readonly ICurrentUserService _currentUserService;
@@ -62,7 +65,17 @@ public partial class DashboardViewModel : ObservableObject
         IsGiangVien = currentUser != null && currentUser.Role == UserRole.GiangVien;
         IsQuanLy = !IsGiangVien;
 
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
         _ = LoadDataAsync();
+    }
+
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            await LoadDataAsync();
+        });
     }
 
     public DashboardViewModel()

@@ -59,7 +59,9 @@ public enum RegistrationStatusFilter
 /// - Cột phải (Detail): 4 trạng thái (None, Compare, View, Edit).
 /// - Giao tiếp liên module: Nhận NavigateToRegistrationMessage để tự động chuyển trạng thái và load sinh viên.
 /// </summary>
-public partial class DangKyHocPhanViewModel : ObservableRecipient, IRecipient<NavigateToRegistrationMessage>
+public partial class DangKyHocPhanViewModel : ObservableRecipient, 
+    IRecipient<NavigateToRegistrationMessage>,
+    IRecipient<DataImportedNotificationMessage>
 {
     private readonly IDangKyHocPhanService _dangKyService;
     private readonly IHocKyService _hocKyService;
@@ -321,6 +323,18 @@ public DangKyHocPhanViewModel(
         }
 
         _ = ChonSinhVienTheoMaAsync(message.MaSV);
+    }
+
+    /// <summary>
+    /// Nhận message thông báo đã import dữ liệu Excel thành công:
+    /// Tự động làm mới dữ liệu và reload cache tức thì.
+    /// </summary>
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            await RefreshDataAsync();
+        });
     }
 
     /// <summary>

@@ -36,7 +36,10 @@ public partial class MenuItemViewModel : ObservableObject
 /// ViewModel chính cho MainWindow — quản lý điều hướng và lọc menu theo quyền.
 /// Dùng ViewModel-first navigation: thay đổi CurrentViewModel → ContentControl hiển thị View tương ứng.
 /// </summary>
-public partial class MainWindowViewModel : ObservableObject, IRecipient<NavigateToRegistrationMessage>
+public partial class MainWindowViewModel : ObservableObject, 
+    IRecipient<NavigateToRegistrationMessage>,
+    IRecipient<NavigateToImportExcelMessage>,
+    IRecipient<DataImportedNotificationMessage>
 {
     private readonly ICurrentUserService _currentUserService;
 
@@ -220,6 +223,32 @@ public partial class MainWindowViewModel : ObservableObject, IRecipient<Navigate
             {
                 _ = dkVm.ChonSinhVienTheoMaAsync(message.MaSV);
             }
+        }
+    }
+
+    /// <summary>
+    /// Xử lý message điều hướng sang tab Import Excel.
+    /// </summary>
+    public void Receive(NavigateToImportExcelMessage message)
+    {
+        var importMenu = FilteredMenuItems.FirstOrDefault(m => m.ChucNang == ChucNang.ImportExcel);
+        if (importMenu != null)
+        {
+            SelectedMenuItem = importMenu;
+        }
+    }
+
+    /// <summary>
+    /// Xử lý message thông báo import Excel thành công:
+    /// Xóa cache các ViewModel khác để khi chuyển tab sẽ tải lại dữ liệu mới nhất từ CSDL.
+    /// </summary>
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        var currentImportVm = _viewModelCache.TryGetValue(ChucNang.ImportExcel, out var vm) ? vm : null;
+        _viewModelCache.Clear();
+        if (currentImportVm != null)
+        {
+            _viewModelCache[ChucNang.ImportExcel] = currentImportVm;
         }
     }
 

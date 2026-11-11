@@ -96,7 +96,29 @@ public partial class SinhVienView : UserControl
             vm.ShowEditDialogFunc = ShowEditDialogAsync;
             vm.ShowConfirmDeleteFunc = ShowConfirmDeleteAsync;
             vm.SaveFileDialogFunc = ShowSaveFileDialogAsync;
+            vm.OpenFileDialogFunc = ShowOpenFileDialogAsync;
         }
+    }
+
+    private async Task<string?> ShowOpenFileDialogAsync()
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return null;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Chọn file Excel dữ liệu sinh viên / ĐKHP",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType("Excel Files (*.xlsx)")
+                {
+                    Patterns = new[] { "*.xlsx" }
+                }
+            }
+        });
+
+        return files.Count > 0 ? files[0].Path.LocalPath : null;
     }
 
 

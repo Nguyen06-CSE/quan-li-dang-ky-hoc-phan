@@ -8,13 +8,15 @@ using System.Threading.Tasks;
 using System.Timers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class BaoCaoViewModel : ObservableObject
+public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImportedNotificationMessage>
 {
     private readonly IBaoCaoService _baoCaoService;
     private readonly IHocKyService _hocKyService;
@@ -25,6 +27,7 @@ public partial class BaoCaoViewModel : ObservableObject
     private readonly IExcelExportService _excelExportService;
     private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _svSearchDebounceTimer;
+    private System.Threading.CancellationTokenSource? _loadCts;
 
     // --- DỮ LIỆU DÙNG CHUNG ---
     public ObservableCollection<HocKy> DsHocKy { get; } = new();
@@ -111,7 +114,17 @@ public partial class BaoCaoViewModel : ObservableObject
         _svSearchDebounceTimer = new Timer(300) { AutoReset = false };
         _svSearchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYTab4Async);
 
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
         _ = InitDataAsync();
+    }
+
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+        {
+            await InitDataAsync();
+        });
     }
 
     public BaoCaoViewModel()
@@ -178,6 +191,9 @@ public partial class BaoCaoViewModel : ObservableObject
 
     partial void OnHocKyDangChonChanged(HocKy? value)
     {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = new System.Threading.CancellationTokenSource();
         _ = LoadCurrentTabDataAsync();
     }
 
@@ -236,12 +252,17 @@ public partial class BaoCaoViewModel : ObservableObject
     [RelayCommand]
     private async Task Tab1XuatExcelAsync()
     {
-        if (Tab1DsSinhVien.Count == 0)
+        if (IsLoading) return;
+        var snapshot = Tab1DsSinhVien.ToList();
+        if (snapshot.Count == 0)
         {
             ShowMessage("Không có dữ liệu để xuất Excel.", true);
             return;
         }
         if (SaveFileDialogFunc == null) return;
+
+        var hkSnapshot = HocKyDangChon;
+        var monSnapshot = Tab1MonDangChon;
 
         try
         {
@@ -257,11 +278,11 @@ public partial class BaoCaoViewModel : ObservableObject
             };
 
             byte[] excelBytes = await _excelExportService.XuatExcelAsync(
-                $"DSSV_{Tab1MonDangChon?.MaMon}",
-                Tab1DsSinhVien,
+                $"DSSV_{monSnapshot?.MaMon}",
+                snapshot,
                 cotMap);
 
-            string fileName = $"DSSV_{Tab1MonDangChon?.MaMon}_{HocKyDangChon?.MaHocKy}.xlsx";
+            string fileName = $"DSSV_{monSnapshot?.MaMon}_{hkSnapshot?.MaHocKy}.xlsx";
             string? saved = await SaveFileDialogFunc(fileName, "xlsx", excelBytes);
             if (!string.IsNullOrEmpty(saved))
             {
@@ -342,12 +363,18 @@ public partial class BaoCaoViewModel : ObservableObject
     [RelayCommand]
     private async Task Tab2XuatExcelAsync()
     {
-        if (Tab2DsThi.Count == 0)
+        if (IsLoading) return;
+        var snapshot = Tab2DsThi.ToList();
+        if (snapshot.Count == 0)
         {
             ShowMessage("Không có dữ liệu danh sách thi để xuất Excel.", true);
             return;
         }
         if (SaveFileDialogFunc == null) return;
+
+        var hkSnapshot = HocKyDangChon;
+        var monSnapshot = Tab2MonDangChon;
+        var lhpSnapshot = Tab2LhpDangChon;
 
         try
         {
@@ -365,12 +392,12 @@ public partial class BaoCaoViewModel : ObservableObject
             };
 
             byte[] excelBytes = await _excelExportService.XuatExcelAsync(
-                $"DSThi_{Tab2MonDangChon?.MaMon}",
-                Tab2DsThi,
+                $"DSThi_{monSnapshot?.MaMon}",
+                snapshot,
                 cotMap);
 
-            string lhpSuffix = Tab2LhpDangChon != null ? $"_{Tab2LhpDangChon.MaLHP}" : "";
-            string fileName = $"DanhSachThi_{Tab2MonDangChon?.MaMon}{lhpSuffix}_{HocKyDangChon?.MaHocKy}.xlsx";
+            string lhpSuffix = lhpSnapshot != null ? $"_{lhpSnapshot.MaLHP}" : "";
+            string fileName = $"DanhSachThi_{monSnapshot?.MaMon}{lhpSuffix}_{hkSnapshot?.MaHocKy}.xlsx";
             string? saved = await SaveFileDialogFunc(fileName, "xlsx", excelBytes);
             if (!string.IsNullOrEmpty(saved))
             {
@@ -458,12 +485,16 @@ public partial class BaoCaoViewModel : ObservableObject
     [RelayCommand]
     private async Task Tab3XuatExcelAsync()
     {
-        if (Tab3DsThongKe.Count == 0)
+        if (IsLoading) return;
+        var snapshot = Tab3DsThongKe.ToList();
+        if (snapshot.Count == 0)
         {
             ShowMessage("Không có dữ liệu thống kê để xuất Excel.", true);
             return;
         }
         if (SaveFileDialogFunc == null) return;
+
+        var hkSnapshot = HocKyDangChon;
 
         try
         {
@@ -477,11 +508,11 @@ public partial class BaoCaoViewModel : ObservableObject
             };
 
             byte[] excelBytes = await _excelExportService.XuatExcelAsync(
-                $"ThongKe_{HocKyDangChon?.MaHocKy}",
-                Tab3DsThongKe,
+                $"ThongKe_{hkSnapshot?.MaHocKy}",
+                snapshot,
                 cotMap);
 
-            string fileName = $"ThongKeSVTheoMon_{HocKyDangChon?.MaHocKy}.xlsx";
+            string fileName = $"ThongKeSVTheoMon_{hkSnapshot?.MaHocKy}.xlsx";
             string? saved = await SaveFileDialogFunc(fileName, "xlsx", excelBytes);
             if (!string.IsNullOrEmpty(saved))
             {

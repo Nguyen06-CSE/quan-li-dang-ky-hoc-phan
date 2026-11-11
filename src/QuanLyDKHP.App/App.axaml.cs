@@ -49,12 +49,22 @@ public partial class App : Application
             }
         }
 
-        // 2. CHẠY NỀN: Nạp dữ liệu vào In-Memory Cache Store (0ms) & Tự động sao lưu hàng ngày (Git)
+        // 2. CHẠY NỀN: Tự động nạp dữ liệu từ Neon nếu SQLite trống & nạp In-Memory Cache Store & Sao lưu hàng ngày (Git)
         var cacheStore = ServiceProvider.GetRequiredService<IMemoryCacheStore>();
         _ = Task.Run(async () =>
         {
             try
             {
+                using (var syncScope = ServiceProvider.CreateScope())
+                {
+                    var syncService = syncScope.ServiceProvider.GetRequiredService<ISyncService>();
+                    if (!await syncService.HasLocalDataAsync())
+                    {
+                        System.Diagnostics.Debug.WriteLine("[Startup]: SQLite trống, đang tự động đồng bộ dữ liệu ban đầu từ DB Host (Neon)...");
+                        await syncService.InitialSeedAsync();
+                    }
+                }
+
                 await cacheStore.InitializeAsync();
 
                 using var backupScope = ServiceProvider.CreateScope();

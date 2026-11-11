@@ -11,6 +11,8 @@ using System.Timers;
 using Avalonia.Threading;                  // ✅ để dispatch UI thread
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
@@ -21,7 +23,7 @@ using Avalonia;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class MonHocViewModel : ObservableObject
+public partial class MonHocViewModel : ObservableObject, IRecipient<DataImportedNotificationMessage>
 {
     private readonly IMonHocService _monHocService;
     private readonly ICurrentUserService _currentUserService;
@@ -191,6 +193,8 @@ public partial class MonHocViewModel : ObservableObject
             _debounceTimer = new Timer(300) { AutoReset = false };
             _debounceTimer.Elapsed += (s, e) => ApplyFiltersInMemory();
 
+            WeakReferenceMessenger.Default.RegisterAll(this);
+
             _ = InitMasterDataAsync();
         }
         catch (System.Exception ex)
@@ -199,6 +203,14 @@ public partial class MonHocViewModel : ObservableObject
             System.Console.WriteLine(ex.ToString());
             throw;
         }
+    }
+
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            await InitMasterDataAsync();
+        });
     }
 
     public MonHocViewModel()

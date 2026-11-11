@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
@@ -18,6 +20,7 @@ public partial class ImportExcelViewModel : ObservableObject
 {
     private readonly IImportExcelService _importExcelService;
     private readonly IHocKyService _hocKyService;
+    private readonly IMemoryCacheStore? _memoryCacheStore;
 
     public ObservableCollection<HocKy> DsHocKy { get; } = new();
 
@@ -47,10 +50,14 @@ public partial class ImportExcelViewModel : ObservableObject
     public Func<Task<string?>>? OpenFileDialogFunc { get; set; }
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
 
-    public ImportExcelViewModel(IImportExcelService importExcelService, IHocKyService hocKyService)
+    public ImportExcelViewModel(
+        IImportExcelService importExcelService, 
+        IHocKyService hocKyService,
+        IMemoryCacheStore? memoryCacheStore = null)
     {
         _importExcelService = importExcelService;
         _hocKyService = hocKyService;
+        _memoryCacheStore = memoryCacheStore;
         _ = LoadHocKyAsync();
     }
 
@@ -105,12 +112,6 @@ public partial class ImportExcelViewModel : ObservableObject
             return;
         }
 
-        if (HocKyDangChon == null)
-        {
-            ThongBaoTienDo = "Vui lòng chọn học kỳ đích.";
-            return;
-        }
-
         try
         {
             IsImporting = true;
@@ -129,9 +130,28 @@ public partial class ImportExcelViewModel : ObservableObject
             });
 
             await using var stream = File.OpenRead(FilePath);
-            var result = await _importExcelService.ImportFileAsync(stream, HocKyDangChon.MaHocKy, progress);
+            var result = await _importExcelService.ImportFileAsync(stream, HocKyDangChon?.MaHocKy, progress);
 
             KetQua = result;
+            if (HocKyDangChon == null && !string.IsNullOrEmpty(result.MaHocKy))
+            {
+                var matchedHk = DsHocKy.FirstOrDefault(h => h.MaHocKy == result.MaHocKy);
+                if (matchedHk != null)
+                {
+                    HocKyDangChon = matchedHk;
+                }
+                else
+                {
+                    var newHk = new HocKy 
+                    { 
+                        MaHocKy = result.MaHocKy, 
+                        TenHocKy = !string.IsNullOrEmpty(result.TenHocKy) ? result.TenHocKy : $"Học kỳ {result.MaHocKy}" 
+                    };
+                    DsHocKy.Add(newHk);
+                    HocKyDangChon = newHk;
+                }
+            }
+
             DanhSachLogHienThi.Clear();
             foreach (var log in result.DanhSachLog)
             {
@@ -139,6 +159,19 @@ public partial class ImportExcelViewModel : ObservableObject
             }
 
             ThongBaoTienDo = $"Import xong! Thành công: {result.SoDongThanhCong}/{result.TongSoDong} dòng, Lỗi: {result.SoDongLoi}, Cảnh báo: {result.DanhSachLog.Count(l => l.LoaiLog == "CanhBao")}";
+
+            // 1. Tải lại bộ nhớ đệm In-Memory tĩnh
+            if (_memoryCacheStore != null)
+            {
+                try
+                {
+                    await _memoryCacheStore.InitializeAsync(forceReload: true);
+                }
+                catch { }
+            }
+
+            // 2. Phát thông báo cho toàn bộ các màn hình (Sinh viên, Môn học, Học kỳ/LHP, Trang chủ, Học phí) làm mới dữ liệu tức thì
+            WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(result));
         }
         catch (Exception ex)
         {
@@ -153,29 +186,33 @@ public partial class ImportExcelViewModel : ObservableObject
     [RelayCommand]
     private async Task XuatLogTxtAsync()
     {
-        if (KetQua == null || SaveFileDialogFunc == null) return;
+        var kq = KetQua;
+        if (kq == null || SaveFileDialogFunc == null) return;
+
+        string tenHkLog = HocKyDangChon?.TenHocKy ?? kq.TenHocKy ?? "Tự động nhận diện";
+        string maHkLog = HocKyDangChon?.MaHocKy ?? kq.MaHocKy ?? "Auto";
 
         var sb = new StringBuilder();
         sb.AppendLine("=== KẾT QUẢ IMPORT EXCEL ===");
-        sb.AppendLine($"Học kỳ: {HocKyDangChon?.TenHocKy} ({HocKyDangChon?.MaHocKy})");
+        sb.AppendLine($"Học kỳ: {tenHkLog} ({maHkLog})");
         sb.AppendLine($"File: {FileName}");
         sb.AppendLine($"Thời gian: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
-        sb.AppendLine($"Tổng số dòng: {KetQua.TongSoDong}");
-        sb.AppendLine($"Thành công: {KetQua.SoDongThanhCong}");
-        sb.AppendLine($"Lỗi: {KetQua.SoDongLoi}");
-        sb.AppendLine($"Sinh viên mới: {KetQua.SoSinhVienMoi}");
-        sb.AppendLine($"Môn học mới: {KetQua.SoMonHocMoi}");
-        sb.AppendLine($"Lớp học phần mới: {KetQua.SoLopHocPhanMoi}");
-        sb.AppendLine($"Lượt đăng ký mới: {KetQua.SoDangKyMoi}");
+        sb.AppendLine($"Tổng số dòng: {kq.TongSoDong}");
+        sb.AppendLine($"Thành công: {kq.SoDongThanhCong}");
+        sb.AppendLine($"Lỗi: {kq.SoDongLoi}");
+        sb.AppendLine($"Sinh viên mới: {kq.SoSinhVienMoi}");
+        sb.AppendLine($"Môn học mới: {kq.SoMonHocMoi}");
+        sb.AppendLine($"Lớp học phần mới: {kq.SoLopHocPhanMoi}");
+        sb.AppendLine($"Lượt đăng ký mới: {kq.SoDangKyMoi}");
         sb.AppendLine();
         sb.AppendLine("=== CHI TIẾT LOG ===");
-        foreach (var log in KetQua.DanhSachLog)
+        foreach (var log in kq.DanhSachLog)
         {
             sb.AppendLine($"[Dòng {log.DongSo}] [{log.LoaiLog.ToUpper()}] {log.NoiDung}");
         }
 
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        string defaultName = $"LogImport_{HocKyDangChon?.MaHocKy}_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+        string defaultName = $"LogImport_{maHkLog}_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
         await SaveFileDialogFunc(defaultName, "txt", bytes);
     }
 }

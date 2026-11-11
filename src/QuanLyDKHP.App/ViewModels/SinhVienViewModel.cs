@@ -1,6 +1,7 @@
 // src/QuanLyDKHP.App/ViewModels/SinhVienViewModel.cs
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -23,7 +24,7 @@ using QuanLyDKHP.Core.Interfaces;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class SinhVienViewModel : ObservableObject
+public partial class SinhVienViewModel : ObservableObject, IRecipient<DataImportedNotificationMessage>
 {
     private readonly ISinhVienService _sinhVienService;
     private readonly ICurrentUserService _currentUserService;
@@ -238,8 +239,10 @@ public partial class SinhVienViewModel : ObservableObject
     private readonly IMemoryCacheStore _cacheStore;
     private readonly ILocalReadService _localReadService;
     private readonly ISyncService _syncService;
+    private readonly IImportExcelService? _importExcelService;
 
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
+    public Func<Task<string?>>? OpenFileDialogFunc { get; set; }
 
     public SinhVienViewModel(
         ISinhVienService sinhVienService,
@@ -247,7 +250,8 @@ public partial class SinhVienViewModel : ObservableObject
         IExcelExportService excelExportService,
         IMemoryCacheStore cacheStore,
         ILocalReadService localReadService,
-        ISyncService syncService)
+        ISyncService syncService,
+        IImportExcelService? importExcelService = null)
     {
         _sinhVienService = sinhVienService;
         _currentUserService = currentUserService;
@@ -255,6 +259,7 @@ public partial class SinhVienViewModel : ObservableObject
         _cacheStore = cacheStore;
         _localReadService = localReadService;
         _syncService = syncService;
+        _importExcelService = importExcelService;
 
         CanThemSuaXoa = _currentUserService.CurrentUser != null &&
                        PermissionMatrix.HasPermission(ChucNang.CrudSinhVien, _currentUserService.CurrentUser.Role);
@@ -263,7 +268,17 @@ public partial class SinhVienViewModel : ObservableObject
         _debounceTimer = new Timer(250) { AutoReset = false };
         _debounceTimer.Elapsed += (s, e) => ApplyFiltersInMemory();
 
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
         _ = InitFiltersAndLoadMasterDataAsync();
+    }
+
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            await InitFiltersAndLoadMasterDataAsync();
+        });
     }
 
     public SinhVienViewModel()
@@ -607,11 +622,39 @@ public partial class SinhVienViewModel : ObservableObject
         if (ShowImportExcelDialogFunc != null)
         {
             await ShowImportExcelDialogFunc();
+            return;
         }
-        else
+
+        if (OpenFileDialogFunc != null)
         {
-            ShowMessage("Mô-đun Import Excel đang được tích hợp (015-Spec).", false);
+            var path = await OpenFileDialogFunc();
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+
+            if (_importExcelService != null)
+            {
+                try
+                {
+                    IsLoading = true;
+                    ShowMessage("Đang đọc và import file Excel...", false);
+                    await using var stream = File.OpenRead(path);
+                    var result = await _importExcelService.ImportFileAsync(stream);
+                    await InitFiltersAndLoadMasterDataAsync();
+                    ShowMessage($"Import thành công: {result.SoDongThanhCong}/{result.TongSoDong} dòng ({result.SoSinhVienMoi} sinh viên mới)!", false);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ShowMessage($"Lỗi import Excel: {ex.Message}", true);
+                    return;
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+            }
         }
+
+        WeakReferenceMessenger.Default.Send(new NavigateToImportExcelMessage());
     }
 
     [RelayCommand]

@@ -11,6 +11,8 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
@@ -20,7 +22,7 @@ using QuanLyDKHP.Infrastructure.Data;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class HocPhiViewModel : ObservableObject
+public partial class HocPhiViewModel : ObservableObject, IRecipient<DataImportedNotificationMessage>
 {
     private readonly IHocPhiService _hocPhiService;
     private readonly IHocKyService _hocKyService;
@@ -135,7 +137,17 @@ public partial class HocPhiViewModel : ObservableObject
         _searchDebounceTimer = new Timer(300) { AutoReset = false };
         _searchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYAsync);
 
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
         _ = InitDataAsync();
+    }
+
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+        {
+            await InitDataAsync();
+        });
     }
 
     public HocPhiViewModel()
@@ -515,7 +527,9 @@ private async Task InitDataAsync()
     [RelayCommand]
     private async Task XuatExcelDanhSachAsync()
     {
-        if (DsHocPhiTongHop.Count == 0)
+        if (IsLoading) return;
+        var snapshot = DsHocPhiTongHop.ToList();
+        if (snapshot.Count == 0)
         {
             ShowMessage("Không có dữ liệu trong bảng để xuất Excel.", true);
             return;
@@ -526,6 +540,8 @@ private async Task InitDataAsync()
             ShowMessage("Hộp thoại lưu file chưa được cấu hình.", true);
             return;
         }
+
+        var hkSnapshot = HocKyDangChon;
 
         try
         {
@@ -542,9 +558,9 @@ private async Task InitDataAsync()
                 ("Trạng thái", x => x.TrangThaiText)
             };
 
-            string hkName = HocKyDangChon?.TenHocKy ?? "HocKy";
-            byte[] excelBytes = await _excelExportService.XuatExcelAsync($"HocPhi_{HocKyDangChon?.MaHocKy}", DsHocPhiTongHop, cotMap);
-            string suggestedName = $"DanhSachHocPhi_{HocKyDangChon?.MaHocKy}.xlsx";
+            string hkName = hkSnapshot?.TenHocKy ?? "HocKy";
+            byte[] excelBytes = await _excelExportService.XuatExcelAsync($"HocPhi_{hkSnapshot?.MaHocKy}", snapshot, cotMap);
+            string suggestedName = $"DanhSachHocPhi_{hkSnapshot?.MaHocKy}.xlsx";
 
             string? savedPath = await SaveFileDialogFunc(suggestedName, "xlsx", excelBytes);
             if (!string.IsNullOrEmpty(savedPath))

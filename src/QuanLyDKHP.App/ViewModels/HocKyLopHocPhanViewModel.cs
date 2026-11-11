@@ -13,14 +13,16 @@ using Avalonia.Input.Platform;
 using Avalonia.Threading;                       // ✅ THÊM MỚI
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using QuanLyDKHP.App.Dtos;
+using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Authorization;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class HocKyLopHocPhanViewModel : ObservableObject
+public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<DataImportedNotificationMessage>
 {
     private readonly IHocKyService _hocKyService;
     private readonly ILopHocPhanService _lhpService;
@@ -100,7 +102,17 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject
         _debounceTimer = new Timer(300) { AutoReset = false };
         _debounceTimer.Elapsed += (s, e) => ApplyLhpFiltersInMemory();
 
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
         _ = InitDataAsync();
+    }
+
+    public void Receive(DataImportedNotificationMessage message)
+    {
+        Dispatcher.UIThread.Post(async () =>
+        {
+            await InitDataAsync();
+        });
     }
 
     public HocKyLopHocPhanViewModel()

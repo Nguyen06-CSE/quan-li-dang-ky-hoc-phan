@@ -13,10 +13,33 @@ namespace QuanLyDKHP.App.Services;
 /// </summary>
 public static class LocalSessionStore
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "QuanLyDKHP",
-        "remember-me.json");
+    private static string GetFilePath()
+    {
+        var localCandidate = Path.Combine(Directory.GetCurrentDirectory(), "QuanLyDKHP", "remember-me.json");
+        if (File.Exists(localCandidate)) return localCandidate;
+
+        var libCandidate = Path.Combine(Directory.GetCurrentDirectory(), "Library", "Application Support", "QuanLyDKHP", "remember-me.json");
+        if (File.Exists(libCandidate)) return libCandidate;
+
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localAppData))
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (string.IsNullOrWhiteSpace(home)) home = Environment.GetEnvironmentVariable("HOME") ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(home))
+            {
+                var macSupport = Path.Combine(home, "Library", "Application Support");
+                localAppData = Directory.Exists(macSupport) ? macSupport : Path.Combine(home, ".local", "share");
+            }
+            else localAppData = AppContext.BaseDirectory;
+        }
+
+        var folder = Path.Combine(localAppData, "QuanLyDKHP");
+        Directory.CreateDirectory(folder);
+        return Path.Combine(folder, "remember-me.json");
+    }
+
+    private static string FilePath => GetFilePath();
 
     private class RememberMeData
     {

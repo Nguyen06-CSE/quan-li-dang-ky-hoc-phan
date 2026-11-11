@@ -17,12 +17,20 @@
         <!-- 2. Form Các bước Import -->
         <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,16">
             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
-                <!-- Bước 1 & 2: Chọn Học Kỳ và File -->
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,260,32,Auto,*,Auto" VerticalAlignment="Center">
-                    <!-- Bước 1: Học kỳ -->
-                    <TextBlock Grid.Column="0" Text="1. Học kỳ đích:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding DsHocKy}" 
+                <!-- Bước 1 & 2: Chọn File và Học Kỳ (tùy chọn) -->
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,24,Auto,260" VerticalAlignment="Center">
+                    <!-- Chọn file -->
+                    <TextBlock Grid.Column="0" Text="1. File Excel:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding FileName, Mode=OneWay}" 
+                             IsReadOnly="True" PlaceholderText="Chọn file hoặc kéo thả file (.xlsx) vào đây..." 
+                             Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Content="Chọn file..." Command="{Binding ChonFileCommand}" Classes="btn-secondary" VerticalAlignment="Center"/>
+
+                    <!-- Học kỳ (Tùy chọn) -->
+                    <TextBlock Grid.Column="4" Text="2. Học kỳ (tùy chọn):" FontWeight="Medium" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <ComboBox Grid.Column="5" ItemsSource="{Binding DsHocKy}" 
                               SelectedItem="{Binding HocKyDangChon}"
+                              PlaceholderText="(Tự động nhận diện)"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate DataType="entities:HocKy">
@@ -37,21 +45,14 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-
-                    <!-- Bước 2: Chọn file -->
-                    <TextBlock Grid.Column="3" Text="2. File Excel nguồn:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding FileName, Mode=OneWay}" 
-                             IsReadOnly="True" PlaceholderText="Chưa chọn file (.xlsx)..." 
-                             Margin="0,0,8,0" VerticalAlignment="Center"/>
-                    <Button Grid.Column="5" Content="Chọn file..." Command="{Binding ChonFileCommand}" Classes="btn-secondary" VerticalAlignment="Center"/>
                 </Grid>
 
-                <!-- Bước 3: Nút Bắt đầu Import & Tiến trình -->
+                <!-- Nút Đọc & Nạp dữ liệu & Tiến trình -->
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-                    <Button Grid.Column="0" Content="3. Bắt đầu Import dữ liệu" 
+                    <Button Grid.Column="0" Content="Đọc &amp; Nạp Dữ Liệu Ngay" 
                             Command="{Binding BatDauImportCommand}" 
                             IsEnabled="{Binding !IsImporting}"
-                            Classes="btn-primary" Padding="16,8"/>
+                            Classes="btn-primary" Padding="20,10" FontWeight="Bold"/>
 
                     <StackPanel Grid.Column="1" Margin="24,0" VerticalAlignment="Center" Spacing="4">
                         <ProgressBar Value="{Binding TienDo}" Minimum="0" Maximum="100" Height="8" CornerRadius="4"
