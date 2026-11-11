@@ -365,18 +365,14 @@
                      HorizontalAlignment="Stretch" />
 
         <!-- 5. DataGrid (Đồng bộ style với Môn học + nổi bật thông tin quan trọng) -->
-        <DataGrid Grid.Row="4"
-                  x:Name="SinhVienDataGrid"
-                  ItemsSource="{Binding DanhSach}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Horizontal"
-                  BorderThickness="1"
-                  BorderBrush="{DynamicResource BrushBorder}"
-                  CornerRadius="8"
-                  SelectionMode="Single"
-                  RowHeight="42"
-                  DoubleTapped="OnDataGridDoubleTapped">
+        <Border Grid.Row="4" Classes="table-container">
+            <DataGrid x:Name="SinhVienDataGrid"
+                      ItemsSource="{Binding DanhSach}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      RowHeight="46"
+                      DoubleTapped="OnDataGridDoubleTapped">
 
             <!-- ContextMenu cấp DataGrid dùng chung an toàn -->
             <DataGrid.ContextMenu>
@@ -556,5 +552,6 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+        </Border>
     </Grid>
 </UserControl>

@@ -30,6 +30,26 @@ sidebar_position: 2
    * Bổ sung nút phím tắt *"Nạp sinh viên vào lớp (Smart Import)"* trực tiếp trên mỗi dòng của bảng danh sách lớp học phần tại màn hình *Học kỳ / LHP*.
 5. **Kiểm Thử Đạt 100% (81/81 Tests Passed):**
    * Bổ sung bộ kiểm thử `SmartImportServiceTests.cs` (8 bài test mới) bao phủ: Parsing TSV, Ghép Họ đệm + Tên, Suy luận khóa học, Tính toán sức chứa, Phát hiện trùng lịch & trùng môn, Giao dịch nạp sinh viên nguyên tử và chặn học kỳ đã đóng.
+6. **Lột Xác Toàn Diện Giao Diện Bảng Biểu & Điều Hướng (Visual Makeover):**
+   * Giữ nguyên 100% cấu trúc bố cục, vị trí các nút và thói quen sử dụng, đại tu hoàn toàn trải nghiệm thị giác.
+   * **Trang chủ Tổng quan (Dashboard Makeover):** Bổ sung **Hero Glass Welcome Banner** chào người dùng cá nhân hóa kèm ngày tháng trực tiếp, 4 thẻ **Bento KPI Stat Cards** đa sắc màu nhận diện (*Emerald, Blue, Amber, Purple*) kèm icon vector trong khung tròn pastel, và 3 **Interactive Action Tiles** điều hướng nhanh.
+   * **Đồng bộ Danh sách Sinh viên & Vector Empty State (Màn hình ĐKHP):** Thay thế màu xanh dương mặc định chói mắt của hệ điều hành bằng nền xanh cốm nhạt (`BrushPrimaryLight`), đóng khung tên lớp sinh hoạt (`CTK49A`) thành **Mini Pill Tag** tinh tế, và thay thế biểu tượng Emoji `👈` thô sơ ở trạng thái trống bằng **Minh họa Vector Đa tầng (Multi-layered Concentric Vector Illustration)**.
+   * **Căn chỉnh Số học & Mã định danh (Tabular / Monospace Typography):** Áp dụng phông chữ `Consolas, Menlo, Monospace` cho cột Mã SV, Mã LHP và các cột tiền tệ (*Tổng học phí, Đã đóng, Còn nợ*) giúp các chữ số thẳng hàng dọc tuyệt đối.
+   * **Bảng dữ liệu DataGrid hiện đại:** Loại bỏ đường kẻ ô vuông thô cứng, sử dụng đường ngăn dòng ngang siêu mảnh (`BrushTableDivider`), chiều cao hàng 46px thoáng đãng, hiệu ứng hover dòng ngọc bích êm ái, bọc trong thẻ `table-container` bo góc 12px với bóng đổ mờ đa tầng.
+   * **Thanh lọc Segmented Pill chuẩn Apple/macOS:** Gom các nút lọc phạm vi (*Theo sinh viên, lớp, khóa*) thành thanh trượt kính mờ, nút chọn nổi bật với bóng đổ mềm.
+   * **Huy hiệu Soft Pill Badges:** Thay các khối màu đặc bằng badge màu phấn pastel viền mờ cao cấp (*Còn nợ, Đã đóng đủ, Đang học, Đã hủy*).
+   * **Header & Topbar:** Ô tìm kiếm nâng cấp thành **Spotlight Trigger Pill** hiển thị phím tắt `Ctrl + K`, Avatar người dùng bổ sung chấm báo trực tuyến `🟢 Live`.
+   * **Nút hành động (Row Actions):** Đóng gói thành nút bo tròn mềm mại có hiệu ứng phóng nhẹ (`scale 1.1`) và phát sáng nhẹ khi hover.
+7. **Universal Command Palette & Live X-Ray Spotlight (`Ctrl + K` / `⌘K` — Chuẩn Raycast Pro & Linear):**
+   * **Kích hoạt toàn cục không độ trễ (`< 2ms`):** Nhấn `Ctrl + K` (hoặc `⌘K`) ở bất kỳ màn hình nào (kể cả khi đang nhập liệu trong ô TextBox hoặc DataGrid nhờ cơ chế `RoutingStrategies.Tunnel`) sẽ mở ngay trung tâm chỉ huy Spotlight nổi giữa màn hình.
+   * **Bố cục Đôi Raycast Split-View (Danh sách Kết quả + Live X-Ray Inspector):**
+     * **X-Ray Hồ sơ Sinh viên trực tiếp:** Khi di chuyển phím mũi tên `↑` `↓` qua bất kỳ sinh viên nào, cột bên phải lập tức hiển thị **Thẻ X-Ray Sinh viên** gồm: Avatar chữ cái đầu, Mã SV, Lớp sinh hoạt, Thanh tiến độ tín chỉ học kỳ (`TC / 25 TC`), Bảng công nợ học phí thời gian thực (*Tổng học phí, Còn nợ*) và danh sách các lớp học phần đang theo học kèm lịch học. Hỗ trợ 3 nút hành động tức thì: *Mở ĐKHP (`Enter ↵`)*, *Thu Học phí*, và *Sao chép Hồ sơ vào Clipboard*.
+     * **X-Ray Sức chứa Lớp học phần trực tiếp:** Khi di chuyển qua một lớp học phần, cột phải hiển thị thông tin giảng viên, ca học, phòng học, **Thanh đo tỷ lệ lấp đầy phòng học (Capacity Gauge)** và danh sách sinh viên tiêu biểu trong lớp, kèm nút nhảy thẳng vào *Smart Import Studio* để nạp thêm sinh viên cho lớp đó.
+   * **Truy vấn Ngôn ngữ Tự nhiên & Radar Thông minh (AI Intent Queries):**
+     * Gõ `"nợ học phí"` (hoặc nhấn chip `⚡ SV nợ học phí`): Quét toàn bộ CSDL và liệt kê danh sách sinh viên còn nợ học phí trong kỳ hiện hành, xếp hạng từ cao xuống thấp.
+     * Gõ `"sắp đầy"` / `"quá tải"` (hoặc nhấn chip `🔥 Lớp sắp đầy`): Xếp hạng các lớp học phần theo tỷ lệ lấp đầy sĩ số để kịp thời điều phối phòng học.
+     * Gõ `"chưa đăng ký"` / `"0 tín chỉ"` (hoặc nhấn chip `⚠️ SV 0 tín chỉ`): Phát hiện ngay những sinh viên chưa đăng ký môn học nào trong học kỳ mở.
+   * **Thực thi Lệnh Hệ thống Tức thì:** Cho phép tạo bản sao lưu Git (`Time-Travel Snapshot`), chuyển đổi chế độ Sáng/Tối (`Dark/Light Mode`), hoặc làm mới bộ nhớ đệm RAM (`0ms Cache Reload`) ngay bên trong Command Palette kèm thông báo trạng thái trực tiếp.
 
 ---
 

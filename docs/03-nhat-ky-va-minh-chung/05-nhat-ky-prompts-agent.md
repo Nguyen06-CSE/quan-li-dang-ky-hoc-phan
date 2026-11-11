@@ -228,6 +228,7 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
   * Thực thi nạp sinh viên nguyên tử (`EnrollStudentsAsync`), tự động tạo hồ sơ `SinhVien` mới (nếu chưa có), tự động phục hồi bản ghi xóa mềm, và tự động kích hoạt tính toán lại học phí qua `TinhLaiHocPhiAsync`.
   * Thêm nút phím tắt *"Nạp sinh viên vào lớp (Smart Import)"* trực tiếp trên mỗi dòng của bảng Lớp học phần tại màn hình *Học kỳ / LHP*.
   * Viết mới bộ kiểm thử `tests/QuanLyDKHP.Tests/SmartImportServiceTests.cs` (8 bài test mới), nâng tổng số bài kiểm thử tự động của dự án lên **81/81 passed (100%)**.
+  * Lột xác toàn diện giao diện (Visual Makeover) nhưng bảo toàn 100% bố cục công cụ: chuẩn hóa DataGrid không viền dọc, đường chia siêu mảnh, hàng 46px thoáng đãng, thẻ bao bọc `table-container` bo góc 12px bóng đổ mềm, thanh lọc Segmented Pill chuẩn Apple, huy hiệu Soft Pill Badges pastel, Header tích hợp phím tắt `Enter ↵` và chấm online `🟢`.
   * Cập nhật đầy đủ tài liệu Docusaurus: `F09`, `ADR-23`, Báo cáo Unit Test, Commit History, Daily Log và Prompts log.
 
 ---

@@ -22,12 +22,32 @@
             <SolidColorBrush x:Key="BrushPrimaryLight" Color="#E6F2D6" />
             <SolidColorBrush x:Key="BrushBackground" Color="#FFFFFF" />
             <SolidColorBrush x:Key="BrushSurfaceAlt" Color="#F7F9F5" />
+            <SolidColorBrush x:Key="BrushCardBackground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="BrushCardElevated" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="BrushRowHover" Color="#F4F8EE" />
+            <SolidColorBrush x:Key="BrushTableDivider" Color="#EEF2E8" />
             <SolidColorBrush x:Key="BrushTextPrimary" Color="#212521" />
             <SolidColorBrush x:Key="BrushTextSecondary" Color="#6E766E" />
             <SolidColorBrush x:Key="BrushBorder" Color="#E0E6DA" />
             <SolidColorBrush x:Key="BrushDanger" Color="#D64541" />
             <SolidColorBrush x:Key="BrushWarning" Color="#E0A83C" />
             <SolidColorBrush x:Key="BrushSuccess" Color="#60A358" />
+
+            <!-- Soft modern status badge brushes -->
+            <SolidColorBrush x:Key="BrushBadgeSuccessBg" Color="#DCFCE7" />
+            <SolidColorBrush x:Key="BrushBadgeSuccessFg" Color="#15803D" />
+            <SolidColorBrush x:Key="BrushBadgeSuccessBorder" Color="#86EFAC" />
+            <SolidColorBrush x:Key="BrushBadgeDangerBg" Color="#FEE2E2" />
+            <SolidColorBrush x:Key="BrushBadgeDangerFg" Color="#B91C1C" />
+            <SolidColorBrush x:Key="BrushBadgeDangerBorder" Color="#FCA5A5" />
+            <SolidColorBrush x:Key="BrushBadgeWarningBg" Color="#FEF3C7" />
+            <SolidColorBrush x:Key="BrushBadgeWarningFg" Color="#D97706" />
+            <SolidColorBrush x:Key="BrushBadgeWarningBorder" Color="#FDE68A" />
+            <SolidColorBrush x:Key="BrushBadgeInfoBg" Color="#DBEAFE" />
+            <SolidColorBrush x:Key="BrushBadgeInfoFg" Color="#1D4ED8" />
+            <SolidColorBrush x:Key="BrushBadgeInfoBorder" Color="#93C5FD" />
+            <SolidColorBrush x:Key="BrushSegmentedSelected" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="BrushSegmentedSelectedFg" Color="#212521" />
 
             <!-- Liquid glass tokens -->
             <SolidColorBrush x:Key="BrushCanvas" Color="#F2F2F7" />
@@ -65,12 +85,32 @@
             <SolidColorBrush x:Key="BrushPrimaryLight" Color="#2B3A1F" />
             <SolidColorBrush x:Key="BrushBackground" Color="#16181A" />
             <SolidColorBrush x:Key="BrushSurfaceAlt" Color="#1E2124" />
+            <SolidColorBrush x:Key="BrushCardBackground" Color="#1A1D20" />
+            <SolidColorBrush x:Key="BrushCardElevated" Color="#1E2124" />
+            <SolidColorBrush x:Key="BrushRowHover" Color="#22262B" />
+            <SolidColorBrush x:Key="BrushTableDivider" Color="#2B3036" />
             <SolidColorBrush x:Key="BrushTextPrimary" Color="#E8ECE6" />
             <SolidColorBrush x:Key="BrushTextSecondary" Color="#9AA39A" />
             <SolidColorBrush x:Key="BrushBorder" Color="#2E3338" />
             <SolidColorBrush x:Key="BrushDanger" Color="#E5635F" />
             <SolidColorBrush x:Key="BrushWarning" Color="#E6B457" />
             <SolidColorBrush x:Key="BrushSuccess" Color="#74B96C" />
+
+            <!-- Soft modern status badge brushes -->
+            <SolidColorBrush x:Key="BrushBadgeSuccessBg" Color="#1E3A2F" />
+            <SolidColorBrush x:Key="BrushBadgeSuccessFg" Color="#86EFAC" />
+            <SolidColorBrush x:Key="BrushBadgeSuccessBorder" Color="#2B5A46" />
+            <SolidColorBrush x:Key="BrushBadgeDangerBg" Color="#3B2222" />
+            <SolidColorBrush x:Key="BrushBadgeDangerFg" Color="#FCA5A5" />
+            <SolidColorBrush x:Key="BrushBadgeDangerBorder" Color="#5A2E2E" />
+            <SolidColorBrush x:Key="BrushBadgeWarningBg" Color="#382E1E" />
+            <SolidColorBrush x:Key="BrushBadgeWarningFg" Color="#FDE68A" />
+            <SolidColorBrush x:Key="BrushBadgeWarningBorder" Color="#5C4828" />
+            <SolidColorBrush x:Key="BrushBadgeInfoBg" Color="#1E2C3D" />
+            <SolidColorBrush x:Key="BrushBadgeInfoFg" Color="#93C5FD" />
+            <SolidColorBrush x:Key="BrushBadgeInfoBorder" Color="#2C4869" />
+            <SolidColorBrush x:Key="BrushSegmentedSelected" Color="#2E3338" />
+            <SolidColorBrush x:Key="BrushSegmentedSelectedFg" Color="#FFFFFF" />
 
             <!-- Liquid glass tokens -->
             <SolidColorBrush x:Key="BrushCanvas" Color="#0F1113" />

@@ -41,6 +41,9 @@ public partial class DashboardViewModel : ObservableObject, IRecipient<DataImpor
     [ObservableProperty]
     private bool _isQuanLy;
 
+    public string TenNguoiDung => _currentUserService?.CurrentUser?.HoTen ?? "Quản trị viên";
+    public string NgayHomNayText => $"Hôm nay, {DateTime.Now:dd/MM/yyyy}";
+
     public ObservableCollection<HocKy> DsHocKy { get; } = new();
     public ObservableCollection<GiangVienLhpDto> DsLhpGiangVien { get; } = new();
 

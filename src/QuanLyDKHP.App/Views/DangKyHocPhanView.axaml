@@ -160,21 +160,53 @@
                     <!-- Danh sách Sinh viên ListBox Multi-Select -->
                     <Border Grid.Row="7" Background="{DynamicResource BrushBackground}"
                         BorderBrush="{DynamicResource BrushBorder}"
-                        BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                        BorderThickness="1" CornerRadius="10" ClipToBounds="True">
                         <ListBox x:Name="SinhVienListBox"
                             ItemsSource="{Binding DanhSachSinhVien}"
                             SelectionMode="Multiple,Toggle"
                             SelectionChanged="OnSinhVienListBoxSelectionChanged"
-                            Background="Transparent">
+                            Background="Transparent"
+                            Padding="4">
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="CornerRadius" Value="8" />
+                                    <Setter Property="Margin" Value="0,1" />
+                                    <Setter Property="Padding" Value="8,6" />
+                                </Style>
+                                <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource BrushRowHover}" />
+                                </Style>
+                                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}" />
+                                </Style>
+                            </ListBox.Styles>
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="coreDtos:SinhVienDto">
                                     <Border Background="Transparent"
-                                        Padding="4,2"
+                                        Padding="2,2"
                                         PointerPressed="OnSinhVienItemPointerPressed">
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock Grid.Column="0" Text="{Binding MaSV}" FontWeight="Bold" Width="85" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="{Binding HoTen}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding HoTen}" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2" Text="{Binding LopSinhHoat, FallbackValue='--'}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="0" Text="{Binding MaSV}"
+                                                FontFamily="Consolas, Menlo, Monospace"
+                                                FontWeight="Bold" FontSize="12.5" Width="82"
+                                                Foreground="{DynamicResource BrushPrimaryDark}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding HoTen}"
+                                                FontWeight="Medium" FontSize="13"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip.Tip="{Binding HoTen}"
+                                                Margin="0,0,6,0"
+                                                VerticalAlignment="Center" />
+                                            <Border Grid.Column="2"
+                                                Background="{DynamicResource BrushSurfaceAlt}"
+                                                BorderBrush="{DynamicResource BrushBorder}"
+                                                BorderThickness="1" CornerRadius="6"
+                                                Padding="6,2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding LopSinhHoat, FallbackValue='--'}"
+                                                    Foreground="{DynamicResource BrushTextSecondary}"
+                                                    FontWeight="SemiBold" FontSize="11"
+                                                    VerticalAlignment="Center" />
+                                            </Border>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -199,16 +231,45 @@
                     <Grid
                         IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:DetailState.None}}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Spacing="16">
-                            <TextBlock Text="👈" FontSize="44" HorizontalAlignment="Center" />
-                            <TextBlock
-                                Text="Vui lòng tìm kiếm hoặc chọn một sinh viên từ danh sách bên trái"
-                                Classes="h2" Foreground="{DynamicResource BrushTextSecondary}"
-                                HorizontalAlignment="Center" TextAlignment="Center" />
-                            <TextBlock
-                                Text="Bạn cũng có thể chọn nhiều sinh viên (Ctrl / Shift) để so sánh đăng ký nhóm."
-                                Classes="caption" Foreground="{DynamicResource BrushTextSecondary}"
-                                HorizontalAlignment="Center" TextAlignment="Center" />
+                            Spacing="18" MaxWidth="420">
+                            <!-- Vector Multi-Layered Concentric Illustration -->
+                            <Grid Width="92" Height="92" HorizontalAlignment="Center">
+                                <Border Width="92" Height="92" CornerRadius="46"
+                                    Background="{DynamicResource BrushPrimaryLight}"
+                                    Opacity="0.45" />
+                                <Border Width="68" Height="68" CornerRadius="34"
+                                    Background="{DynamicResource BrushPrimaryLight}"
+                                    BorderBrush="{DynamicResource BrushPrimary}"
+                                    BorderThickness="1.5"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <materialIcons:MaterialIcon Kind="AccountSearchOutline"
+                                        Width="32" Height="32"
+                                        Foreground="{DynamicResource BrushPrimaryDark}"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                            <StackPanel Spacing="6">
+                                <TextBlock
+                                    Text="Chưa chọn sinh viên để tra cứu"
+                                    Classes="h2" FontWeight="Bold"
+                                    Foreground="{DynamicResource BrushTextPrimary}"
+                                    HorizontalAlignment="Center" TextAlignment="Center" />
+                                <TextBlock
+                                    Text="Vui lòng tìm kiếm hoặc nhấp chọn một sinh viên từ danh sách bên trái để xem và chỉnh sửa đăng ký học phần."
+                                    FontSize="13" Foreground="{DynamicResource BrushTextSecondary}"
+                                    HorizontalAlignment="Center" TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" CornerRadius="8" Padding="12,6"
+                                HorizontalAlignment="Center">
+                                <TextBlock
+                                    Text="Mẹo: Giữ phím Ctrl hoặc Shift để chọn nhiều sinh viên và so sánh môn học chung"
+                                    Classes="caption" FontWeight="Medium"
+                                    Foreground="{DynamicResource BrushTextSecondary}"
+                                    HorizontalAlignment="Center" TextAlignment="Center" />
+                            </Border>
                         </StackPanel>
                     </Grid>
 
@@ -367,21 +428,24 @@
 
                         <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}"
                             BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,16">
+                            BorderThickness="1" CornerRadius="12" Padding="18" Margin="0,0,0,16"
+                            BoxShadow="0 4 16 0 #08000000">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
 
                                 <!-- Hàng 1: Thông tin Sinh viên + Nút thao tác -->
                                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                     <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
                                             <TextBlock Text="{Binding SinhVienDangChon.HoTen}"
-                                                FontWeight="Bold" FontSize="16"
+                                                FontWeight="Bold" FontSize="18"
                                                 ToolTip.Tip="{Binding SinhVienDangChon.HoTen}" />
-                                            <Border Background="{DynamicResource BrushPrimaryLight}"
-                                                CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                            <Border Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8" Padding="8,2" VerticalAlignment="Center">
                                                 <TextBlock
                                                     Text="{Binding SinhVienDangChon.MaSV}"
-                                                    Foreground="{DynamicResource BrushPrimaryDark}"
+                                                    Foreground="{DynamicResource BrushBadgeSuccessFg}"
                                                     FontWeight="Bold" FontSize="13" />
                                             </Border>
                                         </StackPanel>
@@ -406,17 +470,17 @@
                                     </StackPanel>
 
                                     <!-- Nút Chỉnh sửa đăng ký + Xem TKB -->
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
                                         <Button Content="Chỉnh sửa Đăng ký"
                                                 Command="{Binding EnterEditModeCommand}"
                                                 IsEnabled="{Binding CanEdit}"
                                                 Classes="btn-primary"
-                                                Padding="14,8"
+                                                Padding="16,9"
                                                 ToolTip.Tip="Chuyển sang chế độ đăng ký / hủy học phần cho sinh viên này"/>
                                         <Button Content="Xem Thời khóa biểu"
                                                 Command="{Binding XemThoiKhoaBieuCommand}"
                                                 Classes="btn-secondary"
-                                                Padding="14,8"
+                                                Padding="16,9"
                                                 ToolTip.Tip="Xem lịch học các lớp SV đang học trong học kỳ này"/>
                                     </StackPanel>
                                 </Grid>
@@ -424,7 +488,7 @@
                                 <!-- Hàng 2: Thẻ Tiến độ Tín chỉ học kỳ -->
                                 <Border Grid.Row="1" Background="{DynamicResource BrushBackground}"
                                     BorderBrush="{DynamicResource BrushBorder}"
-                                    BorderThickness="1" CornerRadius="8" Padding="14,10">
+                                    BorderThickness="1" CornerRadius="10" Padding="16,12">
                                     <StackPanel Spacing="6">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Tổng tín chỉ đã đăng ký:"
@@ -440,7 +504,7 @@
                                         </Grid>
 
                                         <ProgressBar Value="{Binding ProgressBarValue}" Maximum="100"
-                                            Height="8" CornerRadius="4"
+                                            Height="10" CornerRadius="5"
                                             Foreground="{Binding ProgressBarColor}" />
 
                                         <TextBlock Text="{Binding CanhBaoToiThieuText}"
@@ -452,9 +516,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Row="1" Background="{DynamicResource BrushBackground}"
-                            BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                        <Border Grid.Row="1" Classes="table-container">
                             <Grid RowDefinitions="Auto,*">
                                 <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}"
                                     BorderBrush="{DynamicResource BrushBorder}"
@@ -493,7 +555,9 @@
                                                             ColumnDefinitions="110,2*,65,130,65,125,90">
                                                             <TextBlock Grid.Column="0"
                                                                 Text="{Binding MaLHP}"
-                                                                FontWeight="SemiBold" FontSize="13"
+                                                                FontFamily="Consolas, Menlo, Monospace"
+                                                                FontWeight="SemiBold" FontSize="12.5"
+                                                                Foreground="{DynamicResource BrushPrimaryDark}"
                                                                 VerticalAlignment="Center" />
                                                             <TextBlock Grid.Column="1"
                                                                 Text="{Binding TenMon}"
@@ -535,22 +599,26 @@
                                                                 HorizontalAlignment="Center"
                                                                 VerticalAlignment="Center">
                                                                 <Border
-                                                                    Background="{DynamicResource BrushSuccess}"
-                                                                    CornerRadius="4" Padding="8,3"
+                                                                    Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                                    BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="10" Padding="10,2"
                                                                     IsVisible="{Binding IsDangHoc}">
                                                                     <TextBlock Text="Đang học"
                                                                         FontSize="11"
-                                                                        Foreground="White"
-                                                                        FontWeight="SemiBold" />
+                                                                        Foreground="{DynamicResource BrushBadgeSuccessFg}"
+                                                                        FontWeight="Bold" />
                                                                 </Border>
                                                                 <Border
-                                                                    Background="{DynamicResource BrushBorder}"
-                                                                    CornerRadius="4" Padding="8,3"
+                                                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                                                    BorderBrush="{DynamicResource BrushBorder}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="10" Padding="10,2"
                                                                     IsVisible="{Binding !IsDangHoc}">
                                                                     <TextBlock Text="Đã hủy"
                                                                         FontSize="11"
                                                                         Foreground="{DynamicResource BrushTextSecondary}"
-                                                                        FontWeight="SemiBold" />
+                                                                        FontWeight="Bold" />
                                                                 </Border>
                                                             </Panel>
                                                         </Grid>

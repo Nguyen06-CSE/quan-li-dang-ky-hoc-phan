@@ -172,17 +172,13 @@
                      Margin="0,0,0,8" />
 
         <!-- 4. DataGrid -->
-        <DataGrid Grid.Row="4"
-                  x:Name="MonHocDataGrid"
-                  ItemsSource="{Binding DanhSach}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Horizontal"
-                  BorderThickness="1"
-                  BorderBrush="{DynamicResource BrushBorder}"
-                  CornerRadius="8"
-                  SelectionMode="Single"
-                  RowHeight="42">
+        <Border Grid.Row="4" Classes="table-container">
+            <DataGrid x:Name="MonHocDataGrid"
+                      ItemsSource="{Binding DanhSach}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      RowHeight="46">
 
             <!-- ContextMenu cấp DataGrid: dùng chung an toàn tuyệt đối, tránh lỗi "Control already has a visual parent" -->
             <DataGrid.ContextMenu>
@@ -322,5 +318,6 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+        </Border>
     </Grid>
 </UserControl>

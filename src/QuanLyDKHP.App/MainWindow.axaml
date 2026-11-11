@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
         xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="750"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="780"
         x:Class="QuanLyDKHP.App.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Hệ Thống Quản Lý Đăng Ký Học Phần"
@@ -12,6 +12,11 @@
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized">
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+K" Command="{Binding ToggleCommandPaletteCommand}" />
+        <KeyBinding Gesture="Meta+K" Command="{Binding ToggleCommandPaletteCommand}" />
+    </Window.KeyBindings>
 
     <Window.Styles>
         <Style Selector="Window">
@@ -57,6 +62,27 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
         </Style>
 
+        <!-- Spotlight Trigger Button trên Topbar -->
+        <Style Selector="Button.spotlight-trigger">
+            <Setter Property="Background" Value="{DynamicResource BrushGlassStrong}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushGlassBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="14,0,10,0" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.spotlight-trigger:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
+        </Style>
+
         <!-- ===== Sidebar nav: mỗi mục cao đúng 44px (khớp NavItemHeight trong ViewModel) ===== -->
         <Style Selector="ListBox.nav-list ListBoxItem">
             <Setter Property="Height" Value="44" />
@@ -72,7 +98,6 @@
             <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}" />
         </Style>
 
-        <!-- Icon: mục chưa chọn mờ (kiểu "nét"), mục đang chọn đậm rõ -->
         <Style Selector="ListBox.nav-list materialIcons|MaterialIcon.nav-icon">
             <Setter Property="Opacity" Value="0.5" />
             <Setter Property="Transitions">
@@ -89,6 +114,20 @@
         </Style>
         <Style Selector="ListBox.nav-list ListBoxItem:selected TextBlock.nav-title">
             <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- ===== Command Palette List Items ===== -->
+        <Style Selector="ListBox.palette-list ListBoxItem">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="ListBox.palette-list ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushRowHover}" />
+        </Style>
+        <Style Selector="ListBox.palette-list ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}" />
         </Style>
     </Window.Styles>
 
@@ -134,7 +173,6 @@
                                 <Grid ColumnDefinitions="52,*"
                                       Background="Transparent"
                                       ToolTip.Tip="{Binding Title}">
-                                    <!-- ✅ Dùng MaterialIcon thay cho TextBlock -->
                                     <materialIcons:MaterialIcon Grid.Column="0" Classes="nav-icon"
                                                                 Kind="{Binding Icon}"
                                                                 Width="20" Height="20"
@@ -188,7 +226,7 @@
 
             <!-- Top bar -->
             <Border Grid.Row="0" Classes="glass-bar">
-                <Grid ColumnDefinitions="*,320,*" Margin="24,0">
+                <Grid ColumnDefinitions="*,420,*" Margin="24,0">
 
                     <!-- Breadcrumb -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -200,23 +238,53 @@
                                    IsVisible="{Binding ShowBreadcrumbTail}" />
                     </StackPanel>
 
-                    <!-- Tìm nhanh màn hình -->
-                    <TextBox Grid.Column="1"
-                             Text="{Binding SearchText, Mode=TwoWay}"
-                             PlaceholderText="Tìm nhanh màn hình… (Enter)"
-                             Classes="search-pill"
-                             Height="36"
-                             Padding="16,0"
-                             VerticalAlignment="Center"
-                             VerticalContentAlignment="Center">
-                        <TextBox.KeyBindings>
-                            <KeyBinding Gesture="Enter" Command="{Binding QuickSearchCommand}" />
-                        </TextBox.KeyBindings>
-                    </TextBox>
+                    <!-- Thanh kích hoạt Universal Command Palette & Spotlight (Ctrl + K) -->
+                    <Button Grid.Column="1"
+                            Classes="spotlight-trigger"
+                            Command="{Binding OpenCommandPaletteCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Mở Universal Command Palette &amp; Live X-Ray Spotlight (Ctrl + K / ⌘K)">
+                        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                            <materialIcons:MaterialIcon Grid.Column="0"
+                                                        Kind="Sparkles"
+                                                        Width="16" Height="16"
+                                                        Foreground="{DynamicResource BrushPrimaryDark}"
+                                                        VerticalAlignment="Center"
+                                                        Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="1"
+                                       Text="Tìm SV, lớp học phần, truy vấn AI, lệnh nhanh..."
+                                       FontSize="12.5"
+                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <Border Background="{DynamicResource BrushPrimaryLight}"
+                                        BorderBrush="{DynamicResource BrushPrimary}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="7,2">
+                                    <TextBlock Text="Ctrl + K"
+                                               FontFamily="Consolas, Menlo, Monospace"
+                                               FontSize="10.5"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource BrushPrimaryDark}" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
 
                     <!-- Cụm bên phải -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
                                 HorizontalAlignment="Right" VerticalAlignment="Center">
+
+                        <!-- Nút mở nhanh Spotlight bằng icon -->
+                        <Button Classes="btn-icon-ghost"
+                                Command="{Binding OpenCommandPaletteCommand}"
+                                ToolTip.Tip="Mở Command Palette (Ctrl + K)">
+                            <materialIcons:MaterialIcon Kind="AccountSearchOutline" Width="18" Height="18" />
+                        </Button>
 
                         <!-- Đổi giao diện Sáng / Tối -->
                         <Button Classes="btn-icon-ghost" Command="{Binding ToggleThemeCommand}"
@@ -227,19 +295,23 @@
                             </Grid>
                         </Button>
 
-                        <!-- Thông báo (chưa có hệ thống thông báo nên chưa hiện số) -->
-                        <Button Classes="btn-icon-ghost" ToolTip.Tip="Chưa có thông báo mới">
-                            <TextBlock Text="🔔" FontSize="16" />
-                        </Button>
-
                         <Border Classes="v-divider" Width="1" Height="24" Margin="6,0" />
 
-                        <!-- Avatar + tên -->
-                        <Border Classes="avatar" Width="34" Height="34">
-                            <TextBlock Classes="avatar-text" Text="{Binding UserInitials}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel VerticalAlignment="Center" Margin="4,0,8,0">
+                        <!-- Avatar + tên kèm chấm online -->
+                        <Panel Width="34" Height="34" VerticalAlignment="Center">
+                            <Border Classes="avatar" Width="34" Height="34">
+                                <TextBlock Classes="avatar-text" Text="{Binding UserInitials}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border Width="9" Height="9"
+                                    Background="#22C55E"
+                                    BorderBrush="White"
+                                    BorderThickness="1.5"
+                                    CornerRadius="5"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom" />
+                        </Panel>
+                        <StackPanel VerticalAlignment="Center" Margin="6,0,8,0">
                             <TextBlock Text="{Binding CurrentUserDisplayName}" Classes="body"
                                        FontWeight="SemiBold" FontSize="13" />
                             <TextBlock Text="{Binding CurrentUserRole}" Classes="caption" FontSize="11" />
@@ -261,6 +333,688 @@
                     <CrossFade Duration="0:0:0.18" />
                 </TransitioningContentControl.PageTransition>
             </TransitioningContentControl>
+        </Grid>
+
+        <!-- ===================== UNIVERSAL COMMAND PALETTE & LIVE X-RAY SPOTLIGHT (CTRL + K) ===================== -->
+        <Grid Grid.ColumnSpan="2"
+              IsVisible="{Binding IsCommandPaletteOpen}"
+              ZIndex="200">
+
+            <!-- Nền mờ toàn màn hình (Click ra ngoài để đóng) -->
+            <Border Background="#7A0F172A"
+                    PointerPressed="OnPaletteBackdropPointerPressed" />
+
+            <!-- Hộp thoại Spotlight trung tâm chuẩn Raycast / Linear -->
+            <Border Width="980"
+                    Height="600"
+                    MaxWidth="1040"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource BrushBackground}"
+                    BorderBrush="{DynamicResource BrushPrimary}"
+                    BorderThickness="1.5"
+                    CornerRadius="16"
+                    BoxShadow="0 28 70 0 #66000000"
+                    ClipToBounds="True">
+
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+                    <!-- HÀNG 0: THANH TÌM KIẾM VẠN NĂNG (OMNIBOX INPUT) -->
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="0,0,0,1"
+                            Padding="20,14">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
+                            <Border Grid.Column="0"
+                                    Width="38" Height="38"
+                                    CornerRadius="10"
+                                    Background="{DynamicResource BrushPrimaryLight}"
+                                    BorderBrush="{DynamicResource BrushPrimary}"
+                                    BorderThickness="1"
+                                    Margin="0,0,14,0">
+                                <materialIcons:MaterialIcon Kind="Sparkles"
+                                                            Width="20" Height="20"
+                                                            Foreground="{DynamicResource BrushPrimaryDark}"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center" />
+                            </Border>
+
+                            <TextBox Grid.Column="1"
+                                     x:Name="PaletteSearchBox"
+                                     Text="{Binding PaletteQuery, Mode=TwoWay}"
+                                     PlaceholderText="Tìm tên SV, MSSV, Mã LHP, hoặc gõ 'nợ học phí', 'sắp đầy', '0 tín chỉ'..."
+                                     FontSize="15.5"
+                                     FontWeight="Medium"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     VerticalAlignment="Center"
+                                     VerticalContentAlignment="Center" />
+
+                            <Border Grid.Column="2"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="10,4"
+                                    Margin="10,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PaletteResultCount, StringFormat='{}{0} mục'}"
+                                           FontFamily="Consolas, Menlo, Monospace"
+                                           FontSize="11.5"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource BrushTextSecondary}" />
+                            </Border>
+
+                            <Button Grid.Column="3"
+                                    Command="{Binding CloseCommandPaletteCommand}"
+                                    Classes="btn-secondary"
+                                    Padding="10,5"
+                                    CornerRadius="8"
+                                    ToolTip.Tip="Đóng Command Palette (Esc)">
+                                <TextBlock Text="ESC"
+                                           FontFamily="Consolas, Menlo, Monospace"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- HÀNG 1: THANH LỌC PHẠM VI & CHIP TRUY VẤN AI TỨC THÌ -->
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource BrushSurfaceAlt}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="0,0,0,1"
+                            Padding="18,8">
+                        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                            <ListBox Grid.Column="0"
+                                     Classes="segmented-bar"
+                                     SelectedIndex="{Binding PaletteFilterIndex, Mode=TwoWay}"
+                                     SelectionMode="Single">
+                                <ListBoxItem Content="Tất cả" />
+                                <ListBoxItem Content="Sinh viên" />
+                                <ListBoxItem Content="Lớp HP &amp; Môn" />
+                                <ListBoxItem Content="Truy vấn AI &amp; Lệnh" />
+                                <ListBoxItem Content="Màn hình" />
+                            </ListBox>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="Radar nhanh:"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,4,0" />
+                                <Button Command="{Binding SelectSmartQueryTagCommand}"
+                                        CommandParameter="!no-hoc-phi"
+                                        Classes="btn-secondary"
+                                        Padding="8,4"
+                                        CornerRadius="6"
+                                        FontSize="11.5">
+                                    <TextBlock Text="⚡ SV nợ học phí" FontWeight="SemiBold" />
+                                </Button>
+                                <Button Command="{Binding SelectSmartQueryTagCommand}"
+                                        CommandParameter="!lop-sap-day"
+                                        Classes="btn-secondary"
+                                        Padding="8,4"
+                                        CornerRadius="6"
+                                        FontSize="11.5">
+                                    <TextBlock Text="🔥 Lớp sắp đầy" FontWeight="SemiBold" />
+                                </Button>
+                                <Button Command="{Binding SelectSmartQueryTagCommand}"
+                                        CommandParameter="!chua-dang-ky"
+                                        Classes="btn-secondary"
+                                        Padding="8,4"
+                                        CornerRadius="6"
+                                        FontSize="11.5">
+                                    <TextBlock Text="⚠️ SV 0 tín chỉ" FontWeight="SemiBold" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- HÀNG 2: BỐ CỤC ĐÔI RAYCAST PRO (TRÁI: DANH SÁCH KẾT QUẢ | PHẢI: LIVE X-RAY INSPECTOR) -->
+                    <Grid Grid.Row="2" ColumnDefinitions="1.12*,1,0.98*">
+
+                        <!-- CỘT TRÁI: DANH SÁCH KẾT QUẢ & LỆNH -->
+                        <Grid Grid.Column="0" Margin="10,8">
+                            <ListBox x:Name="PaletteResultsListBox"
+                                     Classes="palette-list"
+                                     ItemsSource="{Binding PaletteItems}"
+                                     SelectedItem="{Binding SelectedPaletteItem, Mode=TwoWay}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     DoubleTapped="OnPaletteResultDoubleTapped">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CommandPaletteItemViewModel">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                            <!-- Icon đại diện -->
+                                            <Border Grid.Column="0"
+                                                    Width="36" Height="36"
+                                                    CornerRadius="9"
+                                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                                    BorderBrush="{DynamicResource BrushBorder}"
+                                                    BorderThickness="1"
+                                                    Margin="0,0,12,0"
+                                                    VerticalAlignment="Center">
+                                                <materialIcons:MaterialIcon Kind="{Binding Icon}"
+                                                                            Width="18" Height="18"
+                                                                            Foreground="{DynamicResource BrushPrimaryDark}"
+                                                                            HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center" />
+                                            </Border>
+
+                                            <!-- Tiêu đề & Phụ đề -->
+                                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontWeight="Bold"
+                                                               FontSize="13.5"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               MaxWidth="290" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Subtitle}"
+                                                           FontSize="11.5"
+                                                           Foreground="{DynamicResource BrushTextSecondary}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <!-- Huy hiệu trạng thái & Gợi ý phím -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Panel VerticalAlignment="Center">
+                                                    <Border Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                                                            BorderThickness="1" CornerRadius="6" Padding="7,2"
+                                                            IsVisible="{Binding IsBadgePrimary}">
+                                                        <TextBlock Text="{Binding BadgeText}"
+                                                                   FontFamily="Consolas, Menlo, Monospace"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeSuccessFg}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                                                            BorderThickness="1" CornerRadius="6" Padding="7,2"
+                                                            IsVisible="{Binding IsBadgeSuccess}">
+                                                        <TextBlock Text="{Binding BadgeText}"
+                                                                   FontFamily="Consolas, Menlo, Monospace"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeSuccessFg}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushBadgeWarningBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeWarningBorder}"
+                                                            BorderThickness="1" CornerRadius="6" Padding="7,2"
+                                                            IsVisible="{Binding IsBadgeWarning}">
+                                                        <TextBlock Text="{Binding BadgeText}"
+                                                                   FontFamily="Consolas, Menlo, Monospace"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeWarningFg}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushBadgeDangerBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeDangerBorder}"
+                                                            BorderThickness="1" CornerRadius="6" Padding="7,2"
+                                                            IsVisible="{Binding IsBadgeDanger}">
+                                                        <TextBlock Text="{Binding BadgeText}"
+                                                                   FontFamily="Consolas, Menlo, Monospace"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeDangerFg}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushBadgeInfoBg}"
+                                                            BorderBrush="{DynamicResource BrushBadgeInfoBorder}"
+                                                            BorderThickness="1" CornerRadius="6" Padding="7,2"
+                                                            IsVisible="{Binding IsBadgeInfo}">
+                                                        <TextBlock Text="{Binding BadgeText}"
+                                                                   FontFamily="Consolas, Menlo, Monospace"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushBadgeInfoFg}" />
+                                                    </Border>
+                                                </Panel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+
+                        <!-- Đường phân cách dọc -->
+                        <Border Grid.Column="1" Background="{DynamicResource BrushBorder}" />
+
+                        <!-- CỘT PHẢI: LIVE X-RAY CONTEXT INSPECTOR -->
+                        <Border Grid.Column="2"
+                                Background="{DynamicResource BrushSurfaceAlt}"
+                                Padding="20,16">
+                            <Grid>
+
+                                <!-- ==================== MODE A: LIVE STUDENT X-RAY DOSSIER ==================== -->
+                                <Grid IsVisible="{Binding IsStudentXRayVisible}"
+                                      RowDefinitions="Auto,Auto,*,Auto"
+                                      RowSpacing="12">
+
+                                    <!-- 1. Hồ sơ định danh Sinh viên -->
+                                    <Border Grid.Row="0"
+                                            Background="{DynamicResource BrushBackground}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14,12">
+                                        <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                            <Border Grid.Column="0"
+                                                    Width="46" Height="46"
+                                                    CornerRadius="23"
+                                                    Background="{DynamicResource BrushHero}"
+                                                    Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding StudentXRay.AvatarInitials}"
+                                                           FontSize="16" FontWeight="Bold"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding StudentXRay.HoTen}"
+                                                               FontWeight="Bold" FontSize="15.5"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <Border Background="{DynamicResource BrushPrimaryLight}"
+                                                            CornerRadius="5" Padding="6,2">
+                                                        <TextBlock Text="{Binding StudentXRay.MaSV}"
+                                                                   FontFamily="Consolas, Menlo, Monospace"
+                                                                   FontSize="11.5" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource BrushPrimaryDark}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                            BorderBrush="{DynamicResource BrushBorder}"
+                                                            BorderThickness="1" CornerRadius="5" Padding="6,2">
+                                                        <TextBlock Text="{Binding StudentXRay.LopSinhHoat, StringFormat='Lớp: {0}'}"
+                                                                   FontSize="11.5" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}" />
+                                                    </Border>
+                                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                            BorderBrush="{DynamicResource BrushBorder}"
+                                                            BorderThickness="1" CornerRadius="5" Padding="6,2">
+                                                        <TextBlock Text="{Binding StudentXRay.KhoaHoc, StringFormat='Khóa: {0}'}"
+                                                                   FontSize="11.5" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource BrushTextSecondary}" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- 2. Hai thẻ Bento KPI (Tín chỉ & Học phí) -->
+                                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                                        <!-- Bento Tín chỉ -->
+                                        <Border Grid.Column="0"
+                                                Background="{DynamicResource BrushBackground}"
+                                                BorderBrush="{DynamicResource BrushBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="12,10">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="TÍN CHỈ ĐĂNG KÝ"
+                                                           FontSize="10.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushTextSecondary}" />
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding StudentXRay.TongTinChi, StringFormat='{}{0} / 25 TC'}"
+                                                               FontFamily="Consolas, Menlo, Monospace"
+                                                               FontSize="15" FontWeight="Bold"
+                                                               Foreground="{DynamicResource BrushPrimaryDark}" />
+                                                    <TextBlock Text="{Binding StudentXRay.SoLopDangHoc, StringFormat='({0} lớp)'}"
+                                                               FontSize="11.5"
+                                                               Foreground="{DynamicResource BrushTextSecondary}"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <ProgressBar Value="{Binding StudentXRay.TinChiProgress}"
+                                                             Maximum="100" Height="6" CornerRadius="3" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Bento Học phí -->
+                                        <Border Grid.Column="1"
+                                                Background="{DynamicResource BrushBackground}"
+                                                BorderBrush="{DynamicResource BrushBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="12,10">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="CÔNG NỢ HỌC PHÍ"
+                                                           FontSize="10.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushTextSecondary}" />
+                                                <TextBlock Text="{Binding StudentXRay.TongHocPhiFormat}"
+                                                           FontFamily="Consolas, Menlo, Monospace"
+                                                           FontSize="14.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushTextPrimary}" />
+                                                <TextBlock Text="{Binding StudentXRay.TrangThaiHocPhiText}"
+                                                           FontSize="11.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushDanger}"
+                                                           IsVisible="{Binding StudentXRay.IsConNo}" />
+                                                <TextBlock Text="✔ Đã đóng đủ học phí"
+                                                           FontSize="11.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushSuccess}"
+                                                           IsVisible="{Binding !StudentXRay.IsConNo}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- 3. Danh sách Lớp học phần đang theo học -->
+                                    <Border Grid.Row="2"
+                                            Background="{DynamicResource BrushBackground}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="12,10">
+                                        <Grid RowDefinitions="Auto,*">
+                                            <TextBlock Grid.Row="0"
+                                                       Text="CÁC LỚP HỌC PHẦN ĐANG THEO HỌC"
+                                                       FontSize="10.5" FontWeight="Bold"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       Margin="0,0,0,8" />
+                                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                <Panel>
+                                                    <ItemsControl ItemsSource="{Binding StudentXRay.Courses}"
+                                                                  IsVisible="{Binding StudentXRay.HasCourses}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:SpotlightStudentCourseDto">
+                                                                <Border BorderBrush="{DynamicResource BrushTableDivider}"
+                                                                        BorderThickness="0,0,0,1"
+                                                                        Padding="2,6">
+                                                                    <Grid ColumnDefinitions="*,Auto">
+                                                                        <StackPanel Grid.Column="0" Spacing="1">
+                                                                            <TextBlock Text="{Binding TenMon}"
+                                                                                       FontWeight="SemiBold"
+                                                                                       FontSize="12.5"
+                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                                <TextBlock Text="{Binding MaLHP}"
+                                                                                           FontFamily="Consolas, Menlo, Monospace"
+                                                                                           FontSize="11"
+                                                                                           Foreground="{DynamicResource BrushPrimaryDark}"
+                                                                                           FontWeight="Bold" />
+                                                                                <TextBlock Text="{Binding LichHocText}"
+                                                                                           FontSize="11"
+                                                                                           Foreground="{DynamicResource BrushTextSecondary}" />
+                                                                            </StackPanel>
+                                                                        </StackPanel>
+                                                                        <Border Grid.Column="1"
+                                                                                Background="{DynamicResource BrushSurfaceAlt}"
+                                                                                CornerRadius="5" Padding="6,2"
+                                                                                VerticalAlignment="Center">
+                                                                            <TextBlock Text="{Binding SoTinChi, StringFormat='{}{0} TC'}"
+                                                                                       FontFamily="Consolas, Menlo, Monospace"
+                                                                                       FontSize="11" FontWeight="Bold" />
+                                                                        </Border>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="Sinh viên chưa đăng ký lớp học phần nào trong học kỳ này."
+                                                               Classes="caption"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,24"
+                                                               IsVisible="{Binding !StudentXRay.HasCourses}" />
+                                                </Panel>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- 4. Cụm nút thao tác Deep-Link tức thì -->
+                                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <Button Grid.Column="0"
+                                                Command="{Binding OpenSelectedStudentRegistrationCommand}"
+                                                Classes="btn-primary"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"
+                                                Padding="12,9">
+                                            <TextBlock Text="Mở ĐKHP (Enter ↵)" FontWeight="Bold" FontSize="12.5" />
+                                        </Button>
+                                        <Button Grid.Column="1"
+                                                Command="{Binding OpenSelectedStudentTuitionCommand}"
+                                                Classes="btn-secondary"
+                                                Padding="12,9"
+                                                ToolTip.Tip="Chuyển thẳng sang màn hình Học phí của sinh viên này">
+                                            <TextBlock Text="Thu Học phí" FontWeight="SemiBold" FontSize="12.5" />
+                                        </Button>
+                                        <Button Grid.Column="2"
+                                                Command="{Binding CopySelectedStudentSummaryCommand}"
+                                                Classes="btn-secondary"
+                                                Padding="10,9"
+                                                ToolTip.Tip="Sao chép hồ sơ tóm tắt vào bộ nhớ tạm">
+                                            <materialIcons:MaterialIcon Kind="ContentPaste" Width="15" Height="15" />
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- ==================== MODE B: LIVE CLASS SECTION X-RAY INSPECTOR ==================== -->
+                                <Grid IsVisible="{Binding IsClassXRayVisible}"
+                                      RowDefinitions="Auto,Auto,*,Auto"
+                                      RowSpacing="12">
+
+                                    <!-- 1. Thông tin Lớp học phần -->
+                                    <Border Grid.Row="0"
+                                            Background="{DynamicResource BrushBackground}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14,12">
+                                        <StackPanel Spacing="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Border Background="{DynamicResource BrushPrimaryLight}"
+                                                        CornerRadius="6" Padding="8,2">
+                                                    <TextBlock Text="{Binding ClassXRay.MaLHP}"
+                                                               FontFamily="Consolas, Menlo, Monospace"
+                                                               FontSize="12" FontWeight="Bold"
+                                                               Foreground="{DynamicResource BrushPrimaryDark}" />
+                                                </Border>
+                                                <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                                        BorderBrush="{DynamicResource BrushBorder}"
+                                                        BorderThickness="1" CornerRadius="6" Padding="8,2">
+                                                    <TextBlock Text="{Binding ClassXRay.SoTinChi, StringFormat='{}{0} Tín chỉ'}"
+                                                               FontSize="11.5" FontWeight="SemiBold" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding ClassXRay.TenMon}"
+                                                       FontWeight="Bold" FontSize="15.5"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding ClassXRay.GiangVien, StringFormat='Giảng viên: {0}'}"
+                                                       FontSize="12.5"
+                                                       Foreground="{DynamicResource BrushTextSecondary}" />
+                                            <TextBlock Text="{Binding ClassXRay.LichHocText, StringFormat='Lịch học: {0}'}"
+                                                       FontSize="12.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrushPrimaryDark}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- 2. Thanh đo sức chứa lớp học (Capacity Gauge) -->
+                                    <Border Grid.Row="1"
+                                            Background="{DynamicResource BrushBackground}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="14,10">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="SỨC CHỨA LỚP HỌC PHẦN"
+                                                           FontSize="10.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushTextSecondary}" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding ClassXRay.SiSoText}"
+                                                           FontFamily="Consolas, Menlo, Monospace"
+                                                           FontSize="12.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource BrushPrimaryDark}" />
+                                            </Grid>
+                                            <ProgressBar Value="{Binding ClassXRay.PhanTramLapDay}"
+                                                         Maximum="100" Height="8" CornerRadius="4" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- 3. Danh sách sinh viên tiêu biểu trong lớp -->
+                                    <Border Grid.Row="2"
+                                            Background="{DynamicResource BrushBackground}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="12,10">
+                                        <Grid RowDefinitions="Auto,*">
+                                            <TextBlock Grid.Row="0"
+                                                       Text="SINH VIÊN ĐANG THEO HỌC TRONG LỚP"
+                                                       FontSize="10.5" FontWeight="Bold"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       Margin="0,0,0,6" />
+                                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                <Panel>
+                                                    <ItemsControl ItemsSource="{Binding ClassXRay.TopStudentsPreview}"
+                                                                  IsVisible="{Binding ClassXRay.HasStudents}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border BorderBrush="{DynamicResource BrushTableDivider}"
+                                                                        BorderThickness="0,0,0,1"
+                                                                        Padding="2,5">
+                                                                    <TextBlock Text="{Binding}"
+                                                                               FontSize="12"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="Chưa có sinh viên nào đăng ký lớp học phần này."
+                                                               Classes="caption"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,24"
+                                                               IsVisible="{Binding !ClassXRay.HasStudents}" />
+                                                </Panel>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- 4. Nút thao tác nhanh cho Lớp học phần -->
+                                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Button Grid.Column="0"
+                                                Command="{Binding SmartEnrollSelectedClassCommand}"
+                                                Classes="btn-primary"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"
+                                                Padding="12,9">
+                                            <TextBlock Text="Nạp SV vào lớp này (Enter ↵)" FontWeight="Bold" FontSize="12.5" />
+                                        </Button>
+                                        <Button Grid.Column="1"
+                                                Command="{Binding OpenSelectedClassManagementCommand}"
+                                                Classes="btn-secondary"
+                                                Padding="12,9">
+                                            <TextBlock Text="Quản lý LHP" FontWeight="SemiBold" FontSize="12.5" />
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- ==================== MODE C: COMMAND & SMART QUERY INSPECTOR ==================== -->
+                                <Grid IsVisible="{Binding IsActionXRayVisible}">
+                                    <StackPanel VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                Spacing="16"
+                                                MaxWidth="340">
+                                        <Grid Width="84" Height="84" HorizontalAlignment="Center">
+                                            <Border Width="84" Height="84" CornerRadius="42"
+                                                    Background="{DynamicResource BrushPrimaryLight}"
+                                                    Opacity="0.45" />
+                                            <Border Width="62" Height="62" CornerRadius="31"
+                                                    Background="{DynamicResource BrushPrimaryLight}"
+                                                    BorderBrush="{DynamicResource BrushPrimary}"
+                                                    BorderThickness="1.5"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                <materialIcons:MaterialIcon Kind="{Binding SelectedPaletteItem.Icon, FallbackValue=Sparkles}"
+                                                                            Width="28" Height="28"
+                                                                            Foreground="{DynamicResource BrushPrimaryDark}"
+                                                                            HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+
+                                        <Border Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="10,3"
+                                                HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding SelectedPaletteItem.CategoryLabel}"
+                                                       FontSize="10.5"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource BrushBadgeSuccessFg}" />
+                                        </Border>
+
+                                        <TextBlock Text="{Binding SelectedPaletteItem.Title}"
+                                                   FontWeight="Bold"
+                                                   FontSize="16"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" />
+
+                                        <TextBlock Text="{Binding SelectedPaletteItem.DetailedDescription}"
+                                                   FontSize="12.5"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource BrushTextSecondary}" />
+
+                                        <Button Command="{Binding ExecuteSelectedPaletteItemCommand}"
+                                                Classes="btn-primary"
+                                                HorizontalAlignment="Center"
+                                                Padding="22,10"
+                                                Margin="0,6,0,0">
+                                            <TextBlock Text="Thực thi ngay (Enter ↵)" FontWeight="Bold" FontSize="13" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- HÀNG 3: CHÂN TRANG HƯỚNG DẪN PHÍM TẮT & TOAST TRẠNG THÁI -->
+                    <Border Grid.Row="3"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="0,1,0,0"
+                            Padding="18,9">
+                        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                        <TextBlock Text="↑↓" FontFamily="Consolas, Menlo, Monospace" FontSize="10.5" FontWeight="Bold" />
+                                    </Border>
+                                    <TextBlock Text="Di chuyển &amp; X-Ray" FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                        <TextBlock Text="Enter ↵" FontFamily="Consolas, Menlo, Monospace" FontSize="10.5" FontWeight="Bold" />
+                                    </Border>
+                                    <TextBlock Text="Thực thi / Mở hồ sơ" FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                        <TextBlock Text="Esc" FontFamily="Consolas, Menlo, Monospace" FontSize="10.5" FontWeight="Bold" />
+                                    </Border>
+                                    <TextBlock Text="Đóng" FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding PaletteStatusToast}"
+                                       FontSize="12"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource BrushPrimaryDark}"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{Binding PaletteStatusToast, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </Grid>
+                    </Border>
+
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- Lớp phủ dùng cho hiệu ứng chuyển theme mượt (điều khiển ở code-behind) -->

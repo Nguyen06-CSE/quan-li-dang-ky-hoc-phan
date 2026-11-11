@@ -343,6 +343,38 @@ private async Task InitDataAsync()
         }
     }
 
+    public async Task ChonSinhVienTheoMaAsync(string maSV)
+    {
+        if (string.IsNullOrWhiteSpace(maSV) || _localContextFactory == null) return;
+        try
+        {
+            SelectedPhamViIndex = 0;
+            PhamVi = "SinhVien";
+
+            await using var localContext = await _localContextFactory.CreateDbContextAsync();
+            var sv = await localContext.SinhViens
+                .AsNoTracking()
+                .Where(s => !s.IsDeleted && s.MaSV == maSV)
+                .Select(s => new SinhVienDto
+                {
+                    MaSV = s.MaSV,
+                    HoTen = s.HoTen,
+                    LopSinhHoat = s.LopSinhHoat,
+                    KhoaHoc = s.KhoaHoc
+                })
+                .FirstOrDefaultAsync();
+
+            if (sv != null)
+            {
+                await ChonSinhVienAsync(sv);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message, true);
+        }
+    }
+
     [RelayCommand]
     public async Task LoadDanhSachTheoPhamViAsync()
     {
