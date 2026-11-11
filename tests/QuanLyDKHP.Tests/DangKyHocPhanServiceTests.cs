@@ -46,6 +46,11 @@ public class DangKyHocPhanServiceTests
         _mockCauHinhService.Setup(c => c.GetDecimal("DonGiaTinChiLT")).ReturnsAsync(500000m);
         _mockCauHinhService.Setup(c => c.GetDecimal("DonGiaTinChiTH")).ReturnsAsync(700000m);
 
+        // Mặc định lưu atomic thành công
+        _mockDangKyRepo
+            .Setup(r => r.LuuDangKyAtomicAsync(It.IsAny<DangKyHocPhan>(), It.IsAny<bool>(), It.IsAny<int?>()))
+            .ReturnsAsync((true, null));
+
         _service = new DangKyHocPhanService(
             _mockDangKyRepo.Object,
             _mockLhpRepo.Object,
@@ -71,7 +76,13 @@ public class DangKyHocPhanServiceTests
             MaMon = maMon,
             MaHocKy = maHocKy,
             MonHoc = mon,
-            SiSoToiDa = siSoToiDa
+            SiSoToiDa = siSoToiDa,
+            HocKy = new HocKy
+            {
+                MaHocKy = maHocKy,
+                TenHocKy = maHocKy,
+                DangMo = true
+            }
         };
     }
 
@@ -251,12 +262,12 @@ public class DangKyHocPhanServiceTests
 
         // Assert
         Assert.True(result.Success);
-        _mockDangKyRepo.Verify(r => r.ThemAsync(It.Is<DangKyHocPhan>(d =>
+        _mockDangKyRepo.Verify(r => r.LuuDangKyAtomicAsync(It.Is<DangKyHocPhan>(d =>
             d.MaSV == maSV &&
             d.MaLHP == maLHP &&
             d.TrangThai == "DangHoc" &&
             d.HinhThucDK == "KH" &&
-            d.NguoiDK == "test_user")), Times.Once);
+            d.NguoiDK == "test_user"), true, 45), Times.Once);
         _mockHocPhiService.Verify(h => h.TinhLaiHocPhiAsync(maSV, lhp.MaHocKy), Times.Once);
     }
 
@@ -292,8 +303,7 @@ public class DangKyHocPhanServiceTests
         Assert.True(result.Success);
         Assert.Equal("DangHoc", existingDk.TrangThai);
         Assert.Equal("test_user", existingDk.NguoiDK);
-        _mockDangKyRepo.Verify(r => r.CapNhatAsync(existingDk), Times.Once);
-        _mockDangKyRepo.Verify(r => r.ThemAsync(It.IsAny<DangKyHocPhan>()), Times.Never);
+        _mockDangKyRepo.Verify(r => r.LuuDangKyAtomicAsync(existingDk, false, 45), Times.Once);
         _mockHocPhiService.Verify(h => h.TinhLaiHocPhiAsync(maSV, lhp.MaHocKy), Times.Once);
     }
 
@@ -335,5 +345,82 @@ public class DangKyHocPhanServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.HuyDangKyAsync(maSV, maLHP));
         _mockDangKyRepo.Verify(r => r.CapNhatAsync(It.IsAny<DangKyHocPhan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DangKyAsync_HocKyDaDong_TraVeLoiChanCung()
+    {
+        // Arrange
+        string maSV = "SV001";
+        string maLHP = "LHP_OOP_01";
+        var lhp = CreateSampleLhp(maLHP, "OOP", "Lập trình hướng đối tượng", 2, 1);
+        lhp.HocKy!.DangMo = false; // Học kỳ đã đóng
+        var sv = CreateSampleSv(maSV);
+
+        _mockSvRepo.Setup(r => r.GetByIdAsync(maSV)).ReturnsAsync(sv);
+        _mockLhpRepo.Setup(r => r.GetByIdAsync(maLHP)).ReturnsAsync(lhp);
+
+        // Act
+        var result = await _service.DangKyAsync(maSV, maLHP);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains("đã đóng", result.Message);
+        _mockDangKyRepo.Verify(r => r.LuuDangKyAtomicAsync(It.IsAny<DangKyHocPhan>(), It.IsAny<bool>(), It.IsAny<int?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HuyDangKyAsync_HocKyDaDong_NemNgoaiLe()
+    {
+        // Arrange
+        string maSV = "SV001";
+        string maLHP = "LHP_OOP_01";
+        var lhp = CreateSampleLhp(maLHP, "OOP", "Lập trình hướng đối tượng", 2, 1);
+        lhp.HocKy!.DangMo = false;
+
+        var existingDk = new DangKyHocPhan
+        {
+            Id = Guid.NewGuid(),
+            MaSV = maSV,
+            MaLHP = maLHP,
+            TrangThai = "DangHoc",
+            LopHocPhan = lhp
+        };
+
+        _mockDangKyRepo.Setup(r => r.LayTheoMaSVVaMaLHPAsync(maSV, maLHP)).ReturnsAsync(existingDk);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.HuyDangKyAsync(maSV, maLHP));
+        Assert.Contains("đã đóng", ex.Message);
+        _mockDangKyRepo.Verify(r => r.CapNhatAsync(It.IsAny<DangKyHocPhan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DangKyAsync_VuotSiSoAtomic_TraVeLoi()
+    {
+        // Arrange
+        string maSV = "SV001";
+        string maLHP = "LHP_OOP_01";
+        var lhp = CreateSampleLhp(maLHP, "OOP", "Lập trình hướng đối tượng", 2, 1, siSoToiDa: 40);
+        var sv = CreateSampleSv(maSV);
+
+        _mockSvRepo.Setup(r => r.GetByIdAsync(maSV)).ReturnsAsync(sv);
+        _mockLhpRepo.Setup(r => r.GetByIdAsync(maLHP)).ReturnsAsync(lhp);
+        _mockDangKyRepo.Setup(r => r.LayTheoMaSVVaMaLHPAsync(maSV, maLHP)).ReturnsAsync((DangKyHocPhan?)null);
+        _mockDangKyRepo.Setup(r => r.LayDangKyCungMonDangHocAsync(maSV, "OOP", lhp.MaHocKy)).ReturnsAsync((DangKyHocPhan?)null);
+        _mockDangKyRepo.Setup(r => r.DemSiSoDangKyAsync(maLHP)).ReturnsAsync(39); // Đọc ban đầu là 39
+        _mockDangKyRepo.Setup(r => r.LayTheoMaSVVaMaHocKyAsync(maSV, lhp.MaHocKy)).ReturnsAsync(new List<DangKyHocPhan>());
+
+        // Nhưng khi ghi nhận atomic, phát hiện đã đủ sĩ số (Race Condition)
+        _mockDangKyRepo
+            .Setup(r => r.LuuDangKyAtomicAsync(It.IsAny<DangKyHocPhan>(), true, 40))
+            .ReturnsAsync((false, "Lớp học phần đã đủ sĩ số."));
+
+        // Act
+        var result = await _service.DangKyAsync(maSV, maLHP);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains("đã đủ sĩ số", result.Message);
     }
 }

@@ -26,11 +26,58 @@ public class AppDbContext : DbContext
 
     public static string GetPrimarySqlitePath()
     {
-        var folder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuanLyDKHP");
+        // 1. Kiểm tra các vị trí tệp quanlydkhp.db khả dụng trong project hoặc thư mục làm việc
+        var candidates = new[]
+        {
+            Path.Combine(Directory.GetCurrentDirectory(), "QuanLyDKHP", "quanlydkhp.db"),
+            Path.Combine(Directory.GetCurrentDirectory(), "Library", "Application Support", "QuanLyDKHP", "quanlydkhp.db"),
+            Path.Combine(Directory.GetCurrentDirectory(), "quanlydkhp.db"),
+            Path.Combine(AppContext.BaseDirectory, "quanlydkhp.db"),
+            Path.Combine(AppContext.BaseDirectory, "QuanLyDKHP", "quanlydkhp.db")
+        };
+
+        foreach (var c in candidates)
+        {
+            if (File.Exists(c) && new FileInfo(c).Length > 0)
+            {
+                return Path.GetFullPath(c);
+            }
+        }
+
+        // 2. Thử đường dẫn AppData chuẩn của hệ điều hành
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localAppData))
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (string.IsNullOrWhiteSpace(home)) home = Environment.GetEnvironmentVariable("HOME") ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(home))
+            {
+                var macSupport = Path.Combine(home, "Library", "Application Support");
+                localAppData = Directory.Exists(macSupport) ? macSupport : Path.Combine(home, ".local", "share");
+            }
+            else
+            {
+                localAppData = AppContext.BaseDirectory;
+            }
+        }
+
+        var folder = Path.Combine(localAppData, "QuanLyDKHP");
         Directory.CreateDirectory(folder);
-        return Path.Combine(folder, "quanlydkhp.db");
+        var targetDb = Path.Combine(folder, "quanlydkhp.db");
+
+        // Nếu DB ở AppData chưa có dữ liệu, nhưng có tệp có sẵn trong project, tự động copy sang
+        if (!File.Exists(targetDb) || new FileInfo(targetDb).Length == 0)
+        {
+            foreach (var c in candidates)
+            {
+                if (File.Exists(c) && new FileInfo(c).Length > 0)
+                {
+                    try { File.Copy(c, targetDb, true); return targetDb; } catch { }
+                }
+            }
+        }
+
+        return targetDb;
     }
 
     public static async Task EnsureTablesAndSeedAsync(AppDbContext db)

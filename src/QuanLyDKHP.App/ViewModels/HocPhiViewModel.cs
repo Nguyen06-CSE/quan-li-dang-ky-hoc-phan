@@ -93,6 +93,18 @@ public partial class HocPhiViewModel : ObservableObject, IRecipient<DataImported
     private bool _isXemChiTiet;
 
     [ObservableProperty]
+    private bool _isNopTienOpen;
+
+    [ObservableProperty]
+    private HocPhiTongHopDto? _sinhVienNopTien;
+
+    [ObservableProperty]
+    private decimal _soTienNop;
+
+    [ObservableProperty]
+    private string? _thongBaoNopTienLoi;
+
+    [ObservableProperty]
     private bool _isLoading;
 
     [ObservableProperty]
@@ -445,6 +457,77 @@ private async Task InitDataAsync()
     private void DongChiTiet()
     {
         IsXemChiTiet = false;
+    }
+
+    [RelayCommand]
+    private void MoHopThoaiNopTien(HocPhiTongHopDto? sv)
+    {
+        if (sv == null && HocPhiChiTietHienTai != null)
+        {
+            sv = new HocPhiTongHopDto
+            {
+                MaSV = HocPhiChiTietHienTai.MaSV,
+                HoTen = HocPhiChiTietHienTai.HoTen,
+                LopSinhHoat = HocPhiChiTietHienTai.LopSinhHoat,
+                TongSoTinChi = HocPhiChiTietHienTai.TongSoTinChi,
+                TongHocPhi = HocPhiChiTietHienTai.TongHocPhi,
+                DaDong = HocPhiChiTietHienTai.DaDong
+            };
+        }
+
+        if (sv == null) return;
+
+        SinhVienNopTien = sv;
+        SoTienNop = Math.Max(0, sv.ConNo);
+        ThongBaoNopTienLoi = null;
+        IsNopTienOpen = true;
+    }
+
+    [RelayCommand]
+    private void DongHopThoaiNopTien()
+    {
+        IsNopTienOpen = false;
+        ThongBaoNopTienLoi = null;
+    }
+
+    [RelayCommand]
+    private async Task XacNhanNopTienAsync()
+    {
+        if (SinhVienNopTien == null || HocKyDangChon == null) return;
+
+        if (SoTienNop <= 0)
+        {
+            ThongBaoNopTienLoi = "Vui lòng nhập số tiền nộp hợp lệ lớn hơn 0 đ.";
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            bool thanhCong = await _hocPhiService.GhiNhanNopTienAsync(SinhVienNopTien.MaSV, HocKyDangChon.MaHocKy, SoTienNop);
+            if (thanhCong)
+            {
+                ShowMessage($"Đã ghi nhận nộp {SoTienNop:N0} đ cho sinh viên {SinhVienNopTien.HoTen}.", false);
+                IsNopTienOpen = false;
+                await LoadDanhSachTheoPhamViAsync();
+                if (IsXemChiTiet && HocPhiChiTietHienTai != null && HocPhiChiTietHienTai.MaSV == SinhVienNopTien.MaSV)
+                {
+                    await LoadChiTietAsync(SinhVienNopTien.MaSV);
+                }
+            }
+            else
+            {
+                ThongBaoNopTienLoi = "Không thể ghi nhận nộp tiền (sinh viên không có học phần nào đang học trong kỳ).";
+            }
+        }
+        catch (Exception ex)
+        {
+            ThongBaoNopTienLoi = $"Lỗi: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     [RelayCommand]

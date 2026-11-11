@@ -14,6 +14,8 @@ public class LogDongImportDto
 
 public class KetQuaImportDto
 {
+    public string MaHocKy { get; set; } = string.Empty;
+    public string TenHocKy { get; set; } = string.Empty;
     public int TongSoDong { get; set; }
     public int SoDongThanhCong { get; set; }
     public int SoDongLoi { get; set; }

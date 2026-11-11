@@ -37,93 +37,81 @@ public class LocalReadService : ILocalReadService
             .Where(s => listMaSV.Contains(s.MaSV))
             .ToDictionaryAsync(s => s.MaSV);
 
+        // 3. Đơn giá từ CauHinhHeThong
+        var donGiaLTStr = await local.CauHinhHeThongs.AsNoTracking()
+            .Where(c => c.Key == "DonGiaTinChiLT").Select(c => c.Value).FirstOrDefaultAsync();
+        var donGiaTHStr = await local.CauHinhHeThongs.AsNoTracking()
+            .Where(c => c.Key == "DonGiaTinChiTH").Select(c => c.Value).FirstOrDefaultAsync();
+
+        decimal donGiaLT = decimal.TryParse(donGiaLTStr, out var dLT) ? dLT : 500000m;
+        decimal donGiaTH = decimal.TryParse(donGiaTHStr, out var dTH) ? dTH : 700000m;
+
+        // 4. Tải snapshot học phí (nếu có kỳ đã khóa sổ)
+        Dictionary<string, HocPhiHocKy> snapshots = new();
         if (!dangMo)
         {
-            // Học kỳ đã đóng: Đọc trực tiếp từ snapshot
-            var snapshots = await local.HocPhiHocKys.AsNoTracking()
+            snapshots = await local.HocPhiHocKys.AsNoTracking()
                 .Where(h => listMaSV.Contains(h.MaSV) && h.MaHocKy == maHocKy)
                 .ToDictionaryAsync(h => h.MaSV);
-
-            foreach (var maSV in listMaSV)
-            {
-                sinhViens.TryGetValue(maSV, out var svInfo);
-                snapshots.TryGetValue(maSV, out var snap);
-
-                result.Add(new HocPhiTongHopDto
-                {
-                    MaSV = maSV,
-                    HoTen = svInfo?.HoTen ?? maSV,
-                    LopSinhHoat = svInfo?.LopSinhHoat ?? string.Empty,
-                    TongSoTinChi = snap?.TongSoTinChi ?? 0,
-                    TongHocPhi = snap?.TongHocPhi ?? 0,
-                    DaDong = snap?.DaDong ?? 0
-                });
-            }
         }
-        else
+
+        // 5. Đăng ký hiện tại trong học kỳ (dùng cho cả kỳ mở và kỳ đóng chưa có snapshot để không bị 0đ)
+        var dangKyList = await local.DangKyHocPhans.AsNoTracking()
+            .Include(dk => dk.LopHocPhan).ThenInclude(l => l.MonHoc)
+            .Where(dk => listMaSV.Contains(dk.MaSV) && dk.LopHocPhan.MaHocKy == maHocKy && dk.TrangThai == "DangHoc")
+            .ToListAsync();
+
+        var dangKyGroup = dangKyList.GroupBy(dk => dk.MaSV).ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var maSV in listMaSV)
         {
-            // Học kỳ mở: Tính toán live + nợ cũ
-            // Đơn giá từ CauHinhHeThong
-            var donGiaLTStr = await local.CauHinhHeThongs.AsNoTracking()
-                .Where(c => c.Key == "DonGiaTinChiLT").Select(c => c.Value).FirstOrDefaultAsync();
-            var donGiaTHStr = await local.CauHinhHeThongs.AsNoTracking()
-                .Where(c => c.Key == "DonGiaTinChiTH").Select(c => c.Value).FirstOrDefaultAsync();
+            sinhViens.TryGetValue(maSV, out var svInfo);
+            snapshots.TryGetValue(maSV, out var snap);
+            dangKyGroup.TryGetValue(maSV, out var dks);
 
-            decimal donGiaLT = decimal.TryParse(donGiaLTStr, out var dLT) ? dLT : 500000m;
-            decimal donGiaTH = decimal.TryParse(donGiaTHStr, out var dTH) ? dTH : 700000m;
+            int tongTinChi = 0;
+            decimal tongHocPhi = 0;
+            decimal daDong = 0;
 
-            // Nợ cũ: SUM(ConNo) từ các kỳ đã khóa
-            var noCuList = await local.HocPhiHocKys.AsNoTracking()
-                .Where(h => listMaSV.Contains(h.MaSV) && h.DaKhoaSo)
-                .Select(h => new { h.MaSV, h.ConNo })
-                .ToListAsync();
-
-            var noCuDict = noCuList
-                .GroupBy(h => h.MaSV)
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.ConNo));
-
-            // Đăng ký hiện tại
-            var dangKyList = await local.DangKyHocPhans.AsNoTracking()
-                .Include(dk => dk.LopHocPhan).ThenInclude(l => l.MonHoc)
-                .Where(dk => listMaSV.Contains(dk.MaSV) && dk.LopHocPhan.MaHocKy == maHocKy && dk.TrangThai == "DangHoc")
-                .ToListAsync();
-
-            var dangKyGroup = dangKyList.GroupBy(dk => dk.MaSV).ToDictionary(g => g.Key, g => g.ToList());
-
-            foreach (var maSV in listMaSV)
+            if (snap != null)
             {
-                sinhViens.TryGetValue(maSV, out var svInfo);
-                dangKyGroup.TryGetValue(maSV, out var dks);
-                noCuDict.TryGetValue(maSV, out var noCu);
-
-                int tongTinChi = 0;
-                decimal tongHocPhi = noCu; // Khởi tạo tổng học phí = nợ cũ
-                decimal daDong = 0;
-
-                if (dks != null)
-                {
-                    foreach (var dk in dks)
-                    {
-                        if (dk.LopHocPhan?.MonHoc != null)
-                        {
-                            var mon = dk.LopHocPhan.MonHoc;
-                            tongTinChi += (mon.SoTinChiLT + mon.SoTinChiTH);
-                            tongHocPhi += (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
-                        }
-                        daDong += dk.SoTienDaDong;
-                    }
-                }
-
-                result.Add(new HocPhiTongHopDto
-                {
-                    MaSV = maSV,
-                    HoTen = svInfo?.HoTen ?? maSV,
-                    LopSinhHoat = svInfo?.LopSinhHoat ?? string.Empty,
-                    TongSoTinChi = tongTinChi,
-                    TongHocPhi = tongHocPhi,
-                    DaDong = daDong
-                });
+                // Nếu học kỳ đã đóng và đã có bản ghi snapshot khóa sổ: dùng số liệu bất biến
+                tongTinChi = snap.TongSoTinChi;
+                tongHocPhi = snap.TongHocPhi;
+                daDong = snap.DaDong;
             }
+            else if (dks != null && dks.Count > 0)
+            {
+                // Thống nhất 1 công thức tính học phí duy nhất giữa màn hình danh sách và chi tiết:
+                // Học phí = Tổng các môn [ SoTienPhaiDong (nếu có) hoặc (SoTinChiLT * DonGiaLT + SoTinChiTH * DonGiaTH) ]
+                foreach (var dk in dks)
+                {
+                    if (dk.LopHocPhan?.MonHoc != null)
+                    {
+                        var mon = dk.LopHocPhan.MonHoc;
+                        tongTinChi += (mon.SoTinChiLT + mon.SoTinChiTH);
+                        decimal hocPhiMon = (dk.SoTienPhaiDong.HasValue && dk.SoTienPhaiDong.Value > 0)
+                            ? dk.SoTienPhaiDong.Value
+                            : (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                        tongHocPhi += hocPhiMon;
+                    }
+                    else if (dk.SoTienPhaiDong.HasValue)
+                    {
+                        tongHocPhi += dk.SoTienPhaiDong.Value;
+                    }
+                    daDong += dk.SoTienDaDong;
+                }
+            }
+
+            result.Add(new HocPhiTongHopDto
+            {
+                MaSV = maSV,
+                HoTen = svInfo?.HoTen ?? maSV,
+                LopSinhHoat = svInfo?.LopSinhHoat ?? string.Empty,
+                TongSoTinChi = tongTinChi,
+                TongHocPhi = tongHocPhi,
+                DaDong = daDong
+            });
         }
 
         return result;

@@ -22,7 +22,7 @@ public class ImportExcelService : IImportExcelService
 
     public Task<KetQuaImportDto> ImportFileAsync(
         Stream stream,
-        string maHocKy,
+        string? maHocKy = null,
         IProgress<int>? progress = null,
         CancellationToken cancellationToken = default)
     {

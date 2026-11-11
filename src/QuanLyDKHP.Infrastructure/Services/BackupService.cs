@@ -46,8 +46,8 @@ public class BackupService : IBackupService
         _remoteFactory = remoteFactory;
 
         var baseBackupDir = customBackupDir ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "QuanLyDKHP", "Backups");
+            Path.GetDirectoryName(AppDbContext.GetPrimarySqlitePath()) ?? AppContext.BaseDirectory,
+            "Backups");
         _gitDir = Path.Combine(baseBackupDir, "GitRepo");
         _tablesDir = Path.Combine(_gitDir, "tables");
         _snapshotPath = Path.Combine(baseBackupDir, "latest_snapshot.db");

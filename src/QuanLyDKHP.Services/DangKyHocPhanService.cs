@@ -23,6 +23,7 @@ public class DangKyHocPhanService : IDangKyHocPhanService
     private readonly ICauHinhService _cauHinhService;
     private readonly IHocPhiService _hocPhiService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IHocKyRepository? _hocKyRepo;
 
     public DangKyHocPhanService(
         IDangKyHocPhanRepository dangKyRepo,
@@ -30,7 +31,8 @@ public class DangKyHocPhanService : IDangKyHocPhanService
         ISinhVienRepository sinhVienRepo,
         ICauHinhService cauHinhService,
         IHocPhiService hocPhiService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IHocKyRepository? hocKyRepo = null)
     {
         _dangKyRepo = dangKyRepo;
         _lopHocPhanRepo = lopHocPhanRepo;
@@ -38,6 +40,7 @@ public class DangKyHocPhanService : IDangKyHocPhanService
         _cauHinhService = cauHinhService;
         _hocPhiService = hocPhiService;
         _currentUserService = currentUserService;
+        _hocKyRepo = hocKyRepo;
     }
 
     public async Task<List<DangKyHocPhan>> LayDanhSachDangKyAsync(string maSV, string maHocKy)
@@ -78,6 +81,13 @@ public class DangKyHocPhanService : IDangKyHocPhanService
         var sv = await _sinhVienRepo.GetByIdAsync(maSV);
         if (sv == null)
             return DangKyResult.Fail($"Không tìm thấy sinh viên '{maSV}'.");
+
+        // 0. Kiểm tra học kỳ đang mở (DangMo == true): chỉ cho phép đăng ký khi học kỳ đang mở
+        var hocKy = lhp.HocKy ?? (_hocKyRepo != null ? await _hocKyRepo.GetByIdAsync(lhp.MaHocKy) : null);
+        if (hocKy != null && !hocKy.DangMo)
+        {
+            return DangKyResult.Fail($"Học kỳ '{hocKy.TenHocKy}' đã đóng. Không thể đăng ký học phần trong học kỳ này.");
+        }
 
         // 1. Kiểm tra trùng LHP: SV đã đăng ký đúng MaLHP này với TrangThai = DangHoc chưa?
         var existingDkLhp = await _dangKyRepo.LayTheoMaSVVaMaLHPAsync(maSV, maLHP);
@@ -160,8 +170,10 @@ public class DangKyHocPhanService : IDangKyHocPhanService
             return DangKyResult.Fail($"Vượt quá số tín chỉ tối đa cho phép ({soTinChiToiDa} tín chỉ).");
         }
 
-        // 5. Tạo mới hoặc cập nhật bản ghi DangKyHocPhan
+        // 5. Ghi nhận đăng ký học phần kèm kiểm tra sĩ số nguyên tử (Atomic / Transaction)
         string nguoiDk = _currentUserService.CurrentUser?.TenDangNhap ?? "admin";
+        DangKyHocPhan dkToSave;
+        bool laTaoMoi = (existingDkLhp == null);
 
         if (existingDkLhp != null)
         {
@@ -170,11 +182,11 @@ public class DangKyHocPhanService : IDangKyHocPhanService
             existingDkLhp.NgayDK = DateTime.UtcNow;
             existingDkLhp.NguoiDK = nguoiDk;
             existingDkLhp.HinhThucDK = "KH";
-            await _dangKyRepo.CapNhatAsync(existingDkLhp);
+            dkToSave = existingDkLhp;
         }
         else
         {
-            var newDk = new DangKyHocPhan
+            dkToSave = new DangKyHocPhan
             {
                 Id = Guid.NewGuid(),
                 MaSV = maSV,
@@ -185,7 +197,12 @@ public class DangKyHocPhanService : IDangKyHocPhanService
                 HinhThucDK = "KH",
                 SoTienDaDong = 0
             };
-            await _dangKyRepo.ThemAsync(newDk);
+        }
+
+        var kqAtomic = await _dangKyRepo.LuuDangKyAtomicAsync(dkToSave, laTaoMoi, lhp.SiSoToiDa);
+        if (!kqAtomic.ThanhCong)
+        {
+            return DangKyResult.Fail(kqAtomic.ThongBaoLoi ?? "Lớp học phần đã đủ sĩ số.");
         }
 
         // 6. Gọi HocPhiService.TinhLaiHocPhiAsync
@@ -209,22 +226,22 @@ public class DangKyHocPhanService : IDangKyHocPhanService
             throw new InvalidOperationException("Không tìm thấy đăng ký học phần đang học để hủy.");
         }
 
-        // Lấy MaHocKy TRƯỚC khi gọi CapNhatAsync: CapNhatAsync sẽ gán dk.LopHocPhan = null
-        // (cắt navigation để tránh ghi đè nhầm bảng LopHocPhan — xem comment trong
-        // DangKyHocPhanRepository.CapNhatAsync) ngay trên CHÍNH tham chiếu "dk" này, nên nếu đọc
-        // dk.LopHocPhan SAU khi gọi CapNhatAsync thì luôn luôn là null, dẫn tới việc phải truy vấn
-        // lại LHP một cách không cần thiết (không sai kết quả nhờ fallback bên dưới, nhưng dư 1
-        // lần query DB và dễ gây nhầm lẫn khi đọc code).
+        // Kiểm tra học kỳ đang mở trước khi cho phép hủy
         string maHocKy = dk.LopHocPhan?.MaHocKy ?? string.Empty;
-
-        dk.TrangThai = "DaHuy";
-        await _dangKyRepo.CapNhatAsync(dk);
-
         if (string.IsNullOrEmpty(maHocKy))
         {
             var lhp = await _lopHocPhanRepo.GetByIdAsync(maLHP);
             maHocKy = lhp?.MaHocKy ?? string.Empty;
         }
+
+        var hocKy = dk.LopHocPhan?.HocKy ?? (_hocKyRepo != null && !string.IsNullOrEmpty(maHocKy) ? await _hocKyRepo.GetByIdAsync(maHocKy) : null);
+        if (hocKy != null && !hocKy.DangMo)
+        {
+            throw new InvalidOperationException($"Học kỳ '{hocKy.TenHocKy}' đã đóng. Không thể hủy đăng ký học phần trong học kỳ này.");
+        }
+
+        dk.TrangThai = "DaHuy";
+        await _dangKyRepo.CapNhatAsync(dk);
 
         if (!string.IsNullOrEmpty(maHocKy))
         {

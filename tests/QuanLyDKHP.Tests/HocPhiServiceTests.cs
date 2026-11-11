@@ -273,4 +273,41 @@ public class HocPhiServiceTests
         Assert.Equal(1700000m, daCapNhat.Single(x => x.Id == dkSv2.Id).SoTien);
         Assert.Equal(0m, daCapNhat.Single(x => x.Id == dkSv2Huy.Id).SoTien);
     }
+
+    [Fact]
+    public async Task GhiNhanNopTienAsync_HopLe_PhanBoSoTienDaDongVaGoiRepo()
+    {
+        // Arrange
+        string maSV = "SV001";
+        string maHK = "HK1_2026_2027";
+
+        var dk1 = CreateDangKy("LHP01", "CSDL", "Cơ sở dữ liệu", 3, 0, soTienDaDong: 500000);
+        dk1.SoTienPhaiDong = 1500000m; // Còn nợ 1,000,000
+        var dk2 = CreateDangKy("LHP02", "OOP", "Lập trình hướng đối tượng", 2, 1, soTienDaDong: 0);
+        dk2.SoTienPhaiDong = 1700000m; // Còn nợ 1,700,000
+
+        _mockDangKyRepo
+            .Setup(r => r.LayTheoMaSVVaMaHocKyAsync(maSV, maHK))
+            .ReturnsAsync(new List<DangKyHocPhan> { dk1, dk2 });
+
+        List<(Guid Id, decimal SoTienDaDong)>? daCapNhat = null;
+        _mockDangKyRepo
+            .Setup(r => r.CapNhatSoTienDaDongAsync(It.IsAny<IEnumerable<(Guid, decimal)>>()))
+            .Callback<IEnumerable<(Guid, decimal)>>(x => daCapNhat = x.ToList())
+            .Returns(Task.CompletedTask);
+
+        // Act: Sinh viên nộp 1,500,000 (đủ trả 1,000,000 cho dk1 và còn dư 500,000 cho dk2)
+        bool success = await _service.GhiNhanNopTienAsync(maSV, maHK, 1500000m);
+
+        // Assert
+        Assert.True(success);
+        Assert.NotNull(daCapNhat);
+        Assert.Equal(2, daCapNhat!.Count);
+
+        // DK1 đã đóng: 500,000 cũ + 1,000,000 mới = 1,500,000
+        Assert.Equal(1500000m, daCapNhat.Single(x => x.Id == dk1.Id).SoTienDaDong);
+        // DK2 đã đóng: 0 cũ + 500,000 mới = 500,000
+        Assert.Equal(500000m, daCapNhat.Single(x => x.Id == dk2.Id).SoTienDaDong);
+        _mockDangKyRepo.Verify(r => r.CapNhatSoTienDaDongAsync(It.IsAny<IEnumerable<(Guid, decimal)>>()), Times.Once);
+    }
 }

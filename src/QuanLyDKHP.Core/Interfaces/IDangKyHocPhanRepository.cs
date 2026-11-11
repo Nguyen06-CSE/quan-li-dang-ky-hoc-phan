@@ -19,4 +19,13 @@ public interface IDangKyHocPhanRepository
 
     /// <summary>Cập nhật riêng cột SoTienPhaiDong cho nhiều đăng ký, gom thành ít lần SaveChanges.</summary>
     Task CapNhatSoTienPhaiDongAsync(IEnumerable<(Guid Id, decimal SoTien)> capNhat);
+
+    /// <summary>Cập nhật số tiền đã đóng cho các đăng ký học phần.</summary>
+    Task CapNhatSoTienDaDongAsync(IEnumerable<(Guid Id, decimal SoTienDaDong)> capNhat);
+
+    /// <summary>
+    /// Ghi nhận đăng ký học phần nguyên tử (Atomic Transaction):
+    /// Kiểm tra sĩ số thực tế ngay trong transaction để ngăn chặn tuyệt đối Race Condition.
+    /// </summary>
+    Task<(bool ThanhCong, string? ThongBaoLoi)> LuuDangKyAtomicAsync(DangKyHocPhan dk, bool laTaoMoi, int? siSoToiDa);
 }

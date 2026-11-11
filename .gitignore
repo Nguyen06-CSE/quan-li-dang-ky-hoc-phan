@@ -45,6 +45,15 @@ Library/
 .env
 *.local
 appsettings.Local.json
+remember-me.json
+nuget.config
+
+# --- SQLite Local Database Files ---
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
 
 # --- Các file script tạm (nếu bạn không muốn commit các script này) ---
 # Lưu ý: Nếu đây là script cần thiết cho dự án, hãy xóa hoặc comment các dòng dưới đây

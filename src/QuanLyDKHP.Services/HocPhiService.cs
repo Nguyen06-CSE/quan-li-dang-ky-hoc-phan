@@ -104,7 +104,10 @@ public class HocPhiService : IHocPhiService
             if (dk.LopHocPhan?.MonHoc != null)
             {
                 var mon = dk.LopHocPhan.MonHoc;
-                decimal thanhTien = (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                decimal thanhTien = (dk.SoTienPhaiDong.HasValue && dk.SoTienPhaiDong.Value > 0)
+                    ? dk.SoTienPhaiDong.Value
+                    : (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+
                 chiTiet.DanhSachMon.Add(new HocPhiChiTietMonDto
                 {
                     MaLHP = dk.MaLHP,
@@ -119,6 +122,11 @@ public class HocPhiService : IHocPhiService
 
                 chiTiet.TongSoTinChi += (mon.SoTinChiLT + mon.SoTinChiTH);
                 chiTiet.TongHocPhi += thanhTien;
+                chiTiet.DaDong += dk.SoTienDaDong;
+            }
+            else if (dk.SoTienPhaiDong.HasValue)
+            {
+                chiTiet.TongHocPhi += dk.SoTienPhaiDong.Value;
                 chiTiet.DaDong += dk.SoTienDaDong;
             }
         }
@@ -189,7 +197,10 @@ public class HocPhiService : IHocPhiService
                     {
                         var mon = dk.LopHocPhan.MonHoc;
                         tongTinChi += (mon.SoTinChiLT + mon.SoTinChiTH);
-                        tongHocPhi += (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                        decimal hocPhiMon = (dk.SoTienPhaiDong.HasValue && dk.SoTienPhaiDong.Value > 0)
+                            ? dk.SoTienPhaiDong.Value
+                            : (mon.SoTinChiLT * donGiaLT) + (mon.SoTinChiTH * donGiaTH);
+                        tongHocPhi += hocPhiMon;
                     }
                     else if (dk.SoTienPhaiDong.HasValue)
                     {
@@ -212,5 +223,57 @@ public class HocPhiService : IHocPhiService
         }
 
         return result;
+    }
+
+    public async Task<bool> GhiNhanNopTienAsync(string maSV, string maHocKy, decimal soTienNop)
+    {
+        if (string.IsNullOrWhiteSpace(maSV) || string.IsNullOrWhiteSpace(maHocKy) || soTienNop <= 0)
+            return false;
+
+        var danhSachDangKy = await _dangKyRepo.LayTheoMaSVVaMaHocKyAsync(maSV, maHocKy);
+        var activeList = danhSachDangKy.Where(d => d.TrangThai == "DangHoc").ToList();
+        if (activeList.Count == 0) return false;
+
+        decimal donGiaLT = await _cauHinhService.GetDecimal("DonGiaTinChiLT");
+        decimal donGiaTH = await _cauHinhService.GetDecimal("DonGiaTinChiTH");
+
+        decimal soTienConLai = soTienNop;
+        var capNhatList = new List<(Guid Id, decimal SoTienDaDong)>();
+
+        // 1. Phân bổ tiền nộp cho các môn còn nợ học phí trong kỳ
+        foreach (var dk in activeList)
+        {
+            decimal phaiDong = (dk.SoTienPhaiDong.HasValue && dk.SoTienPhaiDong.Value > 0)
+                ? dk.SoTienPhaiDong.Value
+                : (dk.LopHocPhan?.MonHoc != null ? (dk.LopHocPhan.MonHoc.SoTinChiLT * donGiaLT + dk.LopHocPhan.MonHoc.SoTinChiTH * donGiaTH) : 0);
+
+            decimal daDongHienTai = dk.SoTienDaDong;
+            decimal conThieu = Math.Max(0, phaiDong - daDongHienTai);
+
+            if (conThieu > 0 && soTienConLai > 0)
+            {
+                decimal nopThem = Math.Min(conThieu, soTienConLai);
+                decimal daDongMoi = daDongHienTai + nopThem;
+                capNhatList.Add((dk.Id, daDongMoi));
+                soTienConLai -= nopThem;
+            }
+        }
+
+        // 2. Nếu sinh viên nộp vượt số tiền còn nợ, cộng dồn phần dư vào môn học phần đầu tiên
+        if (soTienConLai > 0 && activeList.Count > 0)
+        {
+            var first = activeList[0];
+            var existing = capNhatList.FirstOrDefault(x => x.Id == first.Id);
+            decimal curDaDong = existing != default ? existing.SoTienDaDong : first.SoTienDaDong;
+            capNhatList.RemoveAll(x => x.Id == first.Id);
+            capNhatList.Add((first.Id, curDaDong + soTienConLai));
+        }
+
+        if (capNhatList.Count > 0)
+        {
+            await _dangKyRepo.CapNhatSoTienDaDongAsync(capNhatList);
+        }
+
+        return true;
     }
 }

@@ -77,10 +77,11 @@ public class HocKyService : IHocKyService
         existing.TenHocKy = hocKy.TenHocKy;
         existing.NgayBatDau = hocKy.NgayBatDau;
         existing.NgayKetThuc = hocKy.NgayKetThuc;
+        existing.DangMo = hocKy.DangMo;
 
         await _hocKyRepository.CapNhatAsync(existing);
 
-        if (hocKy.DangMo && !existing.DangMo)
+        if (hocKy.DangMo)
         {
             await _hocKyRepository.DatHocKyHienHanhAsync(hocKy.MaHocKy);
         }

@@ -13,7 +13,9 @@ Tổ chức cấu trúc thời gian đào tạo và mở các lớp học phần
 ### Các tính năng chính
 1. **Quản lý Học kỳ Đào tạo:**
    * Khai báo thông tin học kỳ: Mã học kỳ (VD: `HK1_2026_2027`), Tên học kỳ, Năm học, Ngày bắt đầu, Ngày kết thúc.
-   * **Quy tắc Duy nhất một học kỳ mở:** Hệ thống bảo đảm chỉ có duy nhất một học kỳ mang cờ `DangMo = true`. Khi giáo vụ kích hoạt mở một kỳ mới, kỳ trước đó sẽ tự động đóng lại.
+   * **Cơ chế Đóng/Mở học kỳ linh hoạt:** Quản trị viên có thể kích hoạt mở học kỳ hiện hành hoặc chủ động đóng học kỳ kết thúc thông qua `HocKyService.CapNhatAsync(hocKy)` (cập nhật đồng bộ cờ `DangMo = false`).
+   * **Quy tắc Duy nhất một học kỳ mở:** Hệ thống bảo đảm chỉ có duy nhất một học kỳ mang cờ `DangMo = true`. Khi giáo vụ kích hoạt mở một kỳ mới, phương thức `DatHocKyHienHanhAsync` sẽ tự động đóng toàn bộ các học kỳ còn lại.
+   * **Đồng nhất định danh ComboBox (`IEquatable<HocKy>`):** Thực thể `HocKy` ghi đè phương thức `Equals` và `GetHashCode` dựa theo `MaHocKy`, đảm bảo các điều khiển `ComboBox` và bộ lọc dữ liệu nhận diện chính xác học kỳ đã chọn, không bị lỗi mất lựa chọn khi nạp lại cache.
 2. **Quản lý Lớp học phần:**
    * Mở lớp học phần gắn liền với một môn học và học kỳ đang mở.
    * Phân công Giảng viên giảng dạy từ danh sách cán bộ có quyền `GiangVien`.

@@ -118,4 +118,70 @@ public class DangKyHocPhanRepository : IDangKyHocPhanRepository
         }
         await _context.SaveChangesAsync();
     }
+
+    public async Task CapNhatSoTienDaDongAsync(IEnumerable<(Guid Id, decimal SoTienDaDong)> capNhat)
+    {
+        var danhSach = capNhat.ToList();
+        if (danhSach.Count == 0) return;
+
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+        foreach (var (id, soTien) in danhSach)
+        {
+            var stub = new DangKyHocPhan { Id = id, SoTienDaDong = soTien };
+            _context.DangKyHocPhans.Attach(stub);
+            _context.Entry(stub).Property(d => d.SoTienDaDong).IsModified = true;
+        }
+        await _context.SaveChangesAsync();
+    }
+
+    private static readonly System.Threading.SemaphoreSlim _dangKyLock = new(1, 1);
+
+    public async Task<(bool ThanhCong, string? ThongBaoLoi)> LuuDangKyAtomicAsync(DangKyHocPhan dk, bool laTaoMoi, int? siSoToiDa)
+    {
+        await _dangKyLock.WaitAsync();
+        try
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (siSoToiDa.HasValue && siSoToiDa.Value > 0)
+                {
+                    int siSoHienTai = await _context.DangKyHocPhans
+                        .CountAsync(d => d.MaLHP == dk.MaLHP && d.TrangThai == "DangHoc" && d.MaSV != dk.MaSV);
+
+                    if (siSoHienTai >= siSoToiDa.Value)
+                    {
+                        await transaction.RollbackAsync();
+                        return (false, "Lớp học phần đã đủ sĩ số.");
+                    }
+                }
+
+                dk.SinhVien = null!;
+                dk.LopHocPhan = null!;
+
+                if (laTaoMoi)
+                {
+                    _context.DangKyHocPhans.Add(dk);
+                }
+                else
+                {
+                    _context.DangKyHocPhans.Update(dk);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return (false, $"Lỗi ghi nhận đăng ký: {ex.Message}");
+            }
+        }
+        finally
+        {
+            _dangKyLock.Release();
+        }
+    }
 }

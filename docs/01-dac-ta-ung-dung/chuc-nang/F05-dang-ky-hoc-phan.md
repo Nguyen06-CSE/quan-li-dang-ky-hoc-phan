@@ -12,13 +12,15 @@ sidebar_position: 5
 
 ---
 
-## 2. Quy Trình Xác Thực 6 Bước Tuần Tự (6-Step Validation Pipeline)
+## 2. Quy Trình Xác Thực 7 Bước Tuần Tự (7-Step Validation Pipeline)
 
-Mỗi lượt đăng ký được thực thi qua phương thức `DangKyHocPhanService.DangKyAsync`, vượt qua 6 chốt chặn logic:
+Mỗi lượt đăng ký được thực thi qua phương thức `DangKyHocPhanService.DangKyAsync`, vượt qua 7 chốt chặn logic bảo đảm toàn vẹn đào tạo:
 
 ```mermaid
 flowchart TD
-    Start["Giáo vụ chọn Sinh viên & Lớp học phần -> Bấm Đăng ký"] --> Step1{"Bước 1: Trùng Lớp học phần đang học?"}
+    Start["Giáo vụ chọn Sinh viên & Lớp học phần -> Bấm Đăng ký"] --> Step0{"Bước 0: Học kỳ đang Mở (DangMo = true)?"}
+    Step0 -- Đã đóng --> Reject0["Chặn cứng: Học kỳ đã đóng, không nhận đăng ký"]
+    Step0 -- Đang mở --> Step1{"Bước 1: Trùng Lớp học phần đang học?"}
     Step1 -- Có --> Reject1["Chặn cứng: Sinh viên đã đăng ký lớp học phần này"]
     Step1 -- Không --> Step2{"Bước 2: Trùng Môn học khác lớp?"}
     Step2 -- Có & Chưa Confirm --> ConfirmDialog["Cảnh báo mềm: Môn học đã được đăng ký ở lớp khác. Xác nhận học lại/cải thiện?"]
@@ -30,18 +32,20 @@ flowchart TD
     Step35 -- Trùng lịch --> Reject35["Chặn cứng: Trùng lịch học với lớp khác đang học"]
     Step35 -- Không trùng --> Step4{"Bước 4: Vượt giới hạn Tín chỉ tối đa?"}
     Step4 -- Vượt quá --> Reject4["Chặn cứng: Vượt tổng số tín chỉ tối đa theo cấu hình"]
-    Step4 -- Hợp lệ --> Step5["Bước 5: Ghi nhận Đăng ký (Tạo mới hoặc Tái kích hoạt bản ghi đã hủy)"]
+    Step4 -- Hợp lệ --> Step5["Bước 5: Ghi nhận Đăng ký Atomic Transaction (Chống Race Condition)"]
     Step5 --> Step6["Bước 6: Tự động tính toán lại học phí real-time"]
     Step6 --> Success["Thông báo Đăng ký thành công & Cập nhật giao diện 0ms"]
 ```
 
 ### Chi tiết các bước kiểm tra
+0. **Kiểm tra Học kỳ đang mở (Bước 0 - Chặn cứng):** Xác thực trạng thái `DangMo == true` của học kỳ tương ứng với lớp học phần. Nếu học kỳ đã kết thúc hoặc bị đóng bởi ban quản lý đào tạo, hệ thống lập tức từ chối thao tác đăng ký và hủy đăng ký.
 1. **Kiểm tra trùng Lớp học phần (Chặn cứng):** Kiểm tra xem sinh viên đã có bản ghi đăng ký LHP này với trạng thái `DangHoc` trong học kỳ hay chưa. Nếu có, báo lỗi từ chối ngay lập tức.
 2. **Kiểm tra trùng Môn học (Cảnh báo mềm):** Trường hợp sinh viên đã đăng ký một lớp khác của cùng môn học này, hệ thống bật hộp thoại thông báo: *"Sinh viên đã đăng ký môn học này ở lớp học phần [Mã LHP]. Bạn có chắc chắn muốn đăng ký lớp mới (học lại/học cải thiện) không?"*. Chỉ khi giáo vụ xác nhận tiếp tục, luồng xử lý mới đi tiếp.
-3. **Kiểm tra Sĩ số tối đa (Chặn cứng):** Lấy số lượng bản ghi `DangHoc` thực tế. Nếu `SiSoHienTai >= SiSoToiDa`, hệ thống từ chối ghi nhận để bảo đảm quy mô lớp học.
+3. **Kiểm tra Sĩ số tối đa sơ bộ (Chặn cứng):** Lấy số lượng bản ghi `DangHoc` hiện có. Nếu `SiSoHienTai >= SiSoToiDa`, hệ thống từ chối ghi nhận để bảo đảm quy mô lớp học.
 4. **Kiểm tra Trùng lịch học (Bước 3.5 - Chặn cứng):** So sánh Thứ và khoảng tiết `[TietBatDau, TietBatDau + SoTiet - 1]` của LHP đang đăng ký với tất cả các LHP mà sinh viên đang học. Nếu phát hiện giao nhau, hệ thống trả về thông báo lỗi chi tiết nêu rõ tên môn và khoảng tiết bị xung đột.
 5. **Kiểm tra Giới hạn Tín chỉ (Chặn cứng):** Tổng số tín chỉ đang học cộng với số tín chỉ của môn mới không được vượt quá tham số `SoTinChiToiDa` (quy định tại bảng cấu hình hệ thống).
-6. **Lưu bản ghi & Kích hoạt tính học phí:** 
+6. **Lưu bản ghi nguyên tử (Atomic Check chống Race Condition) & Kích hoạt tính học phí:** 
+   * **Xử lý Race Condition:** Sử dụng phương thức `LuuDangKyAtomicAsync` với khóa đồng bộ đa tầng (`SemaphoreSlim` kết hợp `BeginTransactionAsync`). Trong phạm vi giao dịch, hệ thống đếm lại sĩ số tức thời của lớp học phần trước khi thực hiện lệnh `INSERT`/`UPDATE`. Nếu xuất hiện trường hợp 2 yêu cầu đồng thời cùng đăng ký vào chỗ trống cuối cùng, giao dịch đến sau sẽ tự động rollback và trả về thông báo *"Lớp học phần đã đủ sĩ số"*.
    * Nếu sinh viên chưa từng đăng ký: Tạo mới bản ghi `DangKyHocPhan` với `TrangThai = DangHoc`.
    * Nếu sinh viên từng đăng ký rồi hủy trước đó: Tái kích hoạt bản ghi cũ, chuyển `TrangThai = DangHoc` nhằm bảo toàn khóa chính.
    * Kích hoạt tự động dịch vụ `HocPhiService.TinhLaiHocPhiAsync` để cập nhật tổng tiền phải đóng.
@@ -51,6 +55,7 @@ flowchart TD
 ## 3. Quy Trình Hủy Đăng Ký Học Phần (Soft Cancel)
 
 Khi sinh viên muốn rút bớt học phần:
+* **Kiểm tra trạng thái học kỳ:** Bắt buộc học kỳ phải đang mở (`DangMo == true`). Nếu học kỳ đã đóng, hệ thống chặn không cho phép rút học phần.
 * Hệ thống **không xóa cứng bản ghi** khỏi CSDL để lưu lại vết lịch sử giao dịch đào tạo.
 * Trạng thái bản ghi được chuyển thành `TrangThai = DaHuy`.
 * Sĩ số lớp học phần tự động giảm đi 1 chỗ trống cho sinh viên khác.

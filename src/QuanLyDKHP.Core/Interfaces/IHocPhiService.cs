@@ -12,4 +12,7 @@ public interface IHocPhiService
     /// <summary>Tính lại học phí cho nhiều sinh viên cùng lúc (dùng khi import): ít truy vấn, ghi theo lô.</summary>
     Task TinhLaiHocPhiHangLoatAsync(IEnumerable<string> dsMaSV, string maHocKy);
     Task<List<HocPhiTongHopDto>> TinhHocPhiTheoDanhSachAsync(IEnumerable<string> dsMaSV, string maHocKy);
+
+    /// <summary>Ghi nhận nộp tiền học phí của sinh viên trong một học kỳ.</summary>
+    Task<bool> GhiNhanNopTienAsync(string maSV, string maHocKy, decimal soTienNop);
 }
