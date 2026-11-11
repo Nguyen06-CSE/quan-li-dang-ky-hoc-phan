@@ -200,3 +200,33 @@ Trong quá trình phát triển ứng dụng Desktop phức tạp với cơ sở
   3. **Thống nhất 1 công thức tính học phí duy nhất:** Đồng bộ hóa công thức giữa `GetHocPhiTheoDanhSachLocalAsync` và `TinhHocPhiSinhVienAsync`: `Tổng Học Phí = Tổng các môn [SoTienPhaiDong hoặc (LT * ĐG_LT + TH * ĐG_TH)]`, `Còn Nợ = Tổng Học Phí - Đã Đóng`.
   4. **Cơ chế Fallback chống lỗi 0đ kỳ đã đóng:** Trong `LocalReadService`, nếu `!dangMo` mà chưa có snapshot `HocPhiHocKy`, hệ thống tự động fallback tính toán trực tiếp từ bảng `DangKyHocPhan` của học kỳ đó, bảo đảm dữ liệu luôn hiển thị đúng.
   5. **Bổ sung chức năng Ghi nhận nộp tiền:** Thêm phương thức `GhiNhanNopTienAsync` tự động phân bổ tiền nộp cho các môn còn nợ; tích hợp nút "Ghi nhận nộp tiền" trực tiếp trên hàng của bảng và modal xem chi tiết, đi kèm hộp thoại nhập số tiền nộp thân thiện.
+
+---
+
+### ERR-12: Sự Cố Quản Lý Danh Mục (Tái tạo mã sau Soft-Delete, Thống nhất Giảng viên, Chặn mở khóa tự ý & Chặn đổi môn LHP)
+* **Thời điểm phát hiện:** 11/11/2026.
+* **Mức độ nghiêm trọng:** 🔴 Nghiêm trọng (Gây crash ứng dụng do lỗi UNIQUE constraint trong CSDL, sai lệch thông tin giảng viên và vô tình mở khóa tài khoản bị vô hiệu hóa).
+* **Mô tả hiện tượng:**
+  1. Khi xóa mềm (`IsDeleted = true`) một sinh viên, môn học, lớp học phần hoặc tài khoản người dùng, sau đó tạo mới lại với cùng mã/tên đăng nhập, hàm `TonTaiAsync` chỉ lọc `!IsDeleted` nên báo không trùng. Khi CSDL lưu thì xảy ra crash lỗi vi phạm khóa chính hoặc chỉ mục duy nhất (`UNIQUE constraint failed` / `duplicate key value violates unique constraint`).
+  2. Không thống nhất giữa `MaGV` và `TenDangNhap`: Khi giáo vụ chọn giảng viên cho LHP, hệ thống lưu `TenDangNhap` thay vì `MaGV` (hoặc ngược lại). Khi hiển thị trên bảng đăng ký và dashboard giảng viên, việc tìm kiếm theo từ điển chỉ hỗ trợ 1 loại khóa dẫn đến bị hiện "Chưa phân công" hoặc giảng viên không thấy lớp mình dạy.
+  3. Mở khóa tài khoản tự ý: Tại hộp thoại sửa thông tin người dùng (`NguoiDungViewModel`), hàm lưu hardcode `TrangThai = "HoatDong"`. Nếu tài khoản trước đó đang bị khóa (`DaKhoa`), chỉ cần admin bấm sửa họ tên hoặc vai trò là tài khoản tự động được mở khóa.
+  4. Lớp học phần đã có sinh viên đăng ký vẫn cho phép giáo vụ chỉnh sửa đổi sang môn học khác (`MaMon`), dẫn tới sai lệch toàn bộ danh mục đăng ký và học phí của sinh viên đã đăng ký trước đó.
+* **Nguyên nhân gốc rễ:**
+  * Lệnh `ThemAsync` ở các Repository luôn gọi `Add(entity)` mà không kiểm tra xem bản ghi đã từng tồn tại trong CSDL dưới dạng xóa mềm hay chưa.
+  * Thiếu ánh xạ hai chiều giữa `MaGV` và `TenDangNhap` trong `LopHocPhanEditDialogViewModel`, `HocKyLopHocPhanViewModel`, `DangKyHocPhanViewModel` và `DashboardRepository`.
+  * `NguoiDungViewModel.MoDialogSua` không lưu giữ `user.TrangThai` và `CapNhatAsync` ghi đè giá trị này.
+  * `LopHocPhanService.CapNhatAsync` thiếu điều kiện chặn đổi `MaMon` khi `CoDangKyHocPhanAsync(maLHP) == true`.
+* **Phương án khắc phục:**
+  1. **Cơ chế Tái kích hoạt sau Xóa mềm (Soft-Delete Reactivation):** Trong `SinhVienRepository`, `MonHocRepository`, `LopHocPhanRepository`, `NguoiDungRepository`, phương thức `ThemAsync` kiểm tra xem bản ghi đã tồn tại chưa:
+     * Nếu tồn tại và `!IsDeleted`: Báo lỗi mã đã tồn tại.
+     * Nếu tồn tại và `IsDeleted`: Tự động phục hồi bản ghi (`IsDeleted = false`), cập nhật thông tin mới và gán `NgayCapNhat = DateTime.UtcNow`.
+  2. **Thống nhất nhận diện Giảng viên:** 
+     * Khi tạo người dùng Giảng viên, nếu bỏ trống `MaGV` thì tự động lấy `TenDangNhap`. Đồng thời kiểm tra tính duy nhất của `MaGV` qua `GetByMaGVAsync`.
+     * `LopHocPhanEditDialogViewModel` lưu trữ cả `MaNguoiDung` và `TenDangNhap`, đối chiếu linh hoạt khi mở hộp thoại.
+     * `gvDict` trong các ViewModel được nạp cả hai khóa `TenDangNhap` và `MaGV` vào cùng từ điển (case-insensitive).
+     * `DashboardRepository.GetLhpByGiangVienAsync` đối chiếu cả `MaGV` lẫn `TenDangNhap`.
+  3. **Bảo toàn trạng thái Khóa tài khoản:** `NguoiDungViewModel` lưu giữ `EditTrangThai` từ `user.TrangThai`. `NguoiDungService.CapNhatAsync` không tự ý mở khóa tài khoản, việc thay đổi trạng thái bắt buộc phải qua `DoiTrangThaiAsync`.
+  4. **Chặn tuyệt đối đổi Môn học và hạ Sĩ số:**
+     * Trong `LopHocPhanService.CapNhatAsync`, nếu `existing.MaMon != lhp.MaMon` mà `CoDangKyHocPhanAsync == true`, ném ngoại lệ chặn lưu.
+     * Nếu `lhp.SiSoToiDa < DemSiSoDangKyAsync`, ném ngoại lệ chặn hạ sĩ số thấp hơn số người đang học.
+     * Trên giao diện `LopHocPhanEditDialog`, ComboBox Môn học tự động bị khóa (`IsEnabled = false`) đi kèm ToolTip cảnh báo khi lớp đã có người đăng ký.

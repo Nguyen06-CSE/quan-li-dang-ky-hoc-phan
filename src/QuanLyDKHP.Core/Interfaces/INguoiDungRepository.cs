@@ -12,6 +12,7 @@ public interface INguoiDungRepository
     Task<List<NguoiDung>> LayTatCaAsync();
     Task<NguoiDung?> GetByIdAsync(int id);
     Task<NguoiDung?> GetByTenDangNhapAsync(string tenDangNhap);
+    Task<NguoiDung?> GetByMaGVAsync(string maGV);
     Task<List<NguoiDung>> LayGiangVienAsync();
     Task ThemAsync(NguoiDung nd);
     Task CapNhatAsync(NguoiDung nd);

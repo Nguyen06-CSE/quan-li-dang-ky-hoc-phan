@@ -41,6 +41,29 @@ public class MonHocRepository : IMonHocRepository
     public async Task ThemAsync(MonHoc mon)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync();
+
+        // Tái tạo mã sau soft-delete: kiểm tra xem Mã Môn đã từng tồn tại trong DB chưa
+        var existing = await _context.MonHocs.FirstOrDefaultAsync(m => m.MaMon == mon.MaMon);
+        if (existing != null)
+        {
+            if (!existing.IsDeleted)
+            {
+                throw new InvalidOperationException($"Mã môn học '{mon.MaMon}' đã tồn tại trong hệ thống.");
+            }
+
+            // Tái kích hoạt bản ghi đã xóa mềm và cập nhật thông tin mới
+            existing.TenMon = mon.TenMon;
+            existing.SoTinChiLT = mon.SoTinChiLT;
+            existing.SoTinChiTH = mon.SoTinChiTH;
+            existing.BacDaoTao = mon.BacDaoTao;
+            existing.IsDeleted = false;
+            existing.NgayCapNhat = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return;
+        }
+
+        mon.NgayTao = DateTime.UtcNow;
+        mon.IsDeleted = false;
         _context.MonHocs.Add(mon);
         await _context.SaveChangesAsync();
     }

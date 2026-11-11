@@ -84,6 +84,25 @@ public class LopHocPhanService : ILopHocPhanService
         if (!await _monHocRepository.TonTaiAsync(lhp.MaMon))
             throw new InvalidOperationException($"Không tìm thấy môn học có mã '{lhp.MaMon}'.");
 
+        // Chặn đổi mã môn khi LHP đã có người đăng ký
+        if (!string.Equals(existing.MaMon, lhp.MaMon, StringComparison.OrdinalIgnoreCase))
+        {
+            if (await _lhpRepository.CoDangKyHocPhanAsync(lhp.MaLHP))
+            {
+                throw new InvalidOperationException($"Không thể thay đổi môn học: lớp học phần '{lhp.MaLHP}' đã có sinh viên đăng ký học phần.");
+            }
+        }
+
+        // Chặn giảm sĩ số tối đa xuống dưới số lượng sinh viên hiện đang học
+        if (lhp.SiSoToiDa.HasValue && lhp.SiSoToiDa.Value > 0)
+        {
+            int siSoHienTai = await _lhpRepository.DemSiSoDangKyAsync(lhp.MaLHP);
+            if (lhp.SiSoToiDa.Value < siSoHienTai)
+            {
+                throw new InvalidOperationException($"Sĩ số tối đa ({lhp.SiSoToiDa.Value}) không được nhỏ hơn số lượng sinh viên hiện đang học ({siSoHienTai}).");
+            }
+        }
+
         existing.MaMon = lhp.MaMon;
         existing.MaGV = lhp.MaGV;
         existing.LoaiHinhDT = lhp.LoaiHinhDT;

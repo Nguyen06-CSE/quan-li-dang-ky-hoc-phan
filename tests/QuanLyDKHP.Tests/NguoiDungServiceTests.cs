@@ -110,4 +110,77 @@ public class NguoiDungServiceTests
         Assert.Equal("DaKhoa", targetUser.TrangThai);
         _mockRepo.Verify(r => r.CapNhatAsync(targetUser), Times.Once);
     }
+
+    [Fact]
+    public async Task CapNhatAsync_PreservesLockedState_DoesNotAccidentallyUnlock()
+    {
+        var lockedUser = new NguoiDung
+        {
+            Id = 5,
+            TenDangNhap = "locked_user",
+            HoTen = "Tên Cũ",
+            Role = "SinhVien",
+            TrangThai = "DaKhoa"
+        };
+        _mockRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(lockedUser);
+
+        // Cập nhật thông tin họ tên, không truyền trạng thái mở khóa
+        var updateRequest = new NguoiDung
+        {
+            Id = 5,
+            HoTen = "Tên Mới",
+            Role = "SinhVien",
+            TrangThai = "DaKhoa"
+        };
+
+        await _service.CapNhatAsync(updateRequest);
+
+        // Trạng thái vẫn phải là DaKhoa
+        Assert.Equal("DaKhoa", lockedUser.TrangThai);
+        Assert.Equal("Tên Mới", lockedUser.HoTen);
+        _mockRepo.Verify(r => r.CapNhatAsync(lockedUser), Times.Once);
+    }
+
+    [Fact]
+    public async Task ThemAsync_GiangVienWithoutMaGV_DefaultsToTenDangNhap()
+    {
+        _mockRepo.Setup(r => r.GetByTenDangNhapAsync("gv_math")).ReturnsAsync((NguoiDung?)null);
+        _mockRepo.Setup(r => r.GetByMaGVAsync("gv_math")).ReturnsAsync((NguoiDung?)null);
+
+        var newUser = new NguoiDung
+        {
+            TenDangNhap = "gv_math",
+            HoTen = "Giảng viên Toán",
+            Role = "GiangVien",
+            MaGV = null // Không nhập MaGV
+        };
+
+        await _service.ThemAsync(newUser, "pass123");
+
+        Assert.Equal("gv_math", newUser.MaGV);
+        _mockRepo.Verify(r => r.ThemAsync(It.Is<NguoiDung>(u => u.MaGV == "gv_math")), Times.Once);
+    }
+
+    [Fact]
+    public async Task ThemAsync_GiangVienDuplicateMaGV_ThrowsInvalidOperationException()
+    {
+        _mockRepo.Setup(r => r.GetByTenDangNhapAsync("gv_new")).ReturnsAsync((NguoiDung?)null);
+        _mockRepo.Setup(r => r.GetByMaGVAsync("GV01")).ReturnsAsync(new NguoiDung
+        {
+            Id = 9,
+            TenDangNhap = "gv_existing",
+            MaGV = "GV01"
+        });
+
+        var newUser = new NguoiDung
+        {
+            TenDangNhap = "gv_new",
+            HoTen = "Giảng viên Mới",
+            Role = "GiangVien",
+            MaGV = "GV01"
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ThemAsync(newUser, "pass123"));
+        Assert.Contains("Mã giảng viên 'GV01' đã được gán cho tài khoản 'gv_existing'", ex.Message);
+    }
 }

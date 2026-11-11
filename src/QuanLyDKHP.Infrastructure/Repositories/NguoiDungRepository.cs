@@ -44,6 +44,15 @@ public class NguoiDungRepository : INguoiDungRepository
             .FirstOrDefaultAsync(u => u.TenDangNhap.ToLower() == tenDangNhap.ToLower() && !u.IsDeleted);
     }
 
+    public async Task<NguoiDung?> GetByMaGVAsync(string maGV)
+    {
+        if (string.IsNullOrWhiteSpace(maGV)) return null;
+
+        await using var _dbContext = await _contextFactory.CreateDbContextAsync();
+        return await _dbContext.NguoiDungs
+            .FirstOrDefaultAsync(u => u.MaGV != null && u.MaGV.ToLower() == maGV.ToLower() && !u.IsDeleted);
+    }
+
     public async Task<List<NguoiDung>> LayGiangVienAsync()
     {
         await using var _dbContext = await _contextFactory.CreateDbContextAsync();
@@ -57,7 +66,32 @@ public class NguoiDungRepository : INguoiDungRepository
     public async Task ThemAsync(NguoiDung nd)
     {
         await using var _dbContext = await _contextFactory.CreateDbContextAsync();
+        
+        // Tái tạo mã sau soft-delete: kiểm tra xem tài khoản đã từng tồn tại chưa
+        var existing = await _dbContext.NguoiDungs
+            .FirstOrDefaultAsync(u => u.TenDangNhap.ToLower() == nd.TenDangNhap.ToLower());
+
+        if (existing != null)
+        {
+            if (!existing.IsDeleted)
+            {
+                throw new InvalidOperationException($"Tên đăng nhập '{nd.TenDangNhap}' đã tồn tại trong hệ thống.");
+            }
+
+            // Phục hồi bản ghi xóa mềm với thông tin mới
+            existing.HoTen = nd.HoTen;
+            existing.MatKhauHash = nd.MatKhauHash;
+            existing.Role = nd.Role;
+            existing.MaGV = nd.MaGV;
+            existing.TrangThai = nd.TrangThai;
+            existing.IsDeleted = false;
+            existing.NgayCapNhat = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+            return;
+        }
+
         nd.NgayTao = DateTime.UtcNow;
+        nd.IsDeleted = false;
         _dbContext.NguoiDungs.Add(nd);
         await _dbContext.SaveChangesAsync();
     }

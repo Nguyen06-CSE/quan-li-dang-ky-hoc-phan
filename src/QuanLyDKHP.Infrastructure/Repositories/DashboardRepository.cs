@@ -73,8 +73,14 @@ public class DashboardRepository : IDashboardRepository
 
         await using var _dbContext = await _contextFactory.CreateDbContextAsync();
 
+        // Thống nhất nhận diện giảng viên: đối chiếu cả MaGV lẫn TenDangNhap
+        var gvUser = await _dbContext.NguoiDungs.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.MaGV == maGV || u.TenDangNhap == maGV);
+        string key1 = gvUser?.MaGV ?? maGV;
+        string key2 = gvUser?.TenDangNhap ?? maGV;
+
         var query = _dbContext.LopHocPhans
-            .Where(l => l.MaGV == maGV && !l.IsDeleted);
+            .Where(l => (l.MaGV == key1 || l.MaGV == key2) && !l.IsDeleted);
 
         if (!string.IsNullOrEmpty(maHocKy))
         {

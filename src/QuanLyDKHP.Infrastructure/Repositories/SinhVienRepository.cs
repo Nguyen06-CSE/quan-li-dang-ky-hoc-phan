@@ -132,6 +132,28 @@ public class SinhVienRepository : ISinhVienRepository
     public async Task ThemAsync(SinhVien sv)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync();
+
+        // Tái tạo mã sau soft-delete: kiểm tra xem Mã SV đã từng tồn tại trong DB chưa
+        var existing = await _context.SinhViens.FirstOrDefaultAsync(s => s.MaSV == sv.MaSV);
+        if (existing != null)
+        {
+            if (!existing.IsDeleted)
+            {
+                throw new InvalidOperationException($"Mã sinh viên '{sv.MaSV}' đã tồn tại trong hệ thống.");
+            }
+
+            // Tái kích hoạt bản ghi đã xóa mềm và ghi nhận thông tin mới
+            existing.HoTen = sv.HoTen;
+            existing.LopSinhHoat = sv.LopSinhHoat;
+            existing.KhoaHoc = sv.KhoaHoc;
+            existing.IsDeleted = false;
+            existing.NgayCapNhat = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return;
+        }
+
+        sv.NgayTao = DateTime.UtcNow;
+        sv.IsDeleted = false;
         _context.SinhViens.Add(sv);
         await _context.SaveChangesAsync();
     }

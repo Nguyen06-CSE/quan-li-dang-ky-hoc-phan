@@ -18,7 +18,10 @@ Tổ chức cấu trúc thời gian đào tạo và mở các lớp học phần
    * **Đồng nhất định danh ComboBox (`IEquatable<HocKy>`):** Thực thể `HocKy` ghi đè phương thức `Equals` và `GetHashCode` dựa theo `MaHocKy`, đảm bảo các điều khiển `ComboBox` và bộ lọc dữ liệu nhận diện chính xác học kỳ đã chọn, không bị lỗi mất lựa chọn khi nạp lại cache.
 2. **Quản lý Lớp học phần:**
    * Mở lớp học phần gắn liền với một môn học và học kỳ đang mở.
-   * Phân công Giảng viên giảng dạy từ danh sách cán bộ có quyền `GiangVien`.
+   * **Tự động tái kích hoạt sau Soft-Delete:** Phục hồi LHP đã bị xóa mềm nếu được tạo mới với cùng `MaLHP`.
+   * **Chặn đổi Môn học khi đã có sinh viên đăng ký:** Trong `LopHocPhanService.CapNhatAsync`, nếu LHP đã phát sinh sinh viên đăng ký học phần, hệ thống chặn tuyệt đối thao tác đổi mã môn học (`MaMon`) để bảo vệ dữ liệu tín chỉ và học phí của sinh viên. Trên giao diện, ComboBox Môn học tự động bị vô hiệu hóa kèm ToolTip giải thích rõ lý do.
+   * **Bảo vệ giới hạn sĩ số tối thiểu:** Không cho phép giáo vụ hạ sĩ số tối đa (`SiSoToiDa`) xuống thấp hơn số lượng sinh viên thực tế đang học trong lớp.
+   * **Thống nhất nhận diện Giảng viên (`MaGV` vs `TenDangNhap`):** Phân công Giảng viên giảng dạy hỗ trợ đối soát linh hoạt qua cả `MaGV` và `TenDangNhap`, loại bỏ tình trạng hiển thị "Chưa phân công" do lệch mã định danh.
    * Thiết lập lịch học: Thứ trong tuần (Thứ 2 đến Chủ nhật), Tiết bắt đầu (1-12), Số tiết (1-6), Phòng học.
    * Thiết lập sĩ số tối đa (`SiSoToiDa`).
 3. **Theo dõi Sĩ số Real-time:**

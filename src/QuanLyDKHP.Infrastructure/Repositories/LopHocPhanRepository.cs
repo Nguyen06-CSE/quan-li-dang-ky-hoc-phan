@@ -62,7 +62,39 @@ public class LopHocPhanRepository : ILopHocPhanRepository
 
     public async Task ThemAsync(LopHocPhan lhp)
     {
+        lhp.MonHoc = null!;
+        lhp.HocKy = null!;
+
         await using var _context = await _contextFactory.CreateDbContextAsync();
+
+        // Tái tạo mã sau soft-delete: kiểm tra xem Mã LHP đã từng tồn tại trong DB chưa
+        var existing = await _context.LopHocPhans.FirstOrDefaultAsync(l => l.MaLHP == lhp.MaLHP);
+        if (existing != null)
+        {
+            if (!existing.IsDeleted)
+            {
+                throw new InvalidOperationException($"Lớp học phần có mã '{lhp.MaLHP}' đã tồn tại.");
+            }
+
+            // Tái kích hoạt bản ghi đã xóa mềm và cập nhật thông tin mới
+            existing.MaMon = lhp.MaMon;
+            existing.MaHocKy = lhp.MaHocKy;
+            existing.MaGV = lhp.MaGV;
+            existing.LoaiHinhDT = lhp.LoaiHinhDT;
+            existing.SiSoToiDa = lhp.SiSoToiDa;
+            existing.GiangDayOnline = lhp.GiangDayOnline;
+            existing.Thu = lhp.Thu;
+            existing.TietBatDau = lhp.TietBatDau;
+            existing.SoTiet = lhp.SoTiet;
+            existing.Phong = lhp.Phong;
+            existing.IsDeleted = false;
+            existing.NgayCapNhat = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return;
+        }
+
+        lhp.NgayTao = DateTime.UtcNow;
+        lhp.IsDeleted = false;
         _context.LopHocPhans.Add(lhp);
         await _context.SaveChangesAsync();
     }

@@ -42,6 +42,23 @@ public class NguoiDungService : INguoiDungService
         nd.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(matKhauBanDau);
         nd.TrangThai = string.IsNullOrWhiteSpace(nd.TrangThai) ? "HoatDong" : nd.TrangThai;
 
+        // Thống nhất MaGV: nếu là Giảng viên mà không nhập MaGV thì lấy mặc định là TenDangNhap
+        if (nd.Role == Core.Enums.UserRole.GiangVien.ToString())
+        {
+            nd.MaGV = string.IsNullOrWhiteSpace(nd.MaGV) ? nd.TenDangNhap : nd.MaGV.Trim();
+
+            // Kiểm tra trùng MaGV với giảng viên khác
+            var existingGv = await _nguoiDungRepository.GetByMaGVAsync(nd.MaGV);
+            if (existingGv != null)
+            {
+                throw new InvalidOperationException($"Mã giảng viên '{nd.MaGV}' đã được gán cho tài khoản '{existingGv.TenDangNhap}'.");
+            }
+        }
+        else
+        {
+            nd.MaGV = null;
+        }
+
         await _nguoiDungRepository.ThemAsync(nd);
     }
 
@@ -56,8 +73,29 @@ public class NguoiDungService : INguoiDungService
 
         user.HoTen = nd.HoTen.Trim();
         user.Role = nd.Role;
-        user.MaGV = nd.Role == "GiangVien" ? nd.MaGV : null;
-        user.TrangThai = nd.TrangThai;
+
+        // Thống nhất MaGV khi cập nhật
+        if (nd.Role == Core.Enums.UserRole.GiangVien.ToString())
+        {
+            string newMaGV = string.IsNullOrWhiteSpace(nd.MaGV) ? user.TenDangNhap : nd.MaGV.Trim();
+            var existingGv = await _nguoiDungRepository.GetByMaGVAsync(newMaGV);
+            if (existingGv != null && existingGv.Id != user.Id)
+            {
+                throw new InvalidOperationException($"Mã giảng viên '{newMaGV}' đã được gán cho tài khoản '{existingGv.TenDangNhap}'.");
+            }
+            user.MaGV = newMaGV;
+        }
+        else
+        {
+            user.MaGV = null;
+        }
+
+        // Chặn mở khóa tự ý: Không ghi đè trạng thái khóa nếu chỉ cập nhật thông tin người dùng
+        // Việc Khóa / Mở khóa tài khoản phải thông qua DoiTrangThaiAsync
+        if (!string.IsNullOrWhiteSpace(nd.TrangThai))
+        {
+            user.TrangThai = nd.TrangThai;
+        }
 
         await _nguoiDungRepository.CapNhatAsync(user);
     }

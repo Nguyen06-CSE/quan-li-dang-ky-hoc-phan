@@ -12,10 +12,11 @@ sidebar_position: 2
 
 ### Các tính năng chính
 1. **Thêm mới sinh viên:** Nhập Mã SV, Họ tên, Ngày sinh, Giới tính, Lớp sinh hoạt, Khóa học, Email, Số điện thoại. Tự động kiểm tra trùng lặp khóa chính `MaSV`.
-2. **Cập nhật thông tin:** Cho phép chỉnh sửa thông tin cá nhân và lớp sinh hoạt của sinh viên.
-3. **Xóa mềm (Soft Delete):** Đánh dấu `IsDeleted = true` để bảo toàn lịch sử đăng ký học phần và các phiếu thu học phí liên quan.
-4. **Bộ lọc đa tiêu chí:** Lọc đồng thời theo Khóa học (K44, K45, K46...), Lớp sinh hoạt và Từ khóa tìm kiếm (họ tên, mã sinh viên).
-5. **Điều hướng nhanh sang Đăng ký học phần:** Cho phép người dùng Double-click hoặc bấm chuột phải vào dòng sinh viên để chuyển thẳng sang màn hình Đăng ký học phần với thông tin sinh viên đó đã được chọn sẵn.
+2. **Tự động tái kích hoạt (Reactivate) sau Soft-Delete:** Khi thêm sinh viên có `MaSV` trùng với bản ghi đã từng bị xóa mềm (`IsDeleted = true`), hệ thống tự động phục hồi bản ghi (`IsDeleted = false`), cập nhật thông tin mới nhất và thời gian sửa đổi, triệt tiêu hoàn toàn lỗi xung đột khóa chính (PK Collision / UNIQUE constraint).
+3. **Cập nhật thông tin:** Cho phép chỉnh sửa thông tin cá nhân và lớp sinh hoạt của sinh viên.
+4. **Xóa mềm (Soft Delete):** Đánh dấu `IsDeleted = true` để bảo toàn lịch sử đăng ký học phần và các phiếu thu học phí liên quan.
+5. **Bộ lọc đa tiêu chí:** Lọc đồng thời theo Khóa học (K44, K45, K46...), Lớp sinh hoạt và Từ khóa tìm kiếm (họ tên, mã sinh viên).
+6. **Điều hướng nhanh sang Đăng ký học phần:** Cho phép người dùng Double-click hoặc bấm chuột phải vào dòng sinh viên để chuyển thẳng sang màn hình Đăng ký học phần với thông tin sinh viên đó đã được chọn sẵn.
 
 ---
 
