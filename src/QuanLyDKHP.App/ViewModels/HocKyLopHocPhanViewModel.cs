@@ -479,6 +479,13 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
         }
     }
 
+    [RelayCommand]
+    private void NapSinhVienSmart(LopHocPhanDisplayDto? lhp)
+    {
+        if (lhp == null) return;
+        WeakReferenceMessenger.Default.Send(new NavigateToImportExcelMessage(SelectedHocKy?.MaHocKy, lhp.MaLHP));
+    }
+
     private void ShowMessage(string msg, bool isError)
     {
         StatusMessage = msg;

@@ -216,6 +216,22 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
 
 ---
 
+### Phiên 18: Nâng Cấp Thực Tế Cho Giảng Viên / Giáo Viên - Smart Import Studio & Class Insights (Upgrade 1)
+* **Thời gian:** 12/11/2026 00:15
+* **Tài liệu tham chiếu:** `docs/01-dac-ta-ung-dung/chuc-nang/F09-import-excel-du-lieu-lon.md`, `ADR-23`, `SmartImportDtos.cs`
+* **Prompt chính đã thực hiện:**
+  > *"Đề xuất 1 và 3 nên làm, đề xuất thứ 2 tạm thời đừng làm, hãy biến nó thành upgrade1 khi bỏ lên git đi, nhớ phải mô tả và thực hiện đầy đủ như các phần trên; tên thành viên là Liam / Lâm."*
+* **Kết quả đạt được:**
+  * Triển khai `ISmartImportService` và `SmartImportService` hỗ trợ dán dữ liệu Clipboard (`Ctrl + V`) với cơ chế tự động nhận diện ký tự ngăn cách (Tab, CSV, Semicolon), tự động ánh xạ cột (ghép *Họ đệm* + *Tên*, suy luận Khóa học từ MSSV).
+  * Xây dựng Trợ lý phân tích trực quan Class Insights (Đề xuất 3): đo lường sức chứa lớp học phần so với `SiSoToiDa`, phát hiện trùng lịch học chéo thời gian thực (`Thu` và khoảng tiết giao nhau), cảnh báo trùng môn học và thống kê cơ cấu lớp sinh hoạt / khóa học.
+  * Cung cấp bảng xem trước DataGrid hỗ trợ sửa lỗi trực tiếp (Inline Editing) ngay trên giao diện mà không cần mở lại Excel, kèm nút kiểm chứng lại dữ liệu tức thì.
+  * Thực thi nạp sinh viên nguyên tử (`EnrollStudentsAsync`), tự động tạo hồ sơ `SinhVien` mới (nếu chưa có), tự động phục hồi bản ghi xóa mềm, và tự động kích hoạt tính toán lại học phí qua `TinhLaiHocPhiAsync`.
+  * Thêm nút phím tắt *"Nạp sinh viên vào lớp (Smart Import)"* trực tiếp trên mỗi dòng của bảng Lớp học phần tại màn hình *Học kỳ / LHP*.
+  * Viết mới bộ kiểm thử `tests/QuanLyDKHP.Tests/SmartImportServiceTests.cs` (8 bài test mới), nâng tổng số bài kiểm thử tự động của dự án lên **81/81 passed (100%)**.
+  * Cập nhật đầy đủ tài liệu Docusaurus: `F09`, `ADR-23`, Báo cáo Unit Test, Commit History, Daily Log và Prompts log.
+
+---
+
 ## 3. Tổng Kết Giá Trị Ứng Dụng AI Vào Đồ Án
 
 Việc ứng dụng AI Agent vào đồ án môn học mang lại hiệu quả vượt trội:

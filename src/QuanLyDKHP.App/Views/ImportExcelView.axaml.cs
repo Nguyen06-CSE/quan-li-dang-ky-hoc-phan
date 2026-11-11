@@ -32,13 +32,13 @@ public partial class ImportExcelView : UserControl
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Chọn file Excel dữ liệu ĐKHP",
+            Title = "Chọn file dữ liệu Excel / CSV",
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("Excel Workbook")
+                new FilePickerFileType("Bảng tính Excel & CSV")
                 {
-                    Patterns = new[] { "*.xlsx" }
+                    Patterns = new[] { "*.xlsx", "*.csv" }
                 }
             }
         });

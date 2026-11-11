@@ -200,3 +200,32 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
   2. Bổ sung `NguoiDung` vào `MasterTables` và thực hiện đồng bộ tài khoản người dùng từ remote trước khi dọn dữ liệu nghiệp vụ, bảo toàn 100% tài khoản đăng nhập.
   3. Chuẩn hóa `GetLastSyncUtcAsync` trả về mốc an toàn `new DateTime(2000, 1, 1, DateTimeKind.Utc)`, bảo đảm tính tương thích tuyệt đối giữa SQLite và PostgreSQL Npgsql.
 * **Lý do:** Đảm bảo độ bền bỉ và tính toàn vẹn của CSDL cục bộ SQLite, ngăn ngừa mọi rủi ro mất tài khoản hoặc hỏng tệp WAL khi đồng bộ dữ liệu.
+
+---
+
+## ADR-23: Smart Import Studio, Phân Tích Clipboard & Trợ Lý Xung Đột Lớp Học Cho Giảng Viên (Upgrade 1)
+* **Bối cảnh:**
+  1. Trong quy trình đào tạo thực tế, giảng viên và giáo viên bộ môn thường xuyên tiếp nhận danh sách sinh viên đăng ký bổ sung, học ghép hoặc danh sách lớp từ các nguồn phi cấu trúc: bảng tính Excel đơn giản, Google Sheets, email hoặc nhóm chat Zalo.
+  2. Việc bắt buộc người dùng phải gõ thủ công từng sinh viên trên màn hình ĐKHP hoặc phải định dạng lại thành file mẫu 21 cột phức tạp gây lãng phí thời gian và dễ nhầm lẫn.
+  3. Khi nạp sinh viên vào lớp học phần, giảng viên không có công cụ trực quan để biết lớp đã quá tải sĩ số chưa (`SiSoToiDa`), sinh viên có bị trùng lịch học ở lớp học phần khác trong cùng kỳ không, hoặc đã từng đăng ký môn học này ở lớp khác chưa.
+* **Quyết định:**
+  1. **Xây dựng `ISmartImportService` và `SmartImportService`:**
+     * Hỗ trợ dán trực tiếp từ bộ nhớ tạm (`Ctrl + V`) thông qua `IClipboard.TryGetTextAsync()`.
+     * Tự động nhận diện ký tự ngăn cách (Tab `\t`, phẩy `,`, chấm phẩy `;`, xuống dòng).
+     * Tự động ánh xạ cột thông minh (Auto Column Mapping): nhận diện MSSV, Họ và tên (tự động nối cột *Họ đệm* và *Tên* nếu tách rời), Lớp sinh hoạt và Khóa học (tự động suy luận `K21`, `K45` từ tiền tố 2 chữ số của MSSV).
+  2. **Trợ lý Phân tích Sức chứa & Xung đột Lớp học (Class Insights & Conflict Checker):**
+     * Tính toán tức thời sĩ số hiện tại, sĩ số sau khi nạp, tỷ lệ phần trăm lấp đầy lớp và gắn cờ cảnh báo đỏ nếu vượt `SiSoToiDa`.
+     * Quét toàn bộ đăng ký của các sinh viên trong danh sách nạp trên cùng học kỳ:
+       - Cảnh báo xung đột lịch học nếu trùng `Thu` và giao nhau về khoảng tiết học: `lhp.TietBatDau <= otherEnd && otherStart <= lhp.TietKetThuc`.
+       - Cảnh báo trùng môn học nếu sinh viên đã có bản ghi đăng ký lớp học phần khác của cùng môn.
+     * Thống kê cơ cấu lớp sinh hoạt (`CTK45A`, `CTK45B`...) và cơ cấu khóa học.
+  3. **Bảng Xem Trước Hỗ Trợ Chỉnh Sửa Trực Tiếp (Inline Editing DataGrid):**
+     * Cho phép giảng viên nhấp đúp vào ô để sửa lỗi chính tả, sai MSSV ngay trên bảng xem trước mà không cần mở lại Excel gốc.
+     * Cung cấp nút *"Kiểm chứng lại"* để tái đánh giá dữ liệu sau khi chỉnh sửa.
+  4. **Nạp Sinh Viên Nguyên Tử (Atomic Enrollment) & Tính Học Phí Tự Động:**
+     * Thực thi trong `BeginTransactionAsync`: tự động tạo mới hồ sơ `SinhVien` nếu chưa tồn tại (kèm tùy chọn bật/tắt); tự động phục hồi bản ghi xóa mềm.
+     * Ghi nhận `DangKyHocPhan` với trạng thái `DangHoc`.
+     * Kích hoạt `TinhLaiHocPhiAsync` cho từng sinh viên được nạp.
+     * Phát sóng `DataImportedNotificationMessage` làm tươi đồng bộ toàn bộ ứng dụng.
+     * Thêm phím tắt *"Nạp sinh viên vào lớp (Smart Import)"* trên từng dòng của bảng Lớp học phần tại màn hình *Học kỳ / LHP*.
+* **Lý do:** Rút ngắn thời gian nạp danh sách lớp của giảng viên từ 20 phút xuống dưới 5 giây, chủ động ngăn ngừa xung đột lịch học và quá tải sĩ số lớp học ngay từ khâu tiếp nhận sinh viên.

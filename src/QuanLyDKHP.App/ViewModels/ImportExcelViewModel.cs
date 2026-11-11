@@ -6,6 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -16,17 +19,61 @@ using QuanLyDKHP.Core.Interfaces;
 
 namespace QuanLyDKHP.App.ViewModels;
 
-public partial class ImportExcelViewModel : ObservableObject
+public partial class ImportExcelViewModel : ObservableObject, IRecipient<NavigateToImportExcelMessage>
 {
     private readonly IImportExcelService _importExcelService;
+    private readonly ISmartImportService _smartImportService;
     private readonly IHocKyService _hocKyService;
+    private readonly ILopHocPhanService _lopHocPhanService;
     private readonly IMemoryCacheStore? _memoryCacheStore;
 
+    // --- TAB ĐIỀU HƯỚNG ---
+    [ObservableProperty]
+    private int _selectedTabIndex = 0; // 0: Nạp SV vào LHP (Smart Studio), 1: File 21 cột toàn trường
+
+    // --- DỮ LIỆU DÙNG CHUNG ---
     public ObservableCollection<HocKy> DsHocKy { get; } = new();
 
     [ObservableProperty]
     private HocKy? _hocKyDangChon;
 
+    // ==========================================
+    // PHÂN HỆ 1 & 3: SMART IMPORT STUDIO & CLASS INSIGHTS
+    // ==========================================
+    public ObservableCollection<LopHocPhan> DsLopHocPhan { get; } = new();
+
+    [ObservableProperty]
+    private LopHocPhan? _lhpDangChon;
+
+    [ObservableProperty]
+    private bool _tuDongTaoSv = true;
+
+    [ObservableProperty]
+    private bool _boQuaTrungMon = true;
+
+    [ObservableProperty]
+    private bool _isAnalyzing;
+
+    [ObservableProperty]
+    private bool _isEnrolling;
+
+    [ObservableProperty]
+    private string? _statusSmartMessage;
+
+    [ObservableProperty]
+    private bool _isStatusSmartError;
+
+    public ObservableCollection<SinhVienImportPreviewDto> DanhSachPreview { get; } = new();
+
+    [ObservableProperty]
+    private ClassInsightsDto? _insights;
+
+    [ObservableProperty]
+    private KetQuaSmartEnrollDto? _smartResult;
+
+    // ==========================================
+    // PHÂN HỆ 2: IMPORT MASS 21 CỘT (LEGACY / UNIVERSAL)
+    // ==========================================
     [ObservableProperty]
     private string? _filePath;
 
@@ -51,20 +98,60 @@ public partial class ImportExcelViewModel : ObservableObject
     public Func<string, string, byte[], Task<string?>>? SaveFileDialogFunc { get; set; }
 
     public ImportExcelViewModel(
-        IImportExcelService importExcelService, 
+        IImportExcelService importExcelService,
+        ISmartImportService smartImportService,
         IHocKyService hocKyService,
+        ILopHocPhanService lopHocPhanService,
         IMemoryCacheStore? memoryCacheStore = null)
     {
         _importExcelService = importExcelService;
+        _smartImportService = smartImportService;
         _hocKyService = hocKyService;
+        _lopHocPhanService = lopHocPhanService;
         _memoryCacheStore = memoryCacheStore;
-        _ = LoadHocKyAsync();
+
+        WeakReferenceMessenger.Default.RegisterAll(this);
+
+        _ = InitDataAsync();
     }
 
     public ImportExcelViewModel()
     {
         _importExcelService = null!;
+        _smartImportService = null!;
         _hocKyService = null!;
+        _lopHocPhanService = null!;
+    }
+
+    private async Task InitDataAsync()
+    {
+        await LoadHocKyAsync();
+    }
+
+    public void Receive(NavigateToImportExcelMessage message)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+        {
+            SelectedTabIndex = 0; // Chuyển sang Tab Smart Import
+            if (!string.IsNullOrEmpty(message.MaHocKy))
+            {
+                var matchedHk = DsHocKy.FirstOrDefault(h => h.MaHocKy == message.MaHocKy);
+                if (matchedHk != null)
+                {
+                    HocKyDangChon = matchedHk;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(message.MaLHP))
+            {
+                await LoadLopHocPhanAsync();
+                var matchedLhp = DsLopHocPhan.FirstOrDefault(l => l.MaLHP == message.MaLHP);
+                if (matchedLhp != null)
+                {
+                    LhpDangChon = matchedLhp;
+                }
+            }
+        });
     }
 
     [RelayCommand]
@@ -80,6 +167,7 @@ public partial class ImportExcelViewModel : ObservableObject
                 DsHocKy.Add(hk);
             }
             HocKyDangChon = hks.FirstOrDefault(h => h.DangMo) ?? hks.FirstOrDefault();
+            await LoadLopHocPhanAsync();
         }
         catch
         {
@@ -87,6 +175,238 @@ public partial class ImportExcelViewModel : ObservableObject
         }
     }
 
+    partial void OnHocKyDangChonChanged(HocKy? value)
+    {
+        _ = LoadLopHocPhanAsync();
+    }
+
+    private async Task LoadLopHocPhanAsync()
+    {
+        if (_lopHocPhanService == null || HocKyDangChon == null) return;
+        try
+        {
+            var lhps = await _lopHocPhanService.LayTheoHocKyAsync(HocKyDangChon.MaHocKy, null, null);
+            DsLopHocPhan.Clear();
+            foreach (var lhp in lhps)
+            {
+                DsLopHocPhan.Add(lhp);
+            }
+            LhpDangChon = DsLopHocPhan.FirstOrDefault();
+        }
+        catch
+        {
+            // ignore
+        }
+    }
+
+    partial void OnLhpDangChonChanged(LopHocPhan? value)
+    {
+        if (DanhSachPreview.Count > 0)
+        {
+            _ = AnalyzeSmartListAsync();
+        }
+    }
+
+    // ==========================================
+    // LOGIC SMART IMPORT (DÁN CLIPBOARD & PREVIEW)
+    // ==========================================
+    [RelayCommand]
+    private async Task DanTuClipboardAsync()
+    {
+        try
+        {
+            string? clipboardText = null;
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                && desktop.MainWindow?.Clipboard is { } clipboard)
+            {
+                clipboardText = await clipboard.TryGetTextAsync();
+            }
+
+            if (string.IsNullOrWhiteSpace(clipboardText))
+            {
+                ShowSmartMessage("Bộ nhớ tạm (Clipboard) đang trống. Vui lòng copy danh sách sinh viên từ Excel/Sheets/Zalo trước.", true);
+                return;
+            }
+
+            var items = _smartImportService.ParseClipboardOrText(clipboardText);
+            if (items.Count == 0)
+            {
+                ShowSmartMessage("Không phân tích được dòng dữ liệu sinh viên nào từ bộ nhớ tạm.", true);
+                return;
+            }
+
+            DanhSachPreview.Clear();
+            foreach (var item in items)
+            {
+                DanhSachPreview.Add(item);
+            }
+
+            ShowSmartMessage($"Đã dán thành công {items.Count} dòng sinh viên từ Clipboard. Đang kiểm chứng dữ liệu...", false);
+            await AnalyzeSmartListAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowSmartMessage($"Lỗi khi đọc từ Clipboard: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ChonFileSmartImportAsync()
+    {
+        if (OpenFileDialogFunc == null) return;
+        var path = await OpenFileDialogFunc();
+        if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+        try
+        {
+            await using var stream = File.OpenRead(path);
+            var items = await _smartImportService.ParseExcelStreamAsync(stream);
+            if (items.Count == 0)
+            {
+                ShowSmartMessage("Không đọc được dữ liệu sinh viên từ file Excel này.", true);
+                return;
+            }
+
+            DanhSachPreview.Clear();
+            foreach (var item in items)
+            {
+                DanhSachPreview.Add(item);
+            }
+
+            ShowSmartMessage($"Đã nạp {items.Count} sinh viên từ file '{Path.GetFileName(path)}'. Đang kiểm chứng dữ liệu...", false);
+            await AnalyzeSmartListAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowSmartMessage($"Lỗi khi đọc file Excel: {ex.Message}", true);
+        }
+    }
+
+    [RelayCommand]
+    public async Task AnalyzeSmartListAsync()
+    {
+        if (LhpDangChon == null || HocKyDangChon == null || DanhSachPreview.Count == 0)
+            return;
+
+        try
+        {
+            IsAnalyzing = true;
+            var insights = await _smartImportService.AnalyzeAndValidateAsync(
+                HocKyDangChon.MaHocKy,
+                LhpDangChon.MaLHP,
+                DanhSachPreview.ToList(),
+                TuDongTaoSv);
+
+            Insights = insights;
+            ShowSmartMessage($"Kiểm chứng hoàn tất: {insights.SoLuongHopLe} hợp lệ, {insights.SoLuongDaCo} đã trong lớp, {insights.SoLuongLoi} lỗi.", insights.SoLuongLoi > 0);
+        }
+        catch (Exception ex)
+        {
+            ShowSmartMessage($"Lỗi kiểm chứng: {ex.Message}", true);
+        }
+        finally
+        {
+            IsAnalyzing = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task XacNhanSmartEnrollAsync()
+    {
+        if (LhpDangChon == null || HocKyDangChon == null)
+        {
+            ShowSmartMessage("Vui lòng chọn Học kỳ và Lớp học phần đích để nạp.", true);
+            return;
+        }
+
+        var validSelected = DanhSachPreview.Where(x => x.IsSelected && x.IsHopLe).ToList();
+        if (validSelected.Count == 0)
+        {
+            ShowSmartMessage("Không có sinh viên hợp lệ nào được chọn để nạp vào lớp.", true);
+            return;
+        }
+
+        try
+        {
+            IsEnrolling = true;
+            StatusSmartMessage = "Đang nạp sinh viên vào lớp học phần và tính toán học phí...";
+
+            var result = await _smartImportService.EnrollStudentsAsync(
+                HocKyDangChon.MaHocKy,
+                LhpDangChon.MaLHP,
+                validSelected,
+                TuDongTaoSv,
+                BoQuaTrungMon);
+
+            SmartResult = result;
+            ShowSmartMessage(result.ThongBao, result.Loi > 0 && result.ThanhCong == 0);
+
+            // Tải lại bộ nhớ đệm
+            if (_memoryCacheStore != null)
+            {
+                try { await _memoryCacheStore.InitializeAsync(forceReload: true); } catch { }
+            }
+
+            // Gửi thông báo phát sóng tới tất cả màn hình
+            WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(new KetQuaImportDto
+            {
+                MaHocKy = HocKyDangChon.MaHocKy,
+                SoDangKyMoi = result.ThanhCong,
+                SoSinhVienMoi = result.SoSinhVienMoiTao
+            }));
+
+            // Cập nhật lại số liệu phân tích sau khi nạp
+            await AnalyzeSmartListAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowSmartMessage($"Lỗi khi ghi nhận nạp sinh viên: {ex.Message}", true);
+        }
+        finally
+        {
+            IsEnrolling = false;
+        }
+    }
+
+    [RelayCommand]
+    private void XoaDanhSachPreview()
+    {
+        DanhSachPreview.Clear();
+        Insights = null;
+        SmartResult = null;
+        StatusSmartMessage = "Đã dọn sạch danh sách xem trước.";
+        IsStatusSmartError = false;
+    }
+
+    [RelayCommand]
+    private void ChonTatCa()
+    {
+        foreach (var item in DanhSachPreview.Where(x => x.IsHopLe))
+        {
+            item.IsSelected = true;
+        }
+        _ = AnalyzeSmartListAsync();
+    }
+
+    [RelayCommand]
+    private void BoChonTatCa()
+    {
+        foreach (var item in DanhSachPreview)
+        {
+            item.IsSelected = false;
+        }
+        _ = AnalyzeSmartListAsync();
+    }
+
+    private void ShowSmartMessage(string msg, bool isError)
+    {
+        StatusSmartMessage = msg;
+        IsStatusSmartError = isError;
+    }
+
+    // ==========================================
+    // LOGIC TAB 2: MASS IMPORT 21 CỘT (LEGACY / UNIVERSAL)
+    // ==========================================
     [RelayCommand]
     private async Task ChonFileAsync()
     {
@@ -160,17 +480,11 @@ public partial class ImportExcelViewModel : ObservableObject
 
             ThongBaoTienDo = $"Import xong! Thành công: {result.SoDongThanhCong}/{result.TongSoDong} dòng, Lỗi: {result.SoDongLoi}, Cảnh báo: {result.DanhSachLog.Count(l => l.LoaiLog == "CanhBao")}";
 
-            // 1. Tải lại bộ nhớ đệm In-Memory tĩnh
             if (_memoryCacheStore != null)
             {
-                try
-                {
-                    await _memoryCacheStore.InitializeAsync(forceReload: true);
-                }
-                catch { }
+                try { await _memoryCacheStore.InitializeAsync(forceReload: true); } catch { }
             }
 
-            // 2. Phát thông báo cho toàn bộ các màn hình (Sinh viên, Môn học, Học kỳ/LHP, Trang chủ, Học phí) làm mới dữ liệu tức thì
             WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(result));
         }
         catch (Exception ex)

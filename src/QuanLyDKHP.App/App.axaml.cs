@@ -155,6 +155,7 @@ public partial class App : Application
         services.AddScoped<IDangKyHocPhanService, DangKyHocPhanService>();
         services.AddScoped<IImportExcelRepository, QuanLyDKHP.Infrastructure.Repositories.ImportExcelRepository>();
         services.AddScoped<IImportExcelService, ImportExcelService>();
+        services.AddScoped<ISmartImportService, SmartImportService>();
         services.AddScoped<IPdfExportService, QuanLyDKHP.Infrastructure.Export.PdfExportService>();
         services.AddScoped<IExcelExportService, QuanLyDKHP.Infrastructure.Export.ExcelExportService>();
         services.AddScoped<ISyncService, SyncService>();

@@ -6,6 +6,33 @@ sidebar_position: 2
 
 # Nhật Ký Công Việc Hằng Ngày (Daily Logs)
 
+## 0. Nhật Ký Ngày 12/11/2026: Nâng Cấp Desktop Ứng Dụng Thực Tế (Upgrade 1)
+
+* **Thực hiện:** LIAM (LÂM) & NGUYÊN
+* **Nội dung trọng tâm:** Hiện thực hóa nâng cấp thực tế cho Giảng viên / Giáo viên bộ môn theo Đề xuất 1 (Smart Import Studio & Clipboard Paste, Auto Mapping, Inline Editing) và Đề xuất 3 (Class Insights Dashboard, Sức chứa & Trợ lý Xung Đột Thời Khóa Biểu). Tạm thời hoãn Đề xuất 2 theo yêu cầu.
+
+### Các kết quả đạt được
+1. **Kiến trúc Smart Import Studio & Clipboard Parser (`ISmartImportService`):**
+   * **Dán trực tiếp từ bộ nhớ tạm (`Ctrl + V`):** Giảng viên chỉ cần copy danh sách sinh viên từ Excel, Google Sheets hoặc tin nhắn Zalo, nhấn *"Dán từ Clipboard"*, hệ thống tự động bóc tách các dòng và các ô dựa trên ký tự ngăn cách (Tab `\t`, phẩy `,`, chấm phẩy `;` hoặc xuống dòng).
+   - **Tự động nhận diện cột (Auto Column Mapping):** Tự động phát hiện header hoặc dữ liệu thô (MSSV, Họ tên, Lớp sinh hoạt, Khóa học). Nếu có cột tách rời *Họ đệm* và *Tên*, tự động nối thành *Họ và tên* hoàn chỉnh. Tự động suy luận Khóa học từ tiền tố MSSV (ví dụ: `21...` $\rightarrow$ `K21` hoặc `K45`).
+2. **Trợ lý Phân tích Sức chứa & Xung đột Lớp học (Class Insights - Đề xuất 3):**
+   * **Đo lường sức chứa thời gian thực:** Hiển thị sĩ số hiện tại, số lượng nạp thêm, sĩ số dự kiến và thanh phần trăm lấp đầy lớp; tự động cảnh báo màu đỏ nếu vượt quá `SiSoToiDa`.
+   * **Phát hiện trùng lịch học chéo thời gian thực:** Đối chiếu với toàn bộ thời khóa biểu các lớp khác của sinh viên trong cùng kỳ học; phát hiện chính xác các ca học trùng `Thu` và giao nhau về khoảng tiết `[TietBatDau, TietBatDau + SoTiet - 1]`.
+   * **Phát hiện trùng môn:** Cảnh báo các sinh viên đã có lịch học ở một lớp học phần khác của cùng môn học này.
+   * **Thống kê cơ cấu lớp (Demographics):** Phân tích cơ cấu sinh viên theo Lớp sinh hoạt (`CTK45A`, `CTK45B`...) và Khóa học.
+3. **Bảng Xem Trước Hỗ Trợ Chỉnh Sửa Trực Tiếp (Inline Editing DataGrid):**
+   * Cho phép giảng viên nhấp vào bảng DataGrid sửa trực tiếp `Mã Sinh Viên`, `Họ và Tên`, `Lớp Sinh Hoạt`, `Khóa Học` ngay tại chỗ mà không cần mở lại Excel.
+   * Nút *"Kiểm chứng lại"* cho phép cập nhật lại toàn bộ cảnh báo và chỉ số ngay sau khi người dùng sửa lỗi.
+4. **Giao Dịch Ghi Nhận Nguyên Tử & Tính Lại Học Phí Tự Động:**
+   * Tự động khởi tạo hồ sơ `SinhVien` trong hệ thống nếu mã sinh viên chưa tồn tại; tự động phục hồi các bản ghi đã xóa mềm.
+   * Ghi nhận `DangKyHocPhan` với trạng thái `DangHoc`, tự động kích hoạt `TinhLaiHocPhiAsync` cho toàn bộ sinh viên được nạp.
+   * Phát sóng `DataImportedNotificationMessage` làm tươi tức thời danh sách ở các màn hình khác mà không cần khởi động lại.
+   * Bổ sung nút phím tắt *"Nạp sinh viên vào lớp (Smart Import)"* trực tiếp trên mỗi dòng của bảng danh sách lớp học phần tại màn hình *Học kỳ / LHP*.
+5. **Kiểm Thử Đạt 100% (81/81 Tests Passed):**
+   * Bổ sung bộ kiểm thử `SmartImportServiceTests.cs` (8 bài test mới) bao phủ: Parsing TSV, Ghép Họ đệm + Tên, Suy luận khóa học, Tính toán sức chứa, Phát hiện trùng lịch & trùng môn, Giao dịch nạp sinh viên nguyên tử và chặn học kỳ đã đóng.
+
+---
+
 ## 1. Nhật Ký Ngày 11/11/2026
 
 * **Thực hiện:** LIAM (LÂM) & NGUYÊN
