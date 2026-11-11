@@ -58,6 +58,12 @@ public partial class LopHocPhanEditDialogViewModel : ObservableObject
     private bool _isEditMode;
 
     [ObservableProperty]
+    private bool _canEditMonHoc = true;
+
+    [ObservableProperty]
+    private string _monHocToolTip = "Chọn môn học cho lớp học phần";
+
+    [ObservableProperty]
     private string? _errorMessage;
 
     public string MaHocKy { get; }
@@ -72,9 +78,14 @@ public partial class LopHocPhanEditDialogViewModel : ObservableObject
         string maHocKy,
         List<MonHoc> danhSachMonHoc,
         List<NguoiDung> danhSachGiangVien,
-        LopHocPhan? existingLhp = null)
+        LopHocPhan? existingLhp = null,
+        bool daCoDangKy = false)
     {
         MaHocKy = maHocKy;
+        CanEditMonHoc = !daCoDangKy;
+        MonHocToolTip = daCoDangKy 
+            ? "Không thể thay đổi môn học vì lớp này đã có sinh viên đăng ký" 
+            : "Chọn môn học cho lớp học phần";
 
         foreach (var mon in danhSachMonHoc)
         {
@@ -82,10 +93,16 @@ public partial class LopHocPhanEditDialogViewModel : ObservableObject
         }
 
         // Tùy chọn "Chưa phân công"
-        DanhSachGiangVien.Add(new NguoiDungItem { MaNguoiDung = null, TenHienThi = "Chưa phân công" });
+        DanhSachGiangVien.Add(new NguoiDungItem { MaNguoiDung = null, TenDangNhap = null, TenHienThi = "Chưa phân công" });
         foreach (var gv in danhSachGiangVien)
         {
-            DanhSachGiangVien.Add(new NguoiDungItem { MaNguoiDung = gv.TenDangNhap, TenHienThi = $"{gv.HoTen} ({gv.TenDangNhap})" });
+            string maGv = !string.IsNullOrWhiteSpace(gv.MaGV) ? gv.MaGV : gv.TenDangNhap;
+            DanhSachGiangVien.Add(new NguoiDungItem 
+            { 
+                MaNguoiDung = maGv, 
+                TenDangNhap = gv.TenDangNhap,
+                TenHienThi = $"{gv.HoTen} ({maGv})" 
+            });
         }
 
         if (existingLhp != null)
@@ -93,8 +110,11 @@ public partial class LopHocPhanEditDialogViewModel : ObservableObject
             IsEditMode = true;
             MaLHP = existingLhp.MaLHP;
             SelectedMonHoc = DanhSachMonHoc.FirstOrDefault(m => m.MaMon == existingLhp.MaMon);
-            SelectedGiangVien = DanhSachGiangVien.FirstOrDefault(g => g.MaNguoiDung == existingLhp.MaGV) 
-                                ?? DanhSachGiangVien.First();
+            SelectedGiangVien = DanhSachGiangVien.FirstOrDefault(g => 
+                (!string.IsNullOrEmpty(existingLhp.MaGV) && (
+                    string.Equals(g.MaNguoiDung, existingLhp.MaGV, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(g.TenDangNhap, existingLhp.MaGV, StringComparison.OrdinalIgnoreCase)
+                ))) ?? DanhSachGiangVien.First();
             LoaiHinhDT = existingLhp.LoaiHinhDT ?? "Chính quy";
             SiSoToiDa = existingLhp.SiSoToiDa;
             GiangDayOnline = existingLhp.GiangDayOnline;
@@ -188,6 +208,7 @@ public partial class LopHocPhanEditDialogViewModel : ObservableObject
 public class NguoiDungItem
 {
     public string? MaNguoiDung { get; set; }
+    public string? TenDangNhap { get; set; }
     public string TenHienThi { get; set; } = string.Empty;
 
     public override string ToString() => TenHienThi;

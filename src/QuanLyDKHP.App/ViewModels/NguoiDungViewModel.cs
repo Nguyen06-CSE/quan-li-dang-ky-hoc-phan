@@ -121,6 +121,9 @@ public partial class NguoiDungViewModel : ObservableObject
         }
     }
 
+    [ObservableProperty]
+    private string _editTrangThai = "HoatDong";
+
     [RelayCommand]
     private void MoDialogThem()
     {
@@ -130,6 +133,7 @@ public partial class NguoiDungViewModel : ObservableObject
         HoTen = string.Empty;
         SelectedRole = UserRole.Admin.ToString();
         MaGV = string.Empty;
+        EditTrangThai = "HoatDong";
         MatKhauBanDau = string.Empty;
         IsThemSuaDialogOpen = true;
     }
@@ -144,6 +148,7 @@ public partial class NguoiDungViewModel : ObservableObject
         HoTen = user.HoTen;
         SelectedRole = user.Role;
         MaGV = user.MaGV;
+        EditTrangThai = user.TrangThai; // Giữ nguyên trạng thái HoatDong hoặc DaKhoa của tài khoản
         MatKhauBanDau = string.Empty;
         IsThemSuaDialogOpen = true;
     }
@@ -191,7 +196,7 @@ public partial class NguoiDungViewModel : ObservableObject
                     HoTen = HoTen,
                     Role = SelectedRole,
                     MaGV = IsRoleGiangVien ? MaGV : null,
-                    TrangThai = "HoatDong"
+                    TrangThai = EditTrangThai // Chặn tự ý mở khóa: bảo toàn đúng trạng thái tài khoản
                 };
                 await _nguoiDungService.CapNhatAsync(nd);
                 ShowMessage($"Đã cập nhật tài khoản '{TenDangNhap}' thành công.", false);

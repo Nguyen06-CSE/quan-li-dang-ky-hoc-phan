@@ -32,10 +32,19 @@
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Môn học:" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
                           ItemsSource="{Binding DanhSachMonHoc}" 
-                          SelectedItem="{Binding SelectedMonHoc}">
+                          SelectedItem="{Binding SelectedMonHoc}"
+                          IsEnabled="{Binding CanEditMonHoc}"
+                          ToolTip.Tip="{Binding MonHocToolTip}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate DataType="entities:MonHoc">
-                            <TextBlock Text="{Binding TenMon, StringFormat='{}{0} ('}"/>
+                            <TextBlock>
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} - {1}">
+                                        <Binding Path="MaMon"/>
+                                        <Binding Path="TenMon"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>

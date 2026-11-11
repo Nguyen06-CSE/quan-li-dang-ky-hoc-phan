@@ -203,9 +203,16 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
     {
         try
         {
-            // 1. Load giảng viên 1 lần, build dictionary
+            // 1. Load giảng viên 1 lần, build dictionary đối chiếu cả TenDangNhap lẫn MaGV
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
-            var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
+            var gvDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var gv in giangViens)
+            {
+                if (!string.IsNullOrWhiteSpace(gv.TenDangNhap))
+                    gvDict[gv.TenDangNhap] = gv.HoTen;
+                if (!string.IsNullOrWhiteSpace(gv.MaGV))
+                    gvDict[gv.MaGV] = gv.HoTen;
+            }
 
             // 2. Load ALL LHP của tất cả học kỳ từ Local SQLite DB (0ms)
             var allLhps = await _localReadService.GetLopHocPhansLocalAsync();
@@ -325,7 +332,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
     }
 
     public Func<HocKy?, Task<HocKy?>>? ShowHocKyEditDialogFunc { get; set; }
-    public Func<string, List<MonHoc>, List<NguoiDung>, LopHocPhan?, Task<LopHocPhan?>>? ShowLhpEditDialogFunc { get; set; }
+    public Func<string, List<MonHoc>, List<NguoiDung>, LopHocPhan?, bool, Task<LopHocPhan?>>? ShowLhpEditDialogFunc { get; set; }
     public Func<string, Task<bool>>? ShowConfirmDeleteFunc { get; set; }
 
     [RelayCommand]
@@ -378,7 +385,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
             var mons = await _monHocService.LayDanhSachAsync(null, "TenMon");
             var gvs = await _nguoiDungRepository.LayGiangVienAsync();
 
-            var newLhp = await ShowLhpEditDialogFunc(SelectedHocKy.MaHocKy, mons, gvs, null);
+            var newLhp = await ShowLhpEditDialogFunc(SelectedHocKy.MaHocKy, mons, gvs, null, false);
             if (newLhp != null)
             {
                 await _lhpService.ThemAsync(newLhp);
@@ -406,7 +413,7 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
             var mons = await _monHocService.LayDanhSachAsync(null, "TenMon");
             var gvs = await _nguoiDungRepository.LayGiangVienAsync();
 
-            var updatedLhp = await ShowLhpEditDialogFunc(SelectedHocKy.MaHocKy, mons, gvs, dto.Entity);
+            var updatedLhp = await ShowLhpEditDialogFunc(SelectedHocKy.MaHocKy, mons, gvs, dto.Entity, dto.SiSoDangKy > 0);
             if (updatedLhp != null)
             {
                 await _lhpService.CapNhatAsync(updatedLhp);

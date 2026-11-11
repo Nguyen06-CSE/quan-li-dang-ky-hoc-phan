@@ -62,12 +62,13 @@ public partial class HocKyLopHocPhanView : UserControl
         string maHocKy,
         List<MonHoc> danhSachMonHoc,
         List<NguoiDung> danhSachGiangVien,
-        LopHocPhan? lhp)
+        LopHocPhan? lhp,
+        bool daCoDangKy)
     {
         var topLevel = TopLevel.GetTopLevel(this) as Window;
         if (topLevel == null) return null;
 
-        var dialogVm = new LopHocPhanEditDialogViewModel(maHocKy, danhSachMonHoc, danhSachGiangVien, lhp);
+        var dialogVm = new LopHocPhanEditDialogViewModel(maHocKy, danhSachMonHoc, danhSachGiangVien, lhp, daCoDangKy);
         var dialog = new LopHocPhanEditDialog(dialogVm);
 
         await dialog.ShowDialog(topLevel);

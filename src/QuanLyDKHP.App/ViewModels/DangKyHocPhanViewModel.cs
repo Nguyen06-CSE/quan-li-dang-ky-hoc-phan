@@ -731,7 +731,14 @@ public DangKyHocPhanViewModel(
         {
             var list = await _localReadService.GetDangKyLocalAsync(maSV, HocKyHienHanh.MaHocKy);
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
-            var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
+            var gvDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var gv in giangViens)
+            {
+                if (!string.IsNullOrWhiteSpace(gv.TenDangNhap))
+                    gvDict[gv.TenDangNhap] = gv.HoTen;
+                if (!string.IsNullOrWhiteSpace(gv.MaGV))
+                    gvDict[gv.MaGV] = gv.HoTen;
+            }
 
             var tempList = new List<DangKyHocPhanDisplayDto>();
 
@@ -964,7 +971,14 @@ public DangKyHocPhanViewModel(
         {
             var lhps = await _localReadService.GetLopHocPhansLocalAsync(HocKyHienHanh.MaHocKy, null, mon.MaMon);
             var giangViens = await _nguoiDungRepository.LayGiangVienAsync();
-            var gvDict = giangViens.ToDictionary(g => g.TenDangNhap, g => g.HoTen);
+            var gvDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var gv in giangViens)
+            {
+                if (!string.IsNullOrWhiteSpace(gv.TenDangNhap))
+                    gvDict[gv.TenDangNhap] = gv.HoTen;
+                if (!string.IsNullOrWhiteSpace(gv.MaGV))
+                    gvDict[gv.MaGV] = gv.HoTen;
+            }
             var maLhpList = lhps.Select(l => l.MaLHP).ToList();
             var siSoDict = await _localReadService.DemSiSoDangKyBulkLocalAsync(maLhpList);
 
