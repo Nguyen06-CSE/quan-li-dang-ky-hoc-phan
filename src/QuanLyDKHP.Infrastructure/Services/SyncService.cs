@@ -13,6 +13,7 @@ public class SyncService : ISyncService
 {
     private static readonly string[] MasterTables =
     [
+        nameof(NguoiDung),
         nameof(SinhVien),
         nameof(MonHoc),
         nameof(HocKy),
@@ -72,6 +73,7 @@ public class SyncService : ISyncService
 
             await using var remote = await _remoteFactory.CreateDbContextAsync();
             var syncStartedAt = DateTime.UtcNow;
+            var nguoiDungLastSync = await GetLastSyncUtcAsync(local, nameof(NguoiDung));
             var hocKyLastSync = await GetLastSyncUtcAsync(local, nameof(HocKy));
             var monHocLastSync = await GetLastSyncUtcAsync(local, nameof(MonHoc));
             var sinhVienLastSync = await GetLastSyncUtcAsync(local, nameof(SinhVien));
@@ -81,6 +83,15 @@ public class SyncService : ISyncService
             var hocPhiHocKyLastSync = await GetLastSyncUtcAsync(local, nameof(HocPhiHocKy));
 
             await using var transaction = await local.Database.BeginTransactionAsync();
+
+            try {
+                var list = await remote.NguoiDungs.AsNoTracking()
+                    .Where(e => e.NgayTao > nguoiDungLastSync
+                        || (e.NgayCapNhat != null && e.NgayCapNhat > nguoiDungLastSync))
+                    .ToListAsync();
+                await SyncNguoiDungsAsync(local, list);
+                Console.WriteLine($"[Sync] Đã đồng bộ {list.Count} NguoiDung vào SQLite.");
+            } catch (Exception ex) { Console.WriteLine($"[Sync Error] NguoiDung: {ex.Message}"); }
 
             try {
                 var list = await remote.HocKys.AsNoTracking()
@@ -171,13 +182,46 @@ public class SyncService : ISyncService
 
         await using var remote = await _remoteFactory.CreateDbContextAsync();
         await using var local = await _localFactory.CreateDbContextAsync();
-        await local.Database.EnsureDeletedAsync();
         await local.Database.EnsureCreatedAsync();
 
         var syncStartedAt = DateTime.UtcNow;
         await using var transaction = await local.Database.BeginTransactionAsync();
 
-        progress?.Report((10, "Đang tải học kỳ từ máy chủ..."));
+        // 1. Đồng bộ người dùng trước (nếu remote có tài khoản) để bảo toàn quyền đăng nhập
+        progress?.Report((5, "Đang đồng bộ tài khoản người dùng..."));
+        var nguoiDungs = new List<NguoiDung>();
+        try {
+            nguoiDungs = await remote.NguoiDungs.AsNoTracking().ToListAsync();
+            await SyncNguoiDungsAsync(local, nguoiDungs);
+            Console.WriteLine($"[Sync] Đã đồng bộ {nguoiDungs.Count} NguoiDung vào SQLite.");
+        } catch (Exception ex) { Console.WriteLine($"[Sync Error] NguoiDung: {ex.Message}"); }
+
+        // 2. Dọn sạch các bảng nghiệp vụ cũ trong transaction (thay vì EnsureDeletedAsync xóa cả file DB)
+        try
+        {
+            await local.DangKyHocPhans.ExecuteDeleteAsync();
+            await local.HocPhiHocKys.ExecuteDeleteAsync();
+            await local.LopHocPhans.ExecuteDeleteAsync();
+            await local.SinhViens.ExecuteDeleteAsync();
+            await local.MonHocs.ExecuteDeleteAsync();
+            await local.HocKys.ExecuteDeleteAsync();
+            await local.CauHinhHeThongs.ExecuteDeleteAsync();
+            await local.SyncMetadatas.ExecuteDeleteAsync();
+        }
+        catch
+        {
+            local.DangKyHocPhans.RemoveRange(await local.DangKyHocPhans.ToListAsync());
+            local.HocPhiHocKys.RemoveRange(await local.HocPhiHocKys.ToListAsync());
+            local.LopHocPhans.RemoveRange(await local.LopHocPhans.ToListAsync());
+            local.SinhViens.RemoveRange(await local.SinhViens.ToListAsync());
+            local.MonHocs.RemoveRange(await local.MonHocs.ToListAsync());
+            local.HocKys.RemoveRange(await local.HocKys.ToListAsync());
+            local.CauHinhHeThongs.RemoveRange(await local.CauHinhHeThongs.ToListAsync());
+            local.SyncMetadatas.RemoveRange(await local.SyncMetadatas.ToListAsync());
+            await local.SaveChangesAsync();
+        }
+
+        progress?.Report((15, "Đang tải học kỳ từ máy chủ..."));
         var hocKys = new List<HocKy>();
         try {
             hocKys = await remote.HocKys.AsNoTracking().ToListAsync();
@@ -238,7 +282,7 @@ public class SyncService : ISyncService
             {
                 TableName = table,
                 LastSyncUtc = syncStartedAt,
-                RecordCount = GetRecordCount(table, hocKys, monHocs, sinhViens, lopHocPhans, dangKyHocPhans, cauHinhHeThongs, hocPhiHocKys)
+                RecordCount = GetRecordCount(table, hocKys, monHocs, sinhViens, lopHocPhans, dangKyHocPhans, cauHinhHeThongs, hocPhiHocKys, nguoiDungs)
             });
         }
 
@@ -250,7 +294,7 @@ public class SyncService : ISyncService
     private static async Task<DateTime> GetLastSyncUtcAsync(LocalAppDbContext local, string tableName)
     {
         var metadata = await local.SyncMetadatas.FindAsync(tableName);
-        var dt = metadata?.LastSyncUtc ?? DateTime.MinValue;
+        var dt = metadata?.LastSyncUtc ?? new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
     }
 
@@ -266,6 +310,7 @@ public class SyncService : ISyncService
         metadata.LastSyncUtc = syncStartedAt;
         metadata.RecordCount = tableName switch
         {
+            nameof(NguoiDung) => await local.NguoiDungs.CountAsync(),
             nameof(SinhVien) => await local.SinhViens.CountAsync(),
             nameof(MonHoc) => await local.MonHocs.CountAsync(),
             nameof(HocKy) => await local.HocKys.CountAsync(),
@@ -275,6 +320,28 @@ public class SyncService : ISyncService
             nameof(HocPhiHocKy) => await local.HocPhiHocKys.CountAsync(),
             _ => 0
         };
+    }
+
+    private static async Task SyncNguoiDungsAsync(LocalAppDbContext local, IEnumerable<NguoiDung> items)
+    {
+        foreach (var item in items)
+        {
+            var existing = await local.NguoiDungs.FirstOrDefaultAsync(u => u.TenDangNhap == item.TenDangNhap);
+            if (existing == null)
+            {
+                await local.NguoiDungs.AddAsync(CloneNguoiDung(item));
+            }
+            else
+            {
+                existing.HoTen = item.HoTen;
+                existing.Role = item.Role;
+                existing.MaGV = item.MaGV;
+                existing.TrangThai = item.TrangThai;
+                existing.MatKhauHash = item.MatKhauHash;
+                existing.IsDeleted = item.IsDeleted;
+                existing.NgayCapNhat = item.NgayCapNhat;
+            }
+        }
     }
 
     private static async Task SyncSinhViensAsync(LocalAppDbContext local, IEnumerable<SinhVien> items)
@@ -365,10 +432,12 @@ public class SyncService : ISyncService
         List<LopHocPhan> lopHocPhans,
         List<DangKyHocPhan> dangKyHocPhans,
         List<CauHinhHeThong> cauHinhHeThongs,
-        List<HocPhiHocKy> hocPhiHocKys)
+        List<HocPhiHocKy> hocPhiHocKys,
+        List<NguoiDung>? nguoiDungs = null)
     {
         return tableName switch
         {
+            nameof(NguoiDung) => nguoiDungs?.Count ?? 0,
             nameof(SinhVien) => sinhViens.Count,
             nameof(MonHoc) => monHocs.Count,
             nameof(HocKy) => hocKys.Count,
@@ -379,6 +448,20 @@ public class SyncService : ISyncService
             _ => 0
         };
     }
+
+    private static NguoiDung CloneNguoiDung(NguoiDung item) => new()
+    {
+        Id = item.Id,
+        TenDangNhap = item.TenDangNhap,
+        MatKhauHash = item.MatKhauHash,
+        HoTen = item.HoTen,
+        Role = item.Role,
+        MaGV = item.MaGV,
+        TrangThai = item.TrangThai,
+        NgayTao = item.NgayTao,
+        NgayCapNhat = item.NgayCapNhat,
+        IsDeleted = item.IsDeleted
+    };
 
     private static SinhVien CloneSinhVien(SinhVien item) => new()
     {

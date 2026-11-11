@@ -162,7 +162,16 @@ Tính năng quản lý sao lưu được tích hợp trực tiếp vào màn hì
 
 ---
 
-## 5. Các Tệp Mã Nguồn Triển Khai
+## 5. Tối Ưu Hóa Hạ Tầng Dữ Liệu & Bảo Toàn Toàn Vẹn Cục Bộ (Nhóm 5, ADR-22)
+
+Nhằm nâng cao tính bền vững của tầng lưu trữ SQLite và ngăn ngừa mọi rủi ro mất mát dữ liệu ngoài ý muốn:
+1. **Loại bỏ hoàn toàn lệnh `EnsureDeletedAsync()` khỏi chu trình đồng bộ:** Không bao giờ xóa tệp CSDL vật lý (`quanlydkhp.db`) hay hủy cấu trúc schema SQLite đang chạy ở chế độ WAL. Thay vào đó, khi thực hiện làm mới toàn phần (`Full Refresh`), hệ thống thực hiện dọn sạch các bảng nghiệp vụ cũ bên trong một giao dịch CSDL (`BeginTransactionAsync`), bảo đảm nếu máy chủ từ xa gặp sự cố thì dữ liệu cục bộ được rollback nguyên vẹn 100%.
+2. **Bảo tồn tài khoản người dùng (`NguoiDung`) khi đồng bộ:** Bổ sung bảng `NguoiDung` vào danh sách bảng chủ lực (`MasterTables`) và chu trình nạp dữ liệu. Tuyệt đối không xóa tài khoản người dùng khi làm mới CSDL cục bộ, ngăn chặn tình trạng bị mất tài khoản quản trị viên và giảng viên khi chạy chế độ offline.
+3. **Chuẩn hóa mốc thời gian Delta Sync (`DateTimeKind.Utc`):** Thiết lập giá trị mốc thời gian khởi điểm an toàn (`new DateTime(2000, 1, 1, DateTimeKind.Utc)`), loại trừ triệt để lỗi ngoại lệ `DateTimeKind.Unspecified` và lỗi tràn số năm khi PostgreSQL Npgsql so sánh mốc thời gian với SQLite.
+
+---
+
+## 6. Các Tệp Mã Nguồn Triển Khai
 
 * **Hợp đồng & DTOs Sao lưu:**
   * `src/QuanLyDKHP.Core/Interfaces/IBackupService.cs`

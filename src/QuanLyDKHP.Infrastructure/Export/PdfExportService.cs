@@ -169,6 +169,8 @@ public class PdfExportService : IPdfExportService
 
     public Task<byte[]> XuatDanhSachThiPdfAsync(List<DanhSachThiDto> danhSach, string tenMon, string? maLHP, string tenHocKy)
     {
+        var gvName = danhSach.Select(x => x.TenGiangVien).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x) && x != "Chưa phân công");
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -207,7 +209,16 @@ public class PdfExportService : IPdfExportService
                             r.RelativeItem().Column(c =>
                             {
                                 c.Item().Text(t => { t.Span("Môn học: ").Bold(); t.Span(tenMon); });
-                                c.Item().Text(t => { t.Span("Mã LHP: ").Bold(); t.Span(string.IsNullOrWhiteSpace(maLHP) ? "Tất cả các lớp" : maLHP); });
+                                c.Item().Text(t => 
+                                { 
+                                    t.Span("Mã LHP: ").Bold(); 
+                                    t.Span(string.IsNullOrWhiteSpace(maLHP) ? "Tất cả các lớp" : maLHP);
+                                    if (!string.IsNullOrWhiteSpace(gvName))
+                                    {
+                                        t.Span("  |  CBGD: ").Bold();
+                                        t.Span(gvName);
+                                    }
+                                });
                             });
                             r.RelativeItem().Column(c =>
                             {

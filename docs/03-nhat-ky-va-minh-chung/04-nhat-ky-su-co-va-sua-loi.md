@@ -230,3 +230,43 @@ Trong quá trình phát triển ứng dụng Desktop phức tạp với cơ sở
      * Trong `LopHocPhanService.CapNhatAsync`, nếu `existing.MaMon != lhp.MaMon` mà `CoDangKyHocPhanAsync == true`, ném ngoại lệ chặn lưu.
      * Nếu `lhp.SiSoToiDa < DemSiSoDangKyAsync`, ném ngoại lệ chặn hạ sĩ số thấp hơn số người đang học.
      * Trên giao diện `LopHocPhanEditDialog`, ComboBox Môn học tự động bị khóa (`IsEnabled = false`) đi kèm ToolTip cảnh báo khi lớp đã có người đăng ký.
+
+
+---
+
+### ERR-13: Sự Cố Phân Mảnh Nhóm EF Core `AsNoTracking()`, Lệch Số Liệu Báo Cáo & Xuất Thiếu Họ Tên Giảng Viên
+* **Thời điểm phát hiện:** 11/11/2026.
+* **Mức độ nghiêm trọng:** 🟡 Trung bình (Sai lệch số liệu thống kê giữa các màn hình tra cứu, nguy cơ lỗi `NullReferenceException` và giảm tính chuyên nghiệp của ấn phẩm xuất bản).
+* **Mô tả hiện tượng:**
+  1. Trong `BaoCaoRepository.ThongKeSoSvTheoMonAsync`, câu lệnh gom nhóm `GroupBy(l => l.MonHoc)` thực thi trên danh sách đã tải ở chế độ `AsNoTracking()`. Do EF Core không duy trì bộ nhớ thực thể (Identity Resolution), phép so sánh tham chiếu đối tượng có thể khiến một môn học bị tách làm nhiều nhóm khác nhau trên bảng thống kê, hoặc phát sinh `NullReferenceException` nếu quan hệ môn học bị null.
+  2. Tab 1 (Danh sách theo môn) hiển thị cả những sinh viên đã hủy môn (`DaHuy`) và những sinh viên/lớp học phần đã xóa mềm (`IsDeleted = true`). Trong khi đó, Tab 3 (Thống kê môn học) chỉ đếm sinh viên có trạng thái `DangHoc`. Kết quả là tổng số sinh viên xem tại Tab 1 không khớp với số liệu tổng hợp tại Tab 3.
+  3. Tab 2 (Danh sách thi) thiếu điều kiện lọc xóa mềm, khiến sinh viên hoặc lớp học phần đã bị xóa vẫn xuất hiện trên danh sách dự thi kết thúc học phần.
+  4. Cột Giảng viên trên DataGrid, tệp Excel và ấn phẩm PDF chỉ hiển thị mã định danh kỹ thuật (`GV01`, `gv01_pm`) thay vì họ tên đầy đủ của giảng viên.
+* **Nguyên nhân gốc rễ:**
+  * EF Core `AsNoTracking()` không bảo đảm tính duy nhất của đối tượng tham chiếu trong bộ nhớ.
+  * Thiếu đồng bộ điều kiện lọc `TrangThai == "DangHoc"` và `!IsDeleted` giữa các phương thức truy vấn báo cáo.
+  * Chưa kết nối từ điển tài khoản `NguoiDung` để phân giải mã giảng viên sang họ tên đầy đủ.
+* **Phương án khắc phục:**
+  1. Gom nhóm theo khóa tự nhiên `l => l.MaMon` và nạp tên môn học an toàn qua `first.MonHoc?.TenMon ?? g.Key`.
+  2. Đồng bộ hóa bộ lọc `!lhp.IsDeleted && !sv.IsDeleted && dk.TrangThai == "DangHoc"` trên cả `BaoCaoRepository` và `LocalReadService`.
+  3. Xây dựng phương thức `GetGiangVienDictAsync` đọc từ điển tài khoản giảng viên từ bảng `NguoiDung` (hỗ trợ cả `MaGV` và `TenDangNhap`), nạp họ tên đầy đủ vào tất cả các DTO báo cáo.
+  4. Bổ sung cột *Giảng viên* trên DataGrid Tab 2, xuất cột giảng viên ra Excel và in họ tên cán bộ giảng dạy lên phần tiêu đề phiếu thi PDF và bảng kết quả ĐKHP PDF khổ A4.
+
+
+---
+
+### ERR-14: Sự Cố EnsureDeletedAsync Phá Hủy File CSDL Cục Bộ, Làm Mất Tài Khoản Offline & Lỗi Timestamp Npgsql
+* **Thời điểm phát hiện:** 11/11/2026.
+* **Mức độ nghiêm trọng:** 🔴 Nghiêm trọng (Làm mất dữ liệu offline, xóa tài khoản người dùng gây lockout và lỗi kết nối đồng bộ vi sai).
+* **Mô tả hiện tượng:**
+  1. Khi người dùng kích hoạt làm mới toàn phần (`ForceFullRefreshAsync` / `RefreshLocalStoreAsync`), phương thức gọi `EnsureDeletedAsync()` để xóa tệp SQLite. Nếu máy chủ từ xa gặp sự cố mạng hoặc lỗi kết nối sau khi xóa, toàn bộ tệp `quanlydkhp.db` bị xóa sạch và người dùng mất toàn bộ dữ liệu cục bộ.
+  2. Bảng `NguoiDung` không được sao chép trong chu trình làm mới. Khi CSDL cục bộ bị xóa, tài khoản admin và giảng viên biến mất hoàn toàn, người dùng không thể đăng nhập vào ứng dụng ở chế độ ngoại tuyến.
+  3. Giá trị `DateTime.MinValue` khi so sánh trong `SyncDeltaAsync` gây lỗi định dạng trên PostgreSQL Npgsql do xung đột `DateTimeKind.Unspecified`.
+* **Nguyên nhân gốc rễ:**
+  * Lạm dụng `EnsureDeletedAsync()` thay vì dọn dẹp theo bảng trong một transaction.
+  * Bảng `NguoiDung` bị bỏ sót khỏi danh sách `MasterTables` của `SyncService`.
+  * Chưa chuẩn hóa giá trị mặc định của `GetLastSyncUtcAsync`.
+* **Phương án khắc phục:**
+  1. Loại bỏ hoàn toàn `EnsureDeletedAsync()`. Dọn dẹp các bảng nghiệp vụ trong transaction CSDL (`BeginTransactionAsync`), tự động rollback nếu quá trình nạp dữ liệu từ remote thất bại.
+  2. Thêm `NguoiDung` vào `MasterTables`, đồng bộ tài khoản người dùng trước khi dọn dữ liệu nghiệp vụ, bảo toàn 100% tài khoản đăng nhập.
+  3. Chuẩn hóa `GetLastSyncUtcAsync` trả về `new DateTime(2000, 1, 1, DateTimeKind.Utc)`, khắc phục triệt để lỗi so sánh timestamp trên PostgreSQL.

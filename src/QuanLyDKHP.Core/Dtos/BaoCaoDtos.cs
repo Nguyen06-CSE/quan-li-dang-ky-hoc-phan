@@ -26,6 +26,7 @@ public class DanhSachThiDto
     public string HoTen { get; set; } = string.Empty;
     public string? LopSinhHoat { get; set; }
     public string MaLHP { get; set; } = string.Empty;
+    public string? TenGiangVien { get; set; }
 }
 
 /// <summary>

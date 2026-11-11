@@ -274,22 +274,56 @@ public class LocalReadService : ILocalReadService
             return new List<SinhVienTheoMonDto>();
 
         await using var local = await _localFactory.CreateDbContextAsync();
-        var query = from dk in local.DangKyHocPhans.AsNoTracking()
-                    join lhp in local.LopHocPhans.AsNoTracking() on dk.MaLHP equals lhp.MaLHP
-                    join sv in local.SinhViens.AsNoTracking() on dk.MaSV equals sv.MaSV
-                    where lhp.MaMon == maMon && lhp.MaHocKy == maHocKy
-                    orderby dk.MaLHP, sv.MaSV
-                    select new SinhVienTheoMonDto
-                    {
-                        MaSV = sv.MaSV,
-                        HoTen = sv.HoTen,
-                        LopSinhHoat = sv.LopSinhHoat,
-                        MaLHP = dk.MaLHP,
-                        TenGiangVien = lhp.MaGV,
-                        TrangThai = dk.TrangThai
-                    };
+        var rawList = await (from dk in local.DangKyHocPhans.AsNoTracking()
+                             join lhp in local.LopHocPhans.AsNoTracking() on dk.MaLHP equals lhp.MaLHP
+                             join sv in local.SinhViens.AsNoTracking() on dk.MaSV equals sv.MaSV
+                             where lhp.MaMon == maMon 
+                                   && lhp.MaHocKy == maHocKy
+                                   && !lhp.IsDeleted 
+                                   && !sv.IsDeleted 
+                                   && dk.TrangThai == "DangHoc"
+                             orderby dk.MaLHP, sv.MaSV
+                             select new
+                             {
+                                 sv.MaSV,
+                                 sv.HoTen,
+                                 sv.LopSinhHoat,
+                                 dk.MaLHP,
+                                 lhp.MaGV,
+                                 dk.TrangThai
+                             }).ToListAsync();
 
-        return await query.ToListAsync();
+        var gvList = await local.NguoiDungs.AsNoTracking()
+            .Where(u => u.Role == "GiangVien" && !u.IsDeleted)
+            .ToListAsync();
+
+        var gvDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var gv in gvList)
+        {
+            if (!string.IsNullOrWhiteSpace(gv.TenDangNhap))
+                gvDict[gv.TenDangNhap] = gv.HoTen;
+            if (!string.IsNullOrWhiteSpace(gv.MaGV))
+                gvDict[gv.MaGV] = gv.HoTen;
+        }
+
+        return rawList.Select(x =>
+        {
+            string tenGv = "Chưa phân công";
+            if (!string.IsNullOrWhiteSpace(x.MaGV))
+            {
+                tenGv = gvDict.TryGetValue(x.MaGV, out var name) ? name : x.MaGV;
+            }
+
+            return new SinhVienTheoMonDto
+            {
+                MaSV = x.MaSV,
+                HoTen = x.HoTen,
+                LopSinhHoat = x.LopSinhHoat,
+                MaLHP = x.MaLHP,
+                TenGiangVien = tenGv,
+                TrangThai = x.TrangThai
+            };
+        }).ToList();
     }
 
     public async Task<DashboardStatsDto> GetDashboardStatsLocalAsync(string? maHocKy)

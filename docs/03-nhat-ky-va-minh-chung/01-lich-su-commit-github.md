@@ -10,8 +10,8 @@ sidebar_position: 1
 
 * **Đường dẫn Repository:** `https://github.com/Nguyen06-CSE/quan-li-dang-ky-hoc-phan`
 * **Nhánh chính (Default Branch):** `main`
-* **Tổng số commits:** 35 commits chính thức được ghi nhận.
-* **Thời gian thực hiện:** Từ 18/09/2026 đến 09/11/2026.
+* **Tổng số commits:** 43 commits chính thức được ghi nhận.
+* **Thời gian thực hiện:** Từ 18/09/2026 đến 11/11/2026.
 * **Quy chuẩn thông điệp:** Áp dụng Conventional Commits chuẩn quốc tế (`feat`, `fix`, `docs`, `perf`, `refactor`).
 
 ---
@@ -20,18 +20,25 @@ sidebar_position: 1
 
 | Thành Viên | Tài Khoản GitHub | Số Lượng Commits | Phạm Vi Đóng Góp Chính |
 |---|---|:---:|---|
-| **Nguyễn** (Trưởng nhóm) | `Nguyen06-CSE` | 27 commits | Khởi tạo dự án, Kiến trúc CSDL & EF Core, Chuyển đổi SQLite Local (WAL), Hệ thống sao lưu Git đa tầng (F11/F11b), Master-Detail Backup UI, Export/Import Zip, Sửa lỗi auth và deadlock khi thoát, Tối ưu hóa bộ nhớ đệm In-Memory. |
-| **Liam / Đạt** | `pliam1304` | 7 commits | Thiết kế App Shell & Navigation, Liquid Glass Theme, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu (M3/M4), Viết nhật ký FIX.md. |
+| **Nguyễn** (Trưởng nhóm) | `Nguyen06-CSE` | 29 commits | Khởi tạo dự án, Kiến trúc CSDL & EF Core, Chuyển đổi SQLite Local (WAL), Hệ thống sao lưu Git đa tầng (F11/F11b), Master-Detail Backup UI, Export/Import Zip, Sửa lỗi auth và deadlock khi thoát, Tối ưu hóa bộ nhớ đệm In-Memory. |
+| **Liam / Lâm** | `pliam1304` | 13 commits | Thiết kế App Shell & Navigation, Theme Liquid Glass, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu, Hoàn thiện Nhóm 1 (Excel 21 cột), Nhóm 2 (ĐKHP & Học phí), Nhóm 3 (Danh mục), Nhóm 4 (Báo cáo & Thống kê), Nhóm 5 (Hạ tầng dữ liệu & Đồng bộ an toàn). |
 | **Ngô Quyền Linh** | `NgoQuyenLinh` | 1 commit | Soạn thảo bộ tài liệu đặc tả chi tiết từ Spec 011 đến Spec 016, hỗ trợ thiết kế luồng Import/Export. |
 
 ---
 
-## 3. Nhật Ký Chi Tiết Toàn Bộ 35 Commits
+## 3. Nhật Ký Chi Tiết Toàn Bộ 43 Commits
 
 Dưới đây là trích xuất nguyên trạng lịch sử cam kết từ lệnh `git log`:
 
 | Commit Hash | Ngày Ghi Nhận | Tác Giả | Thông Điệp Commit (Conventional Message) |
 |:---:|:---:|---|---|
+| `pending` | 2026-11-11 | pliam1304 | `feat(nhom-4-5): toi uu bao cao an pham, loai bo EnsureDeleted va dong bo du lieu cuc bo an toan` |
+| `2a2a631` | 2026-11-11 | pliam1304 | `feat(nhom-3): quan ly danh muc mon hoc, lop hoc phan, sinh vien va tai khoan` |
+| `8f82885` | 2026-11-11 | pliam1304 | `feat(nhom-3): quan ly danh muc mon hoc, lop hoc phan, sinh vien va tai khoan` |
+| `da3525f` | 2026-11-11 | pliam1304 | `feat(nhom-2): nghiep vu dang ky hoc phan va tinh hoc phi` |
+| `994c9cf` | 2026-11-11 | pliam1304 | `feat(group-1): hoan tat xu ly nhap xuat excel 21 cot, hoc ky va dong bo du lieu tuc thi` |
+| `17d329d` | 2026-11-09 | Nguyen06-CSE | `docs(website): cập nhật sidebar hiển thị đặc tả F11 và F11b` |
+| `d34b025` | 2026-11-09 | Nguyen06-CSE | `docs: bổ xung nhật kí làm việc` |
 | `9e7a781` | 2026-11-09 | Nguyen06-CSE | `feat(backup): nâng cấp UI Master-Detail sao lưu, export/import file zip và fix treo app khi thoát` |
 | `e47c182` | 2026-11-09 | Nguyen06-CSE | `DB/Docs: bổ xung tài liệu mô tả cho việc áp dụng git để lưu backup` |
 | `a975057` | 2026-11-09 | Nguyen06-CSE | `fix(auth): tự động khởi tạo bảng NguoiDung và seed admin khi chạy CSDL SQLite Local` |

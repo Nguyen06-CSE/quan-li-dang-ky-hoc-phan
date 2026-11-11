@@ -386,6 +386,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
                 ("Họ và tên", x => x.HoTen),
                 ("Lớp sinh hoạt", x => x.LopSinhHoat ?? string.Empty),
                 ("Mã LHP", x => x.MaLHP),
+                ("Giảng viên", x => x.TenGiangVien ?? string.Empty),
                 ("Điểm", x => string.Empty),
                 ("Chữ ký", x => string.Empty),
                 ("Ghi chú", x => string.Empty)

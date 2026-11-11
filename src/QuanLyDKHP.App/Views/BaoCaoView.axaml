@@ -173,6 +173,7 @@
                                 <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" />
                                 <DataGridTextColumn Header="Lớp sinh hoạt" Binding="{Binding LopSinhHoat}" Width="140" />
                                 <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="130" />
+                                <DataGridTextColumn Header="Giảng viên" Binding="{Binding TenGiangVien}" Width="160" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

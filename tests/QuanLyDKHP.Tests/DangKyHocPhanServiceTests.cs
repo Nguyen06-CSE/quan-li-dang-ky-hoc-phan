@@ -180,7 +180,7 @@ public class DangKyHocPhanServiceTests
 
         // Assert
         Assert.True(result.Success);
-        _mockDangKyRepo.Verify(r => r.ThemAsync(It.Is<DangKyHocPhan>(d => d.MaLHP == maLhpMoi && d.MaSV == maSV && d.TrangThai == "DangHoc")), Times.Once);
+        _mockDangKyRepo.Verify(r => r.LuuDangKyAtomicAsync(It.Is<DangKyHocPhan>(d => d.MaLHP == maLhpMoi && d.MaSV == maSV && d.TrangThai == "DangHoc"), true, It.IsAny<int>()), Times.Once);
         _mockHocPhiService.Verify(h => h.TinhLaiHocPhiAsync(maSV, lhpMoi.MaHocKy), Times.Once);
     }
 

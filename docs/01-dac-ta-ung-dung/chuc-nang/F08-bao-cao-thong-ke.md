@@ -43,5 +43,15 @@ Phân hệ được thiết kế dưới dạng giao diện đa thẻ (4 Tabs ch
 * **Giao diện:** `src/QuanLyDKHP.App/Views/BaoCaoView.axaml` và `.axaml.cs`.
 * **ViewModel:** `src/QuanLyDKHP.App/ViewModels/BaoCaoViewModel.cs`.
 * **Tầng nghiệp vụ & Repository:** `src/QuanLyDKHP.Services/BaoCaoService.cs` và `BaoCaoRepository.cs`.
-* **Công cụ xuất ấn phẩm:** `ClosedXmlExportService.cs` (Excel) và `QuestPdfExportService.cs` (PDF).
-* **Kiểm thử tự động:** `tests/QuanLyDKHP.Tests/BaoCaoServiceTests.cs` và `ExportServiceTests.cs`.
+* **Dịch vụ bộ nhớ cục bộ:** `src/QuanLyDKHP.Infrastructure/Services/LocalReadService.cs`.
+* **Công cụ xuất ấn phẩm:** `src/QuanLyDKHP.Infrastructure/Export/ExcelExportService.cs` (ClosedXML) và `PdfExportService.cs` (QuestPDF).
+* **Kiểm thử tự động:** `tests/QuanLyDKHP.Tests/BaoCaoServiceTests.cs`, `BaoCaoRepositoryTests.cs` và `ExportServiceTests.cs`.
+
+---
+
+## 4. Tối Ưu Hóa Toàn Vẹn & Đồng Bộ Dữ Liệu Báo Cáo (ADR-21)
+
+Nhằm đảm bảo số liệu báo cáo, thống kê và tài liệu xuất bản luôn chính xác tuyệt đối và đồng nhất 100% giữa 4 Tabs:
+1. **Khắc phục lỗi gom nhóm thực thể trên AsNoTracking:** Trong EF Core, `AsNoTracking()` không duy trì Identity Map, việc gom nhóm theo tham chiếu đối tượng `GroupBy(l => l.MonHoc)` tiềm ẩn nguy cơ trùng lặp dòng môn học hoặc gây `NullReferenceException`. Hệ thống đã chuyển đổi sang gom nhóm theo khóa tự nhiên `GroupBy(l => l.MaMon)` và ánh xạ thông tin môn học an toàn.
+2. **Đồng bộ bộ lọc trạng thái và xóa mềm (Soft-delete):** Đồng nhất bộ lọc `!lhp.IsDeleted && !sv.IsDeleted && dk.TrangThai == "DangHoc"` trên toàn bộ 4 phân hệ (Danh sách theo môn, Danh sách thi, Thống kê học kỳ, Phiếu kết quả ĐKHP). Loại bỏ hoàn toàn sự chênh lệch số lượng sinh viên giữa các màn hình tra cứu.
+3. **Nạp họ tên giảng viên chuẩn hóa (Instructor Enrichment):** Thay vì in mã giảng viên kỹ thuật thô (`GV01`, `gv01_pm`), hệ thống tự động đối soát `NguoiDung` để hiển thị họ tên đầy đủ (ví dụ: `TS. Nguyễn Văn A`, `ThS. Liam / Lâm`) trên giao diện, bảng tính Excel và phần tiêu đề/cột thông tin trên ấn phẩm PDF khổ A4.

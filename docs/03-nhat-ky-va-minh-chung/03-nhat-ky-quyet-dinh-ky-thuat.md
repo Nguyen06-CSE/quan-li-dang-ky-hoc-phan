@@ -122,3 +122,81 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
 * **Lý do:**
   * Luồng UI của Avalonia được quản lý bởi `AvaloniaSynchronizationContext`. Khi luồng UI gọi `.GetAwaiter().GetResult()` chặn đồng bộ, các tác vụ `await` I/O bên trong EF Core / SQLite cố gắng điều phối (marshal) tiếp tục chạy trên luồng UI dẫn tới **Async-over-Sync Deadlock**. Đưa tác vụ vào `Task.Run` làm biến mất `SynchronizationContext`, triệt tiêu hoàn toàn khả năng deadlock.
   * Trong chế độ WAL, SQLite hỗ trợ đọc ghi đồng thời rất tốt giữa các kết nối độc lập. Thuộc tính `Cache=Shared` gây khóa chéo cấp bảng (Table Lock) giữa kết nối của `AppDbContext` và kết nối của `BackupService`, làm chậm và nghẽn I/O khi dọn dẹp tiến trình. Private Cache giúp mỗi kết nối hoạt động mượt mà, độc lập.
+
+---
+
+## ADR-16: Cơ Chế Import Excel Streaming Lô Lớn 21 Cột & Tự Động Phân Giải Học Kỳ Đích
+* **Bối cảnh:** File Excel đăng ký học phần thực tế của trường có 21 cột với quy mô hàng triệu dòng. Trước đây ứng dụng bắt buộc người dùng phải chọn thủ công học kỳ đích trước khi đọc file; nếu không chọn thì bị chặn; ngoài ra sau khi nạp xong, các màn hình khác không tự cập nhật nếu không tắt app mở lại.
+* **Quyết định:**
+  1. Cho phép kéo thả file Excel vào là đọc và đưa dữ liệu vào hệ thống ngay.
+  2. Bóc tách tiền tố học kỳ trực tiếp từ `MaLHP` (ví dụ `26120CT4201D02` -> tiền tố `261` -> Học kỳ `HK261`), tự động khởi tạo học kỳ nếu chưa có.
+  3. Sử dụng ClosedXML duyệt theo dòng (Streaming Row-by-Row) kết hợp bộ nhớ đệm tra cứu (Lookup Cache In-Memory) và lưu theo lô (Batch Processing).
+  4. Sau khi import xong, ghi đồng bộ vào SQLite Local và phát thông điệp cập nhật đa tab (`WeakReferenceMessenger`) tức thì 0ms.
+* **Lý do:** Tối ưu hóa trải nghiệm người dùng tối đa, không bắt buộc người dùng phải nhớ mã học kỳ trước khi nạp tệp, và loại bỏ hoàn toàn sự chậm trễ khi nạp dữ liệu lớn.
+
+---
+
+## ADR-17: Giao Dịch Nguyên Tử Kiểm Tra Sĩ Số Thời Gian Thực Chống Race Condition (`LuuDangKyAtomicAsync`)
+* **Bối cảnh:** Trong môi trường nhiều sinh viên hoặc nhiều giáo vụ thao tác đồng thời tại thời điểm mở cổng đăng ký, việc kiểm tra sĩ số qua câu lệnh `SELECT COUNT(*)` tách rời với câu lệnh `INSERT / UPDATE` sẽ dẫn đến điều kiện tranh chấp (Race Condition), khiến lớp học phần bị vượt quá sĩ số tối đa quy định.
+* **Quyết định:** Xây dựng phương thức `LuuDangKyAtomicAsync` tại `DangKyHocPhanRepository` kết hợp:
+  1. Khóa đồng bộ trong tiến trình qua `SemaphoreSlim(1, 1)`.
+  2. Giao dịch cấp cơ sở dữ liệu `BeginTransactionAsync`. Kiểm tra sĩ số thực tế tức thời ngay trong transaction; nếu đã đủ chỗ thì tự động rollback và trả về lỗi.
+* **Lý do:** Bảo đảm tính toàn vẹn tuyệt đối (ACID) của nghiệp vụ đăng ký học phần, loại bỏ 100% rủi ro vượt sĩ số lớp.
+
+---
+
+## ADR-18: Đồng Nhất Công Thức Học Phí & Cơ Chế Fallback Trực Tiếp Từ Lịch Sử Đăng Ký
+* **Bối cảnh:** Màn hình danh sách học phí tự ý cộng thêm nợ cũ khiến số tiền bị lệch so với modal xem chi tiết. Đồng thời với học kỳ đã đóng chưa khóa sổ snapshot, hệ thống đọc ra toàn bộ 0đ.
+* **Quyết định:**
+  1. Thống nhất một công thức duy nhất: `TongHocPhi = Sum(SoTienPhaiDong hoặc (LT * DonGiaLT + TH * DonGiaTH))`, `ConNo = TongHocPhi - DaDong`.
+  2. Tại `LocalReadService`, nếu học kỳ đã đóng mà chưa có snapshot, tự động kích hoạt cơ chế Fallback tính trực tiếp từ bảng `DangKyHocPhan`.
+  3. Bổ sung phương thức `GhiNhanNopTienAsync` phân bổ tiền nộp theo môn còn nợ.
+* **Lý do:** Đảm bảo số liệu tài chính luôn chính xác và đồng nhất giữa danh sách và chi tiết, không bao giờ bị hiển thị sai số tiền 0đ.
+
+---
+
+## ADR-19: Chiến Lược Tái Kích Hoạt Bản Ghi (Soft-Delete Reactivation) Thay Vì Insert Mới
+* **Bối cảnh:** Khi một bản ghi (Sinh viên, Môn học, Lớp HP, Tài khoản) đã bị xóa mềm (`IsDeleted = true`), việc tạo mới lại với cùng mã định danh sẽ ném lỗi xung đột chỉ mục duy nhất (UNIQUE constraint failed) trên PostgreSQL và SQLite.
+* **Quyết định:** Trong phương thức `ThemAsync` của tất cả các Repository:
+  * Nếu bản ghi tồn tại và `!IsDeleted`: Ném ngoại lệ báo mã đã tồn tại.
+  * Nếu bản ghi tồn tại và `IsDeleted`: Tự động phục hồi (`IsDeleted = false`), cập nhật thông tin mới nhất và gán `NgayCapNhat = DateTime.UtcNow`.
+* **Lý do:** Loại bỏ hoàn toàn lỗi crash khi tái tạo mã danh mục, bảo tồn lịch sử dữ liệu và giữ cho cấu trúc CSDL luôn sạch sẽ.
+
+---
+
+## ADR-20: Chuẩn Hóa Định Danh Giảng Viên Hai Chiều Giữa `MaGV` Và `TenDangNhap`
+* **Bối cảnh:** Lớp học phần lưu giảng viên lúc dùng `MaGV`, lúc dùng `TenDangNhap`. Từ điển tra cứu chỉ ánh xạ theo một chiều dẫn đến việc hiển thị sai lệch thành "Chưa phân công" hoặc giảng viên không thấy lớp mình trên Dashboard.
+* **Quyết định:**
+  1. Khi tạo tài khoản Giảng viên, nếu bỏ trống `MaGV` thì tự động gán bằng `TenDangNhap`.
+  2. Bổ sung `GetByMaGVAsync` kiểm tra tính duy nhất của mã giảng viên.
+  3. Các từ điển tra cứu giảng viên (`gvDict`) nạp cả 2 khóa `MaGV` và `TenDangNhap` vào cùng một map (case-insensitive).
+  4. Hộp thoại LHP và Dashboard đối chiếu song song cả 2 khóa.
+* **Lý do:** Đảm bảo danh tính giảng viên được nhận diện chính xác 100% trên toàn bộ các phân hệ mà không phụ thuộc vào việc người dùng nhập mã hay tên đăng nhập.
+
+---
+
+## ADR-21: Khắc Phục Lỗi GroupBy Entity Reference Trên AsNoTracking Và Đồng Bộ Bộ Lọc Báo Cáo Xuất Bản
+* **Bối cảnh:**
+  1. `BaoCaoRepository.ThongKeSoSvTheoMonAsync` gom nhóm theo `l => l.MonHoc` khi truy vấn ở chế độ `AsNoTracking()`. Do không có Identity Resolution, EF Core có thể tạo các thể hiện riêng biệt cho cùng một môn học dẫn đến phân mảnh nhóm, hoặc gây `NullReferenceException` nếu quan hệ môn học bị null.
+  2. Báo cáo danh sách sinh viên theo môn (Tab 1), danh sách thi (Tab 2) và thống kê số lượng (Tab 3) có sự lệch số liệu nghiêm trọng do Tab 1 hiển thị cả đăng ký đã hủy (`DaHuy`) và không loại trừ sinh viên/lớp học phần đã xóa mềm (`IsDeleted`).
+  3. Cột Giảng viên trên báo cáo và phiếu in ấn chỉ hiển thị mã định danh kỹ thuật (`GV01`, `gv01_pm`) gây khó hiểu cho người xem.
+* **Quyết định:**
+  1. Gom nhóm theo khóa tự nhiên `l => l.MaMon` và đọc tên môn an toàn qua `first.MonHoc?.TenMon ?? g.Key`.
+  2. Đồng bộ bộ lọc toàn diện: `!lhp.IsDeleted && !sv.IsDeleted && dk.TrangThai == "DangHoc"` trên cả `BaoCaoRepository` và `LocalReadService`.
+  3. Tích hợp nạp họ tên giảng viên từ tài khoản `NguoiDung` (ánh xạ cả `MaGV` và `TenDangNhap`) vào toàn bộ các DTO báo cáo (`SinhVienTheoMonDto`, `DanhSachThiDto`, `PhieuDangKyMonDto`).
+  4. Hiển thị họ tên giảng viên trên DataGrid, tệp Excel và tiêu đề phiếu thi/bảng phiếu ĐKHP PDF khổ A4.
+* **Lý do:** Khắc phục triệt để lỗi phân mảnh nhóm và crash ứng dụng, đảm bảo số liệu thống kê giữa các tab hoàn toàn khớp nhau và đạt chuẩn thẩm mỹ học thuật chuyên nghiệp.
+
+
+---
+
+## ADR-22: Loại Bỏ EnsureDeletedAsync Khỏi Chu Trình Đồng Bộ & Bảo Toàn Tài Khoản Cục Bộ SQLite WAL
+* **Bối cảnh:**
+  1. Trong phương thức `RefreshLocalStoreAsync` của `SyncService`, câu lệnh `await local.Database.EnsureDeletedAsync()` được sử dụng để xóa sạch CSDL cục bộ trước khi nạp lại từ remote. Hành động này làm xóa vật lý tệp `quanlydkhp.db` trên đĩa, gây lỗi `Database locked` khi ứng dụng đang mở các kết nối SQLite WAL, đồng thời làm mất vĩnh viễn dữ liệu offline nếu kết nối mạng tới máy chủ từ xa bị đứt gãy giữa chừng.
+  2. Bảng `NguoiDung` không nằm trong danh sách `MasterTables` của `SyncService`. Khi CSDL cục bộ bị xóa, toàn bộ tài khoản người dùng (bao gồm quản trị viên và giáo vụ) bị xóa sạch, khiến người dùng bị khóa hoàn toàn không thể đăng nhập.
+  3. Giá trị `DateTime.MinValue` khi dùng trong so sánh Delta Sync trên PostgreSQL Npgsql có thể gây lỗi định dạng múi giờ (`DateTimeKind.Unspecified`) hoặc lỗi tràn số năm.
+* **Quyết định:**
+  1. Triệt tiêu hoàn toàn `EnsureDeletedAsync()` khỏi `SyncService`. Thay vào đó, dọn dẹp các bảng dữ liệu nghiệp vụ bằng `ExecuteDeleteAsync()` (hoặc `RemoveRange`) bên trong transaction CSDL (`BeginTransactionAsync`).
+  2. Bổ sung `NguoiDung` vào `MasterTables` và thực hiện đồng bộ tài khoản người dùng từ remote trước khi dọn dữ liệu nghiệp vụ, bảo toàn 100% tài khoản đăng nhập.
+  3. Chuẩn hóa `GetLastSyncUtcAsync` trả về mốc an toàn `new DateTime(2000, 1, 1, DateTimeKind.Utc)`, bảo đảm tính tương thích tuyệt đối giữa SQLite và PostgreSQL Npgsql.
+* **Lý do:** Đảm bảo độ bền bỉ và tính toàn vẹn của CSDL cục bộ SQLite, ngăn ngừa mọi rủi ro mất tài khoản hoặc hỏng tệp WAL khi đồng bộ dữ liệu.

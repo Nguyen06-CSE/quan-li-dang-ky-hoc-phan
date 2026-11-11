@@ -54,8 +54,8 @@ public class BackupDatabaseStatusDto
     public string FormattedSize => DatabaseSizeBytes switch
     {
         < 1024 => $"{DatabaseSizeBytes} B",
-        < 1024 * 1024 => $"{DatabaseSizeBytes / 1024.0:F1} KB",
-        _ => $"{DatabaseSizeBytes / (1024.0 * 1024.0):F2} MB"
+        < 1024 * 1024 => $"{(DatabaseSizeBytes / 1024.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} KB",
+        _ => $"{(DatabaseSizeBytes / (1024.0 * 1024.0)).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)} MB"
     };
     public bool WalModeEnabled { get; set; }
     public int TotalCommits { get; set; }

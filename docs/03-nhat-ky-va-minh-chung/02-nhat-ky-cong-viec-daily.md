@@ -6,7 +6,49 @@ sidebar_position: 2
 
 # Nhật Ký Công Việc Hằng Ngày (Daily Logs)
 
-## 1. Nhật Ký Ngày 09/11/2026
+## 1. Nhật Ký Ngày 11/11/2026
+
+* **Thực hiện:** LIAM (LÂM) & NGUYÊN
+* **Nội dung trọng tâm:** Tinh chỉnh & Xử lý dứt điểm 5 Nhóm lỗi cốt lõi (Nhóm 1: Import/Export Excel 21 cột, Nhóm 2: Nghiệp vụ ĐKHP & Tính Học phí, Nhóm 3: Quản lý Danh mục & Soft-delete Reactivation, Nhóm 4: Báo cáo Thống kê & Xuất Ấn phẩm, Nhóm 5: Hạ tầng Dữ liệu, Cache & Đồng bộ An toàn).
+
+### Các kết quả đạt được
+1. **Nhóm 1: Xử lý Nhập/Xuất Excel 21 cột & Tự động Phân giải Học kỳ đích (F09):**
+   * **Bỏ điều kiện bắt buộc chọn học kỳ:** Người dùng chỉ cần kéo thả tệp Excel (chuẩn 21 cột của trường ĐH Đà Lạt) vào là ứng dụng bắt đầu đọc và nhập dữ liệu ngay mà không bắt buộc phải chọn học kỳ trước.
+   * **Tự động nhận diện học kỳ từ dữ liệu:** Bóc tách tiền tố từ Mã LHP (ví dụ `26120CT4201D02` -> tiền tố `261` -> Học kỳ `HK261`). Tự động khởi tạo học kỳ mới nếu chưa tồn tại trong hệ thống.
+   * **Đồng bộ hóa tức thì:** Sau khi nạp Excel thành công, dữ liệu được ghi nhận vào cả Neon PostgreSQL và SQLite Local, đồng thời phát tín hiệu làm mới giao diện 0ms sang toàn bộ các tab Sinh viên, Môn học, Lớp học phần và Học phí mà không cần khởi động lại ứng dụng.
+2. **Nhóm 2: Nghiệp vụ Đăng ký học phần & Tính học phí (F05 & F06):**
+   * **Chốt chặn Học kỳ mở (Step 0):** Bổ sung bước kiểm tra cờ `HocKy.DangMo` trước khi thực hiện đăng ký hoặc hủy môn. Chặn tuyệt đối việc chỉnh sửa dữ liệu của kỳ học đã kết thúc.
+   * **Giao dịch nguyên tử chống Race Condition (`LuuDangKyAtomicAsync`):** Kết hợp `SemaphoreSlim` nội bộ và giao dịch CSDL `BeginTransactionAsync`. Kiểm tra sĩ số thực tế tức thời ngay trong transaction; nếu đã đủ chỗ thì tự động rollback và trả về thông báo lỗi, ngăn chặn hoàn toàn tình trạng vượt sĩ số tối đa.
+   * **Đồng nhất công thức tính học phí & Fallback kỳ đã đóng:** Đồng bộ công thức tính giữa bảng tổng hợp và modal chi tiết. Nếu học kỳ đã đóng mà chưa khóa sổ snapshot, hệ thống tự động fallback tính toán trực tiếp từ bảng đăng ký học phần, khắc phục triệt để lỗi hiển thị 0đ.
+   * **Tích hợp tính năng Nộp tiền học phí:** Bổ sung phương thức `GhiNhanNopTienAsync` tự động phân bổ tiền nộp cho các môn còn nợ; tích hợp hộp thoại nhập số tiền nộp trực tiếp tại giao diện.
+   * **Trau chuốt trải nghiệm người dùng (UX/UI):**
+     * Mở rộng cột *Họ và tên* trong bảng học phí (`Width="2*" MinWidth="220"`) và bổ sung `ToolTip`, hiển thị đầy đủ 100% họ tên tiếng Việt mà không bị cắt ngắn.
+     * Tách Header chi tiết sinh viên tại màn hình ĐKHP thành bố cục 2 tầng độc lập, giải quyết dứt điểm hiện tượng thông tin sinh viên đè lên thanh tiến độ tín chỉ.
+     * Tái cấu trúc bảng môn học đã đăng ký: khôi phục hiển thị cột *Tên môn học*, bổ sung ToolTip và thanh cuộn ngang tự động.
+3. **Nhóm 3: Quản lý Danh mục Môn học, Lớp HP, Sinh viên & Tài khoản (F02, F03, F04, F01):**
+   * **Tái tạo mã sau khi Xóa mềm (Soft-Delete Reactivation):** Trên cả 4 bảng (`SinhVien`, `MonHoc`, `LopHocPhan`, `NguoiDung`), khi người dùng tạo mới một bản ghi trùng mã với bản ghi đã xóa mềm, hệ thống tự động phục hồi bản ghi (`IsDeleted = false`), cập nhật thông tin mới nhất và thời gian sửa đổi, loại bỏ triệt để lỗi crash `UNIQUE constraint failed`.
+   * **Thống nhất định danh Giảng viên (`MaGV` vs `TenDangNhap`):** Tự động gán `MaGV = TenDangNhap` nếu bỏ trống khi tạo giảng viên; kiểm tra trùng mã giảng viên qua `GetByMaGVAsync`; từ điển giảng viên `gvDict` nạp cả 2 khóa giúp hiển thị chính xác tên giảng viên trên toàn bộ hệ thống.
+   * **Bảo toàn trạng thái Khóa tài khoản:** `NguoiDungViewModel` lưu giữ `EditTrangThai` và `NguoiDungService.CapNhatAsync` bảo toàn trạng thái khóa, ngăn chặn việc vô tình mở khóa tài khoản khi admin chỉ sửa họ tên hoặc vai trò.
+   * **Bảo vệ toàn vẹn Lớp học phần:** Chặn tuyệt đối việc đổi mã môn học (`MaMon`) khi LHP đã có sinh viên đăng ký; chặn hạ sĩ số tối đa xuống dưới số lượng sinh viên đang theo học; vô hiệu hóa ComboBox Môn học trên giao diện khi lớp đã có người đăng ký.
+4. **Nhóm 4: Báo Cáo, Thống Kê & Xuất Ấn Phẩm (F08, ADR-21, ERR-13):**
+   * **Sửa lỗi GroupBy Object Reference trên `AsNoTracking()`:** Chuyển đổi từ `GroupBy(l => l.MonHoc)` sang `GroupBy(l => l.MaMon)` trong `ThongKeSoSvTheoMonAsync`, loại bỏ triệt để nguy cơ phân mảnh nhóm trùng môn hoặc phát sinh `NullReferenceException` do EF Core không quản lý Identity Map khi dùng `AsNoTracking()`.
+   * **Đồng bộ bộ lọc `DangHoc` & Xóa mềm trên toàn bộ 4 Tabs:**
+     * Bổ sung điều kiện `dk.TrangThai == "DangHoc"` và `!sv.IsDeleted && !lhp.IsDeleted` trên `LayDsSvTheoMonAsync` và `GetDsSinhVienTheoMonLocalAsync`. Loại bỏ sinh viên đã hủy môn hoặc đã bị xóa mềm khỏi danh sách học phần.
+     * Bổ sung `!lhp.IsDeleted && !sv.IsDeleted` trên `LayDsThiAsync`, ngăn sinh viên và lớp học phần đã bị xóa xuất hiện trong danh sách thi kết thúc học phần.
+     * Đồng bộ số liệu đếm sĩ số giữa Tab 1 (Danh sách theo môn) và Tab 3 (Thống kê môn học).
+   * **Nạp họ tên giảng viên lên toàn bộ báo cáo và ấn phẩm (Teacher Enrichment):**
+     * Truy vấn từ điển `NguoiDung` (vai trò `GiangVien`) theo cả `MaGV` và `TenDangNhap`, nạp họ tên đầy đủ vào `SinhVienTheoMonDto`, `DanhSachThiDto` và `PhieuDangKyMonDto`.
+     * Hiển thị họ tên giảng viên trên DataGrid Tab 1 & Tab 2, xuất cột *Giảng viên* sang tệp Excel.
+     * Nạp họ tên cán bộ giảng dạy lên phần tiêu đề của Phiếu danh sách thi PDF và cột *Giảng viên* trên Phiếu kết quả ĐKHP PDF khổ A4.
+   * **Kiểm thử tự động:** Viết bộ test `tests/QuanLyDKHP.Tests/BaoCaoRepositoryTests.cs` (4/4 passed) kiểm chứng toàn diện logic gom nhóm, lọc xóa mềm và nạp tên giảng viên trên CSDL in-memory SQLite. Toàn bộ 73 bài kiểm tra của giải pháp đạt 100% Passed.
+5. **Nhóm 5: Hạ Tầng Dữ Liệu, Cache & Đồng Bộ An Toàn (F11, ADR-22, ERR-14):**
+   * **Triệt tiêu hoàn toàn `EnsureDeletedAsync()`:** Loại bỏ lệnh hủy CSDL nguy hiểm khỏi `SyncService.RefreshLocalStoreAsync`. Thay vì xóa tệp vật lý gây mất dữ liệu offline và khóa file SQLite WAL, hệ thống dọn dẹp các bảng nghiệp vụ bên trong transaction CSDL an toàn.
+   * **Bảo toàn và đồng bộ tài khoản người dùng (`NguoiDung`):** Thêm `NguoiDung` vào `MasterTables`, hỗ trợ cả đồng bộ đầy đủ và đồng bộ vi sai (Delta Sync), đảm bảo tài khoản Admin và Giảng viên không bao giờ bị xóa mất khi chuyển đổi chế độ offline.
+   * **Khắc phục lỗi mốc thời gian Delta Sync:** Thiết lập mốc thời gian khởi điểm `new DateTime(2000, 1, 1, DateTimeKind.Utc)`, loại bỏ triệt để lỗi tràn số và xung đột `DateTimeKind.Unspecified` khi Npgsql PostgreSQL so sánh thời gian với SQLite.
+
+---
+
+## 2. Nhật Ký Ngày 09/11/2026
 
 * **Thực hiện:** NGUYÊN
 * **Nội dung trọng tâm:** Chuyển đổi CSDL chính sang SQLite Local (WAL Mode), Triển khai hệ thống sao lưu đa tầng kiểu Git (`LibGit2Sharp`), Nâng cấp UI Master-Detail sao lưu, Export/Import file zip & Sửa lỗi treo ứng dụng khi thoát.
@@ -95,7 +137,7 @@ sidebar_position: 2
 
 ## 5. Nhật Ký Ngày 28/09/2026
 
-* **Thực hiện:** LIAM (ĐẠT)
+* **Thực hiện:** LIAM (LÂM)
 * **Nội dung trọng tâm:** Module 2 App Shell, Theme Liquid Glass & Sửa lỗi đa luồng EF Core
 
 ### Các kết quả đạt được
