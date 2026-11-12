@@ -261,6 +261,21 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
 
 ---
 
+### Phiên 21: Bộ Công Cụ Điều Hành Đào Tạo Chuyên Sâu & Xưởng Ấn Phẩm Hàng Loạt Cho Giáo Vụ Desktop (Nâng Cấp 3)
+* **Thời gian:** 12/11/2026 20:35
+* **Tài liệu tham chiếu:** `ADR-26`, `BaoCaoView.axaml`, `BaoCaoViewModel.cs`, `BaoCaoDtos.cs`, `PdfExportService.cs`, `HocPhiView.axaml`
+* **Prompt chính đã thực hiện:**
+  > *"Đối với dự án này, bạn có các idea nào để cải thiện thêm nữa cho phần bài làm này đặc biệt hơn không? Bạn nên nhớ, đây là ứng dụng desktop 1 người xài, hãy đề xuất các mục tiêu cho đúng yêu cầu... Bắt đầu làm đi, và nhớ hãy nâng cao tính thẩm mỹ cho các đoạn code nữa nhé."*
+* **Kết quả đạt được:**
+  * Hiện thực hóa **Trợ lý Rà soát Xung đột Phòng học & Giảng viên** (`XungDotDaoTaoDto`): Tự động quét cặp đôi các lớp học phần trong kỳ để phát hiện trùng giờ dạy của cùng một Giảng viên, trùng Phòng học trực tiếp, và danh sách lớp chưa hoàn thiện thông tin.
+  * Xây dựng **Xưởng In Ấn phẩm Hàng loạt theo Lớp sinh hoạt** (`XuatPhieuKetQuaDKHPHangLoatPdfAsync`) bằng QuestPDF: Đóng gói toàn bộ phiếu kết quả ĐKHP của cả một Lớp sinh hoạt vào 1 file PDF nhiều trang chuẩn A4; bổ sung cú pháp chuyển khoản chuẩn VietQR trên Phiếu học phí PDF và nút sao chép nhanh thông báo học phí.
+  * Xây dựng **Trung tâm Cảnh báo Học vụ & Tín chỉ** (`CanhBaoHocVuDto`): Tự động phát hiện sinh viên "mất tích" (0 tín chỉ), sinh viên đăng ký thiếu tín chỉ tối thiểu theo quy chế, và sinh viên nợ học phí trước kỳ thi; hỗ trợ xuất Excel gửi Cố vấn học tập.
+  * Xây dựng **Bảng Theo dõi Định mức & Giờ giảng Giảng viên** (`DinhMucGiangDayDto`): Tự động tính toán tiết Lý thuyết, tiết Thực hành, tổng tiết quy đổi chuẩn và tỷ lệ hoàn thành định mức học kỳ ($135$ tiết chuẩn), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
+  * Đại tu toàn bộ giao diện `BaoCaoView.axaml` (6 Tabs) với các thẻ Bento KPI, `table-container`, phông chữ số học Monospace và Soft Pastel Badges đồng bộ tuyệt đối.
+  * Bổ sung bài kiểm thử `XuatPhieuKetQuaDKHPHangLoatPdfAsync_GeneratesMultiPageBatchPdf`, nâng tổng số bài kiểm thử tự động lên **82/82 Passed (100%)**.
+
+---
+
 ## 3. Tổng Kết Giá Trị Ứng Dụng AI Vào Đồ Án
 
 Việc ứng dụng AI Agent vào đồ án môn học mang lại hiệu quả vượt trội:

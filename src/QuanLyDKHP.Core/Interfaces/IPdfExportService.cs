@@ -9,4 +9,5 @@ public interface IPdfExportService
     Task<byte[]> XuatPhieuHocPhiPdfAsync(HocPhiChiTietDto chiTiet);
     Task<byte[]> XuatDanhSachThiPdfAsync(List<DanhSachThiDto> danhSach, string tenMon, string? maLHP, string tenHocKy);
     Task<byte[]> XuatPhieuKetQuaDKHPPdfAsync(PhieuDangKyDto phieu);
+    Task<byte[]> XuatPhieuKetQuaDKHPHangLoatPdfAsync(IReadOnlyList<PhieuDangKyDto> danhSachPhieu);
 }

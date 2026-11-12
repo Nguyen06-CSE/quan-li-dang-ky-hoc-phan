@@ -635,6 +635,14 @@
                                         </StackPanel>
                                     </Button>
 
+                                    <Button Command="{Binding SaoChepThongBaoHocPhiCommand}"
+                                            Classes="btn-secondary"
+                                            Height="36" Padding="12,0"
+                                            CornerRadius="6" Cursor="Hand"
+                                            ToolTip.Tip="Sao chép thông báo học phí kèm cú pháp chuyển khoản VietQR để gửi cho sinh viên / phụ huynh">
+                                        <TextBlock Text="📋 Copy Thông báo &amp; Cú pháp CK" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12.5" />
+                                    </Button>
+
                                     <Button Command="{Binding XuatPdfChiTietCommand}"
                                             CommandParameter="{Binding HocPhiChiTietHienTai}"
                                             Classes="btn-primary"

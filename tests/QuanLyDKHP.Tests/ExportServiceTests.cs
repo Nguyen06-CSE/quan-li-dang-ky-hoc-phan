@@ -158,4 +158,50 @@ public class ExportServiceTests
         Assert.Equal((byte)'D', pdfBytes[2]);
         Assert.Equal((byte)'F', pdfBytes[3]);
     }
+
+    [Fact]
+    public async Task XuatPhieuKetQuaDKHPHangLoatPdfAsync_GeneratesMultiPageBatchPdf()
+    {
+        // Arrange
+        var danhSachPhieu = new List<PhieuDangKyDto>
+        {
+            new PhieuDangKyDto
+            {
+                MaSV = "2411804",
+                HoTen = "Vũ Nguyễn Bình An",
+                LopSinhHoat = "CTK48A",
+                KhoaHoc = "Khóa 48",
+                TenHocKy = "Học kỳ 261",
+                TongSoTinChi = 4,
+                DanhSachMon = new List<PhieuDangKyMonDto>
+                {
+                    new PhieuDangKyMonDto { Stt = 1, MaMon = "CT2101", TenMon = "Thiết kế Web", SoTinChi = 4, MaLHP = "26120CT210101" }
+                }
+            },
+            new PhieuDangKyDto
+            {
+                MaSV = "2411802",
+                HoTen = "Cao Tuấn An",
+                LopSinhHoat = "CTK48A",
+                KhoaHoc = "Khóa 48",
+                TenHocKy = "Học kỳ 261",
+                TongSoTinChi = 3,
+                DanhSachMon = new List<PhieuDangKyMonDto>
+                {
+                    new PhieuDangKyMonDto { Stt = 1, MaMon = "CT2205", TenMon = "Đồ án cơ sở", SoTinChi = 3, MaLHP = "26120CT220501" }
+                }
+            }
+        };
+
+        // Act
+        byte[] pdfBytes = await _pdfExportService.XuatPhieuKetQuaDKHPHangLoatPdfAsync(danhSachPhieu);
+
+        // Assert
+        Assert.NotNull(pdfBytes);
+        Assert.True(pdfBytes.Length > 800);
+        Assert.Equal((byte)'%', pdfBytes[0]);
+        Assert.Equal((byte)'P', pdfBytes[1]);
+        Assert.Equal((byte)'D', pdfBytes[2]);
+        Assert.Equal((byte)'F', pdfBytes[3]);
+    }
 }

@@ -6,6 +6,33 @@ sidebar_position: 2
 
 # Nhật Ký Công Việc Hằng Ngày (Daily Logs)
 
+## 0AAA. Nhật Ký Ngày 12/11/2026 (Ca 4): Bộ Công Cụ Điều Hành Đào Tạo & Xưởng Ấn Phẩm Chuyên Sâu Dành Cho Giáo Vụ Desktop (Nâng Cấp 3)
+
+* **Thực hiện:** LIAM (LÂM) & NGUYÊN
+* **Nội dung trọng tâm:** Thiết kế và hiện thực hóa 4 mục tiêu chuyên sâu dành riêng cho người dùng Desktop đơn lẻ (Cán bộ Giáo vụ / Giảng viên quản lý đào tạo) tại phân hệ *Báo cáo & Điều hành Đào tạo* (`BaoCaoView` & `BaoCaoViewModel`) và *Học phí* (`HocPhiView`), đồng thời đại tu toàn diện tính thẩm mỹ của mã nguồn và giao diện bảng biểu:
+  1. **Mục tiêu 1:** Trợ lý Rà soát Xung đột Phòng học & Trùng giờ dạy của Giảng viên (`XungDotDaoTaoDto`).
+  2. **Mục tiêu 2:** Xưởng In Ấn phẩm Hàng loạt theo Lớp sinh hoạt (`XuatPhieuKetQuaDKHPHangLoatPdfAsync`) & Thông báo học phí chuẩn cú pháp VietQR.
+  3. **Mục tiêu 3:** Trung tâm Cảnh báo Học vụ & Sinh viên Nguy cơ (`CanhBaoHocVuDto` - 0 tín chỉ, thiếu tín chỉ tối thiểu, nợ học phí).
+  4. **Mục tiêu 4:** Bảng Theo dõi Định mức & Tải giờ giảng của Giảng viên (`DinhMucGiangDayDto`).
+
+### Các kết quả đạt được
+1. **Trợ Lý Rà Soát Xung Đột Phòng Học & Giảng Viên (Tab 6 - Chế độ 1):**
+   * Quét toàn bộ ma trận thời khóa biểu các lớp học phần trong kỳ; tự động phát hiện các cặp lớp trùng Giảng viên phụ trách cùng Thứ/Tiết, các cặp lớp học trực tiếp đè lên cùng một Phòng học, và các lớp còn thiếu thông tin (chưa phân công GV, chưa xếp tiết/phòng).
+   * Hiển thị 4 thẻ Bento KPI trực quan và hỗ trợ xuất biên bản rà soát xung đột ra file Excel.
+2. **Xưởng In Ấn Phẩm Hàng Loạt & Cú Pháp Chuyển Khoản VietQR (Tab 4 & Học Phí):**
+   * Bổ sung phương thức `XuatPhieuKetQuaDKHPHangLoatPdfAsync` trên `IPdfExportService`: Giáo vụ chỉ cần chọn Lớp sinh hoạt (ví dụ `CTK48A`) và nhấn *"Xuất PDF cả lớp (A4)"*, hệ thống đóng gói toàn bộ phiếu kết quả ĐKHP của sinh viên trong lớp vào **1 tệp PDF nhiều trang chuẩn A4** để in liên tục trên máy in văn phòng.
+   * Tích hợp dòng cú pháp chuyển khoản chuẩn VietQR (`{MaSV} {HoTen} HP {MaHocKy}`) trực tiếp lên Phiếu học phí PDF và nút *"📋 Copy Thông báo & Cú pháp CK"* trong hộp thoại chi tiết học phí.
+3. **Trung Tâm Cảnh Báo Học Vụ & Tín Chỉ (Tab 5):**
+   * Tự động đối chiếu danh sách sinh viên với ngưỡng `SoTinChiToiThieu` trong cấu hình hệ thống và công nợ học phí.
+   * Phân loại 3 nhóm nguy cơ kèm thẻ Bento KPI và thanh lọc Segmented Pill: *Sinh viên "Mất tích" (0 tín chỉ)*, *Sinh viên đăng ký thiếu tín chỉ tối thiểu*, và *Sinh viên nợ học phí trước kỳ thi*; hỗ trợ xuất Excel danh sách cảnh báo gửi Cố vấn học tập.
+4. **Bảng Theo Dõi Định Mức & Giờ Giảng Giảng Viên (Tab 6 - Chế độ 2):**
+   * Thống kê tự động theo từng Giảng viên: Số lớp phụ trách, tổng sinh viên theo học, tổng tiết Lý thuyết ($\text{TC}_{LT} \times 15$), tổng tiết Thực hành ($\text{TC}_{TH} \times 30$), tổng tiết quy đổi chuẩn và tỷ lệ hoàn thành định mức học kỳ ($135$ tiết chuẩn), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
+5. **Nâng Cao Tính Thẩm Mỹ Mã Nguồn & Giao Diện:**
+   * Đại tu toàn bộ 6 Tab của `BaoCaoView.axaml` sang chuẩn Bento KPI + `table-container` + phông chữ số học `Consolas, Menlo, Monospace` + Soft Pastel Badges đồng bộ tuyệt đối.
+   * Bổ sung bài kiểm thử `XuatPhieuKetQuaDKHPHangLoatPdfAsync_GeneratesMultiPageBatchPdf`, nâng tổng số Unit Tests lên **82/82 Passed (100%)**.
+
+---
+
 ## 0AA. Nhật Ký Ngày 12/11/2026 (Ca 3): Tinh Chỉnh Layout Chống Co Rút Chữ & Rà Soát Toàn Diện Logic Nghiệp Vụ
 
 * **Thực hiện:** LIAM (LÂM) & NGUYÊN

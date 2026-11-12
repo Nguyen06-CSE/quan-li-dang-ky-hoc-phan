@@ -12,12 +12,12 @@ sidebar_position: 2
 
 * **Framework kiểm thử:** `xUnit` kết hợp thư viện giả lập đối tượng phụ thuộc `Moq`.
 * **Nguyên tắc kiểm thử cô lập:** Tầng nghiệp vụ (`QuanLyDKHP.Services`) chỉ phụ thuộc vào các Interface từ tầng Core. Toàn bộ các tương tác CSDL được giả lập (Mocked) thông qua các Repository Interface hoặc SQLite In-Memory Database (`Filename=:memory:`), giúp các bài kiểm thử thực thi với tốc độ cực nhanh (khoảng 1 giây cho toàn bộ bài kiểm tra) mà không cần kết nối Internet hay tạo cơ sở dữ liệu vật lý.
-* **Tổng số bài kiểm thử:** **81 bài kiểm thử (Unit Tests)**.
-* **Tỷ lệ vượt qua (Pass Rate):** **100% (81/81 bài kiểm tra đạt Passed)**.
+* **Tổng số bài kiểm thử:** **82 bài kiểm thử (Unit Tests)**.
+* **Tỷ lệ vượt qua (Pass Rate):** **100% (82/82 bài kiểm tra đạt Passed)**.
 
 ---
 
-## 2. Bảng Thống Kê Chi Tiết 81 Unit Tests Theo Phân Hệ
+## 2. Bảng Thống Kê Chi Tiết 82 Unit Tests Theo Phân Hệ
 
 | Tệp Kiểm Thử (Test Suite) | Số Lượng Test | Trọng Tâm Kiểm Tra Nghiệp Vụ | Kết Quả |
 |---|:---:|---|:---:|
@@ -30,11 +30,11 @@ sidebar_position: 2
 | **`AuthServiceTests.cs`** | 6 | Đăng nhập tài khoản hợp lệ, chặn mật khẩu sai, chặn tài khoản bị khóa (`DaKhoa`), kiểm tra thuật toán băm BCrypt và xác thực vai trò người dùng. | [6/6 Passed] |
 | **`BaoCaoRepositoryTests.cs`** | 4 | Kiểm thử gom nhóm theo `MaMon` trên SQLite In-Memory, loại trừ LHP/môn học đã xóa mềm, lọc đăng ký đã hủy, nạp họ tên giảng viên lên danh sách thi và phiếu ĐKHP. | [4/4 Passed] |
 | **`BackupServiceTests.cs`** | 4 | Định dạng dung lượng tệp tin bất biến văn hóa (`InvariantCulture`), kiểm tra short SHA commit Git, cơ chế sao lưu vi sai và phục hồi dữ liệu du hành thời gian. | [4/4 Passed] |
-| **`ExportServiceTests.cs`** | 4 | Kiểm tra luồng sinh file Excel bằng ClosedXML (danh sách thi, danh sách sinh viên) và sinh phiếu thu PDF khổ A4 bằng QuestPDF. | [4/4 Passed] |
+| **`ExportServiceTests.cs`** | 5 | **[Nâng Cấp 3]** Kiểm tra luồng sinh file Excel bằng ClosedXML (danh sách thi, danh sách sinh viên), sinh phiếu thu PDF khổ A4 kèm cú pháp VietQR, và đóng gói PDF hàng loạt nhiều trang (`XuatPhieuKetQuaDKHPHangLoatPdfAsync`) bằng QuestPDF. | [5/5 Passed] |
 | **`HocKyServiceTests.cs`** | 3 | Quản lý vòng đời học kỳ, mở/đóng cổng đăng ký học phần và thiết lập học kỳ hiện hành. | [3/3 Passed] |
 | **`CauHinhServiceTests.cs`** | 3 | Lấy tham số cấu hình mặc định (tín chỉ min/max, đơn giá LT/TH), cập nhật tham số và kiểm tra tính hợp lệ của đơn giá. | [3/3 Passed] |
 | **`ImportExcelServiceTests.cs`** | 3 | Đọc dữ liệu file Excel 21 cột hợp lệ, bóc tách tiền tố học kỳ, phân tách dòng lỗi dữ liệu và kiểm tra cơ chế upsert đồng thời. | [3/3 Passed] |
-| **TỔNG CỘNG** | **81** | **Bao phủ toàn diện logic nghiệp vụ, Smart Import Studio, tính toán học phí, sao lưu và xuất bản ấn phẩm** | **[81/81 ĐẠT (100%)]** |
+| **TỔNG CỘNG** | **82** | **Bao phủ toàn diện logic nghiệp vụ, Smart Import Studio, tính toán học phí, sao lưu và xưởng xuất bản ấn phẩm hàng loạt** | **[82/82 ĐẠT (100%)]** |
 
 ---
 
@@ -54,5 +54,5 @@ VSTest version 17.11.1 (arm64)
 Starting test execution, please wait...
 A total of 1 test files matched the specified pattern.
 
-Passed!  - Failed:     0, Passed:    81, Skipped:     0, Total:    81, Duration: 1 s - QuanLyDKHP.Tests.dll (net8.0)
+Passed!  - Failed:     0, Passed:    82, Skipped:     0, Total:    82, Duration: 1 s - QuanLyDKHP.Tests.dll (net8.0)
 ```

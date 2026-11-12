@@ -263,3 +263,21 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
      * Điều chỉnh tỷ lệ cột bảng môn học thành `115,2*,55,120,65,125,95`, tăng cột Trạng thái lên 95px và tinh chỉnh padding badge thành `8,2`, hiển thị đầy đủ nhãn *"Đang học"*.
   3. **Thiết lập tiêu chuẩn phòng thủ layout cho toàn bộ hệ thống:** Áp dụng `MinWidth="180"` và `CanUserResizeColumns="True"` cho các bảng DataGrid tại `MonHocView`, `SinhVienView` và `BaoCaoView`.
 * **Lý do:** Đảm bảo tính thẩm mỹ, chuyên nghiệp và độ tin cậy hiển thị của giao diện trên mọi độ phân giải màn hình từ laptop nhỏ đến màn hình 4K.
+
+---
+
+## ADR-26: Bộ Công Cụ Điều Hành Đào Tạo Chuyên Sâu & Xưởng Ấn Phẩm Hàng Loạt Dành Cho Giáo Vụ Desktop (Nâng Cấp 3)
+* **Bối cảnh:**
+  1. Phần mềm Quản lý Đăng ký học phần là ứng dụng Desktop chạy cục bộ dành cho 1 người dùng (Cán bộ Giáo vụ khoa / Phòng Đào tạo / Giảng viên). Trọng tâm giá trị lớn nhất của người dùng Desktop văn phòng không phải là mô phỏng tải mạng Web, mà là tự động hóa các khâu rà soát hành chính đào tạo và in ấn biểu mẫu hàng loạt vốn tốn nhiều giờ kiểm tra thủ công.
+  2. Giáo vụ thường gặp 4 nút thắt lớn: (a) Xếp nhầm 1 giảng viên hoặc 1 phòng học cho 2 lớp học phần trùng Thứ/Tiết; (b) Phải xuất từng phiếu kết quả ĐKHP lẻ tẻ thay vì đóng gói cả lớp sinh hoạt để bấm in một lần; (c) Bỏ sót sinh viên "mất tích" (0 tín chỉ) hoặc đăng ký dưới mức tín chỉ tối thiểu theo quy chế; (d) Phải tính tay giờ giảng quy đổi của từng giảng viên cuối kỳ.
+* **Quyết định:**
+  1. **Trợ Lý Rà Soát Xung Đột Phòng Học & Giảng Viên (`XungDotDaoTaoDto` - Tab 6 Chế độ 1):**
+     * Quét cặp đôi toàn bộ lớp học phần trong kỳ có cùng `Thu` và giao nhau khoảng tiết `[TietBatDau, TietKetThuc]`: phát hiện chính xác xung đột trùng `MaGV` (Trùng lịch Giảng viên) và trùng `Phong` đối với lớp học trực tiếp (Trùng Phòng học), đồng thời liệt kê các lớp chưa hoàn thiện lịch/phòng/giảng viên.
+  2. **Xưởng In Ấn Phẩm Hàng Loạt & Cú Pháp Chuyển Khoản VietQR (`XuatPhieuKetQuaDKHPHangLoatPdfAsync` - Tab 4 & Học Phí):**
+     * Tái cấu trúc `PdfExportService` dùng chung hàm `ComposePhieuDangKyPage` (nguyên lý DRY), cho phép đóng gói toàn bộ phiếu kết quả ĐKHP của cả một Lớp sinh hoạt thành 1 tệp PDF đa trang chuẩn A4 duy nhất.
+     * Bổ sung cú pháp chuyển khoản chuẩn VietQR (`{MaSV} {HoTen} HP {MaHocKy}`) lên phiếu thu học phí PDF và nút sao chép nhanh thông báo học phí vào Clipboard.
+  3. **Trung Tâm Cảnh Báo Học Vụ & Tín Chỉ (`CanhBaoHocVuDto` - Tab 5):**
+     * Tự động đối chiếu tổng tín chỉ đăng ký của toàn bộ sinh viên với tham số `SoTinChiToiThieu` và công nợ học phí; phân loại 3 mức cảnh báo (*Mất tích 0 TC*, *Thiếu TC tối thiểu*, *Nợ học phí*) kèm xuất Excel gửi Cố vấn học tập.
+  4. **Bảng Theo Dõi Định Mức & Giờ Giảng Giảng Viên (`DinhMucGiangDayDto` - Tab 6 Chế độ 2):**
+     * Tính toán tự động số lớp phụ trách, tổng sinh viên, tiết Lý thuyết ($\text{TC}_{LT} \times 15$), tiết Thực hành ($\text{TC}_{TH} \times 30$) và tiết quy đổi chuẩn so với định mức học kỳ ($135$ tiết), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
+* **Lý do:** Biến phân hệ Báo cáo & Thống kê thành một Trung tâm Điều hành Đào tạo toàn diện dành cho cán bộ giáo vụ trên Desktop, kết hợp tính thẩm mỹ cao của giao diện Bento KPI và mã nguồn sạch chuẩn Clean Architecture.

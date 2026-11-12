@@ -712,6 +712,29 @@ private async Task InitDataAsync()
     }
 
     [RelayCommand]
+    private async Task SaoChepThongBaoHocPhiAsync()
+    {
+        var ct = HocPhiChiTietHienTai;
+        if (ct == null) return;
+
+        string cuPhapCk = $"{ct.MaSV} {ct.HoTen} HP {ct.MaHocKy}".ToUpperInvariant();
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"THÔNG BÁO HỌC PHÍ — {ct.TenHocKy.ToUpperInvariant()}");
+        sb.AppendLine($"• Sinh viên: {ct.HoTen} ({ct.MaSV}) — Lớp: {ct.LopSinhHoat ?? "--"}");
+        sb.AppendLine($"• Tổng số môn ĐK: {ct.DanhSachMon.Count} môn ({ct.TongSoTinChi} tín chỉ)");
+        sb.AppendLine($"• Tổng học phí: {ct.TongHocPhi:N0} VNĐ");
+        sb.AppendLine($"• Đã nộp: {ct.DaDong:N0} VNĐ | Còn phải nộp: {ct.ConNo:N0} VNĐ");
+        sb.AppendLine($"• Nội dung chuyển khoản chuẩn VietQR: {cuPhapCk}");
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(sb.ToString());
+            ShowMessage($"✔ Đã sao chép thông báo học phí kèm cú pháp chuyển khoản của SV {ct.HoTen} ({ct.MaSV})!", false);
+        }
+    }
+
+    [RelayCommand]
     private async Task XoaSinhVienDangChonAsync()
     {
         SinhVienDangChon = null;

@@ -21,17 +21,18 @@ sidebar_position: 1
 | Thành Viên | Tài Khoản GitHub | Số Lượng Commits | Phạm Vi Đóng Góp Chính |
 |---|---|:---:|---|
 | **Nguyễn** (Trưởng nhóm) | `Nguyen06-CSE` | 29 commits | Khởi tạo dự án, Kiến trúc CSDL & EF Core, Chuyển đổi SQLite Local (WAL), Hệ thống sao lưu Git đa tầng (F11/F11b), Master-Detail Backup UI, Export/Import Zip, Sửa lỗi auth và deadlock khi thoát, Tối ưu hóa bộ nhớ đệm In-Memory. |
-| **Liam / Lâm** | `pliam1304` | 15 commits | Thiết kế App Shell & Navigation, Theme Liquid Glass, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu, Hoàn thiện Nhóm 1 (Excel 21 cột), Nhóm 2 (ĐKHP & Học phí), Nhóm 3 (Danh mục), Nhóm 4 (Báo cáo & Thống kê), Nhóm 5 (Hạ tầng dữ liệu & Đồng bộ an toàn), **Nâng cấp 1 (Studio Nhập liệu Thông minh, Phân tích Clipboard, Trợ lý Xung đột Lớp học & Spotlight Ctrl+K)**, **Nâng cấp 2 (Sổ tay Điều phối Lớp học phần 1-Chạm, Chuyển nhóm lớp an toàn, Trợ lý Xếp lịch Tối ưu & Ma trận Thời khóa biểu Tuần)**. |
+| **Liam / Lâm** | `pliam1304` | 16 commits | Thiết kế App Shell & Navigation, Theme Liquid Glass, Tích hợp Material Icons, Sửa lỗi đa luồng `IDbContextFactory`, Xây dựng Thời khóa biểu, Hoàn thiện Nhóm 1 (Excel 21 cột), Nhóm 2 (ĐKHP & Học phí), Nhóm 3 (Danh mục), Nhóm 4 (Báo cáo & Thống kê), Nhóm 5 (Hạ tầng dữ liệu & Đồng bộ an toàn), **Nâng cấp 1 (Studio Nhập liệu Thông minh, Phân tích Clipboard, Trợ lý Xung đột Lớp học & Spotlight Ctrl+K)**, **Nâng cấp 2 (Sổ tay Điều phối Lớp học phần 1-Chạm, Chuyển nhóm lớp an toàn, Trợ lý Xếp lịch Tối ưu & Ma trận Thời khóa biểu Tuần)**, **Nâng cấp 3 (Rà soát Trùng Phòng & Giảng viên, Xưởng in PDF hàng loạt, Cảnh báo Học vụ & Định mức Giờ giảng)**. |
 | **Ngô Quyền Linh** | `NgoQuyenLinh` | 1 commit | Soạn thảo bộ tài liệu đặc tả chi tiết từ Spec 011 đến Spec 016, hỗ trợ thiết kế luồng Import/Export. |
 
 ---
 
-## 3. Nhật Ký Chi Tiết Toàn Bộ 44 Commits
+## 3. Nhật Ký Chi Tiết Toàn Bộ 45 Commits
 
 Dưới đây là trích xuất nguyên trạng lịch sử cam kết từ lệnh `git log`:
 
 | Commit Hash | Ngày Ghi Nhận | Tác Giả | Thông Điệp Commit (Conventional Message) |
 |:---:|:---:|---|---|
+| `pending` | 2026-11-12 | pliam1304 | `feat(nang-cap-3): ra soat trung phong va giang vien, xuong in pdf hang loat, canh bao hoc vu va dinh muc gio giang` |
 | `pending` | 2026-11-12 | pliam1304 | `feat(nang-cap-2): so tay dieu phoi lop hoc, chuyen nhom 1 cham, tro ly xep lich toi uu, ma tran tkb va phong thu layout chong co rut chu` |
 | `pending` | 2026-11-12 | pliam1304 | `feat(nang-cap-1): studio nhap lieu tu clipboard, tu dong nhan dien cot va tro ly phan tich suc chua xung dot lop hoc` |
 | `pending` | 2026-11-11 | pliam1304 | `feat(nhom-4-5): toi uu bao cao an pham, loai bo EnsureDeleted va dong bo du lieu cuc bo an toan` |

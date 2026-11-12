@@ -9,10 +9,13 @@ using System.Timers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using QuanLyDKHP.App.Messages;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
+using QuanLyDKHP.Infrastructure.Data;
 
 namespace QuanLyDKHP.App.ViewModels;
 
@@ -28,6 +31,9 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
     private readonly IMemoryCacheStore _cacheStore;
     private readonly Timer _svSearchDebounceTimer;
     private System.Threading.CancellationTokenSource? _loadCts;
+
+    private static readonly string[] TenThuTuan =
+        { "", "", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN" };
 
     // --- DỮ LIỆU DÙNG CHUNG ---
     public ObservableCollection<HocKy> DsHocKy { get; } = new();
@@ -75,8 +81,14 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
     // ==========================================
     public ObservableCollection<ThongKeMonDto> Tab3DsThongKe { get; } = new();
 
+    [ObservableProperty]
+    private int _tab3TongLuotDangKy;
+
+    [ObservableProperty]
+    private int _tab3TongLopDangMo;
+
     // ==========================================
-    // TAB 4: IN PHIẾU KẾT QUẢ ĐKHP
+    // TAB 4: XƯỞNG IN PHIẾU ĐKHP & ẤN PHẨM HÀNG LOẠT (NÂNG CẤP 3 - MỤC TIÊU 2)
     // ==========================================
     [ObservableProperty]
     private string? _tab4TuKhoaSinhVien;
@@ -91,6 +103,61 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
 
     [ObservableProperty]
     private PhieuDangKyDto? _tab4PhieuDangKy;
+
+    public ObservableCollection<string> DsLopSinhHoatInHangLoat { get; } = new();
+
+    [ObservableProperty]
+    private string? _tab4LopSinhHoatChon;
+
+    // ==========================================
+    // TAB 5: CẢNH BÁO HỌC VỤ & TÍN CHỈ (NÂNG CẤP 3 - MỤC TIÊU 3)
+    // ==========================================
+    private List<CanhBaoHocVuDto> _masterCanhBaoHocVu = new();
+    public ObservableCollection<CanhBaoHocVuDto> Tab5DsCanhBao { get; } = new();
+
+    [ObservableProperty]
+    private int _tab5FilterIndex; // 0: Tất cả, 1: 0 Tín chỉ, 2: Thiếu TC tối thiểu, 3: Nợ học phí
+
+    [ObservableProperty]
+    private string? _tab5TuKhoa;
+
+    [ObservableProperty]
+    private int _tab5SoSvKhongDangKy;
+
+    [ObservableProperty]
+    private int _tab5SoSvThieuTinChi;
+
+    [ObservableProperty]
+    private int _tab5SoSvNoHocPhi;
+
+    [ObservableProperty]
+    private int _tab5TinChiToiThieuQuyDinh = 10;
+
+    // ==========================================
+    // TAB 6: RÀ SOÁT TRÙNG PHÒNG / GIẢNG VIÊN & ĐỊNH MỨC GIỜ GIẢNG (NÂNG CẤP 3 - MỤC TIÊU 1 & 4)
+    // ==========================================
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTab6ConflictMode))]
+    [NotifyPropertyChangedFor(nameof(IsTab6WorkloadMode))]
+    private int _tab6ModeIndex; // 0: Rà soát xung đột Phòng/GV, 1: Định mức giờ giảng GV
+
+    public bool IsTab6ConflictMode => Tab6ModeIndex == 0;
+    public bool IsTab6WorkloadMode => Tab6ModeIndex == 1;
+
+    public ObservableCollection<XungDotDaoTaoDto> Tab6DsXungDot { get; } = new();
+    public ObservableCollection<DinhMucGiangDayDto> Tab6DsDinhMucGiangDay { get; } = new();
+
+    [ObservableProperty]
+    private int _tab6SoTrungGiangVien;
+
+    [ObservableProperty]
+    private int _tab6SoTrungPhong;
+
+    [ObservableProperty]
+    private int _tab6SoChuaHoanThien;
+
+    [ObservableProperty]
+    private int _tab6SoLopHopLe;
 
     public BaoCaoViewModel(
         IBaoCaoService baoCaoService,
@@ -112,7 +179,8 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
         _cacheStore = cacheStore;
 
         _svSearchDebounceTimer = new Timer(300) { AutoReset = false };
-        _svSearchDebounceTimer.Elapsed += (s, e) => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYTab4Async);
+        _svSearchDebounceTimer.Elapsed += (s, e) =>
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TimKiemSinhVienGoiYTab4Async);
 
         WeakReferenceMessenger.Default.RegisterAll(this);
 
@@ -171,6 +239,13 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
                 });
             }
 
+            DsLopSinhHoatInHangLoat.Clear();
+            foreach (var lop in _cacheStore.DanhSachLopSinhHoat.Where(l => !string.IsNullOrWhiteSpace(l) && l != "Tất cả"))
+            {
+                DsLopSinhHoatInHangLoat.Add(lop);
+            }
+            Tab4LopSinhHoatChon = DsLopSinhHoatInHangLoat.FirstOrDefault();
+
             Tab1MonDangChon = DsMonHoc.FirstOrDefault();
             Tab2MonDangChon = DsMonHoc.FirstOrDefault();
         }
@@ -214,11 +289,17 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
             case 3:
                 await LoadTab4DataAsync();
                 break;
+            case 4:
+                await LoadTab5CanhBaoHocVuAsync();
+                break;
+            case 5:
+                await LoadTab6DaoTaoVaGiangDayAsync();
+                break;
         }
     }
 
     // ==========================================
-    // TAB 1 METHODS
+    // TAB 1 METHODS: DS SINH VIÊN THEO MÔN
     // ==========================================
     partial void OnTab1MonDangChonChanged(MonHocDto? value)
     {
@@ -274,7 +355,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
                 ("Lớp sinh hoạt", x => x.LopSinhHoat ?? string.Empty),
                 ("Mã LHP", x => x.MaLHP),
                 ("Giảng viên", x => x.TenGiangVien ?? string.Empty),
-                ("Trạng thái", x => x.TrangThai == "DangHoc" ? "Đang học" : "Đã hủy")
+                ("Trạng thái", x => x.IsDangHoc ? "Đang học" : "Đã hủy")
             };
 
             byte[] excelBytes = await _excelExportService.XuatExcelAsync(
@@ -300,7 +381,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
     }
 
     // ==========================================
-    // TAB 2 METHODS
+    // TAB 2 METHODS: DANH SÁCH THI
     // ==========================================
     partial void OnTab2MonDangChonChanged(MonHocDto? value)
     {
@@ -323,7 +404,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
             {
                 Tab2DsLhp.Add(lhp);
             }
-            Tab2LhpDangChon = null; // Tất cả LHP
+            Tab2LhpDangChon = null;
             await LoadTab2DataAsync();
         }
         catch (Exception ex)
@@ -457,7 +538,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
     }
 
     // ==========================================
-    // TAB 3 METHODS
+    // TAB 3 METHODS: THỐNG KÊ SV THEO MÔN
     // ==========================================
     [RelayCommand]
     public async Task LoadTab3DataAsync()
@@ -467,11 +548,17 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
         {
             IsLoading = true;
             var list = await _baoCaoService.ThongKeSoLuongTheoMonAsync(HocKyDangChon.MaHocKy);
+            int maxSv = list.Count > 0 ? Math.Max(1, list.Max(x => x.SoSinhVien)) : 1;
+
             Tab3DsThongKe.Clear();
             foreach (var item in list)
             {
+                item.TyLePhanBo = Math.Round((double)item.SoSinhVien / maxSv * 100.0, 1);
                 Tab3DsThongKe.Add(item);
             }
+
+            Tab3TongLuotDangKy = list.Sum(x => x.SoSinhVien);
+            Tab3TongLopDangMo = list.Sum(x => x.SoLhpDangMo);
         }
         catch (Exception ex)
         {
@@ -505,7 +592,8 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
                 ("Mã môn", x => x.MaMon),
                 ("Tên môn học", x => x.TenMon),
                 ("Số SV đăng ký", x => x.SoSinhVien),
-                ("Số LHP đang mở", x => x.SoLhpDangMo)
+                ("Số LHP đang mở", x => x.SoLhpDangMo),
+                ("Bình quân / Lớp", x => x.BinhQuanMoiLop)
             };
 
             byte[] excelBytes = await _excelExportService.XuatExcelAsync(
@@ -531,7 +619,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
     }
 
     // ==========================================
-    // TAB 4 METHODS
+    // TAB 4 METHODS: XƯỞNG IN PHIẾU ĐKHP & IN HÀNG LOẠT THEO LỚP SINH HOẠT
     // ==========================================
     partial void OnTab4TuKhoaSinhVienChanged(string? value)
     {
@@ -593,7 +681,6 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
         if (Tab4SinhVienDangChon == null)
         {
             Tab4PhieuDangKy = null;
-            ShowMessage("Vui lòng chọn sinh viên.", true);
             return;
         }
 
@@ -624,7 +711,7 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
             }
 
             ShowMessage(
-                $"Đã tải lại phiếu ĐKHP của {Tab4SinhVienDangChon.MaSV} – {HocKyDangChon.TenHocKy}.",
+                $"Đã tải phiếu ĐKHP của {Tab4SinhVienDangChon.MaSV} – {HocKyDangChon.TenHocKy}.",
                 false);
         }
         catch (Exception ex)
@@ -657,6 +744,653 @@ public partial class BaoCaoViewModel : ObservableObject, IRecipient<DataImported
             if (!string.IsNullOrEmpty(saved))
             {
                 ShowMessage($"Đã xuất phiếu kết quả ĐKHP PDF thành công tại: {saved}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message, true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task Tab4XuatPdfHangLoatTheoLopAsync()
+    {
+        if (IsLoading || _baoCaoService == null || _sinhVienService == null) return;
+        if (HocKyDangChon == null)
+        {
+            ShowMessage("Vui lòng chọn học kỳ cần xuất ấn phẩm.", true);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Tab4LopSinhHoatChon))
+        {
+            ShowMessage("Vui lòng chọn Lớp sinh hoạt cần in hàng loạt.", true);
+            return;
+        }
+        if (SaveFileDialogFunc == null) return;
+
+        try
+        {
+            IsLoading = true;
+            string lopChon = Tab4LopSinhHoatChon.Trim();
+            string maHk = HocKyDangChon.MaHocKy;
+
+            var pagedSv = await _sinhVienService.TimKiemAsync(null, lopChon, null, 1, 500);
+            var danhSachPhieu = new List<PhieuDangKyDto>();
+
+            foreach (var sv in pagedSv.Items.OrderBy(s => s.MaSV))
+            {
+                var phieu = await _baoCaoService.LayPhieuDangKyAsync(sv.MaSV, maHk);
+                if (phieu != null && phieu.DanhSachMon.Count > 0)
+                {
+                    danhSachPhieu.Add(phieu);
+                }
+            }
+
+            if (danhSachPhieu.Count == 0)
+            {
+                ShowMessage($"Lớp sinh hoạt {lopChon} chưa có sinh viên nào đăng ký học phần trong {HocKyDangChon.TenHocKy}.", true);
+                return;
+            }
+
+            byte[] pdfBytes = await _pdfExportService.XuatPhieuKetQuaDKHPHangLoatPdfAsync(danhSachPhieu);
+            string fileName = $"PhieuDKHP_HangLoat_{lopChon}_{maHk}.pdf";
+            string? saved = await SaveFileDialogFunc(fileName, "pdf", pdfBytes);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                ShowMessage($"✔ Đã đóng gói {danhSachPhieu.Count} trang phiếu ĐKHP của lớp {lopChon} vào 1 file PDF tại: {saved}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi xuất PDF hàng loạt: {ex.Message}", true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    // ==========================================
+    // TAB 5 METHODS: TRUNG TÂM CẢNH BÁO HỌC VỤ & SINH VIÊN NGUY CƠ (NÂNG CẤP 3 - MỤC TIÊU 3)
+    // ==========================================
+    partial void OnTab5FilterIndexChanged(int value)
+    {
+        ApplyTab5Filter();
+    }
+
+    partial void OnTab5TuKhoaChanged(string? value)
+    {
+        ApplyTab5Filter();
+    }
+
+    [RelayCommand]
+    public async Task LoadTab5CanhBaoHocVuAsync()
+    {
+        if (HocKyDangChon == null || App.ServiceProvider == null) return;
+        try
+        {
+            IsLoading = true;
+            var dbFactory = App.ServiceProvider.GetService<IDbContextFactory<AppDbContext>>();
+            if (dbFactory == null) return;
+
+            await using var db = await dbFactory.CreateDbContextAsync();
+            string maHk = HocKyDangChon.MaHocKy;
+
+            var cauHinhDict = await db.CauHinhHeThongs.AsNoTracking()
+                .ToDictionaryAsync(c => c.Key, c => c.Value);
+
+            int tcToiThieu = 10;
+            if (cauHinhDict.TryGetValue("SoTinChiToiThieu", out var strMin) && int.TryParse(strMin, out int parsedMin) && parsedMin > 0)
+            {
+                tcToiThieu = parsedMin;
+            }
+            Tab5TinChiToiThieuQuyDinh = tcToiThieu;
+
+            var allStudents = await db.SinhViens.AsNoTracking()
+                .Where(s => !s.IsDeleted)
+                .OrderBy(s => s.LopSinhHoat)
+                .ThenBy(s => s.MaSV)
+                .ToListAsync();
+
+            var enrollments = await db.DangKyHocPhans.AsNoTracking()
+                .Include(d => d.LopHocPhan)
+                .ThenInclude(l => l.MonHoc)
+                .Where(d => d.TrangThai == "DangHoc"
+                            && d.LopHocPhan != null
+                            && !d.LopHocPhan.IsDeleted
+                            && d.LopHocPhan.MaHocKy == maHk)
+                .ToListAsync();
+
+            var tcBySv = enrollments
+                .GroupBy(d => d.MaSV)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Sum(d => (d.LopHocPhan?.MonHoc?.SoTinChiLT ?? 0) + (d.LopHocPhan?.MonHoc?.SoTinChiTH ?? 0)));
+
+            var debtBySv = await db.HocPhiHocKys.AsNoTracking()
+                .Where(h => h.MaHocKy == maHk && h.ConNo > 0)
+                .ToDictionaryAsync(h => h.MaSV, h => h.ConNo);
+
+            var alerts = new List<CanhBaoHocVuDto>();
+            int count0Tc = 0;
+            int countLowTc = 0;
+            int countDebt = 0;
+
+            foreach (var sv in allStudents)
+            {
+                int soTc = tcBySv.TryGetValue(sv.MaSV, out int tc) ? tc : 0;
+                decimal conNo = debtBySv.TryGetValue(sv.MaSV, out decimal no) ? no : 0m;
+
+                if (soTc == 0)
+                {
+                    count0Tc++;
+                    alerts.Add(new CanhBaoHocVuDto
+                    {
+                        MaSV = sv.MaSV,
+                        HoTen = sv.HoTen,
+                        LopSinhHoat = sv.LopSinhHoat ?? "--",
+                        KhoaHoc = sv.KhoaHoc ?? "--",
+                        SoTinChiDangKy = 0,
+                        TinChiToiThieu = tcToiThieu,
+                        ConNoHocPhi = conNo,
+                        LoaiNguyCo = "KhongDangKy",
+                        NhanNguyCo = "Mất tích (0 TC)",
+                        HuongXuLyDeXuat = "Gửi CVHT liên hệ gấp để nhắc ĐKHP hoặc làm thủ tục bảo lưu"
+                    });
+                }
+                else if (soTc < tcToiThieu)
+                {
+                    countLowTc++;
+                    alerts.Add(new CanhBaoHocVuDto
+                    {
+                        MaSV = sv.MaSV,
+                        HoTen = sv.HoTen,
+                        LopSinhHoat = sv.LopSinhHoat ?? "--",
+                        KhoaHoc = sv.KhoaHoc ?? "--",
+                        SoTinChiDangKy = soTc,
+                        TinChiToiThieu = tcToiThieu,
+                        ConNoHocPhi = conNo,
+                        LoaiNguyCo = "ThieuTinChi",
+                        NhanNguyCo = $"Thiếu {tcToiThieu - soTc} TC tối thiểu",
+                        HuongXuLyDeXuat = $"Yêu cầu đăng ký bổ sung tối thiểu {tcToiThieu - soTc} tín chỉ theo quy chế"
+                    });
+                }
+                else if (conNo > 0)
+                {
+                    countDebt++;
+                    alerts.Add(new CanhBaoHocVuDto
+                    {
+                        MaSV = sv.MaSV,
+                        HoTen = sv.HoTen,
+                        LopSinhHoat = sv.LopSinhHoat ?? "--",
+                        KhoaHoc = sv.KhoaHoc ?? "--",
+                        SoTinChiDangKy = soTc,
+                        TinChiToiThieu = tcToiThieu,
+                        ConNoHocPhi = conNo,
+                        LoaiNguyCo = "NoHocPhi",
+                        NhanNguyCo = "Nợ học phí quá hạn",
+                        HuongXuLyDeXuat = "Nhắc hoàn tất học phí trước khi lập danh sách cấm thi"
+                    });
+                }
+            }
+
+            _masterCanhBaoHocVu = alerts;
+            Tab5SoSvKhongDangKy = count0Tc;
+            Tab5SoSvThieuTinChi = countLowTc;
+            Tab5SoSvNoHocPhi = countDebt;
+
+            ApplyTab5Filter();
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi rà soát cảnh báo học vụ: {ex.Message}", true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void ApplyTab5Filter()
+    {
+        IEnumerable<CanhBaoHocVuDto> query = _masterCanhBaoHocVu;
+
+        switch (Tab5FilterIndex)
+        {
+            case 1:
+                query = query.Where(x => x.LoaiNguyCo == "KhongDangKy");
+                break;
+            case 2:
+                query = query.Where(x => x.LoaiNguyCo == "ThieuTinChi");
+                break;
+            case 3:
+                query = query.Where(x => x.LoaiNguyCo == "NoHocPhi");
+                break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Tab5TuKhoa))
+        {
+            string kw = Tab5TuKhoa.Trim();
+            query = query.Where(x =>
+                x.MaSV.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
+                x.HoTen.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
+                x.LopSinhHoat.Contains(kw, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var filtered = query.ToList();
+        for (int i = 0; i < filtered.Count; i++)
+        {
+            filtered[i].Stt = i + 1;
+        }
+
+        Tab5DsCanhBao.Clear();
+        foreach (var item in filtered)
+        {
+            Tab5DsCanhBao.Add(item);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Tab5XuatExcelCanhBaoAsync()
+    {
+        if (IsLoading) return;
+        var snapshot = Tab5DsCanhBao.ToList();
+        if (snapshot.Count == 0)
+        {
+            ShowMessage("Không có danh sách cảnh báo học vụ để xuất Excel.", true);
+            return;
+        }
+        if (SaveFileDialogFunc == null) return;
+
+        try
+        {
+            IsLoading = true;
+            var cotMap = new List<(string TieuDe, Func<CanhBaoHocVuDto, object?> LayGiaTri)>
+            {
+                ("STT", x => x.Stt),
+                ("Mã SV", x => x.MaSV),
+                ("Họ và tên", x => x.HoTen),
+                ("Lớp sinh hoạt", x => x.LopSinhHoat),
+                ("Khóa học", x => x.KhoaHoc),
+                ("Tín chỉ ĐK", x => x.SoTinChiDangKy),
+                ("TC Tối thiểu", x => x.TinChiToiThieu),
+                ("Còn nợ học phí", x => x.ConNoHocPhi),
+                ("Mức cảnh báo", x => x.NhanNguyCo),
+                ("Đề xuất xử lý", x => x.HuongXuLyDeXuat)
+            };
+
+            string maHk = HocKyDangChon?.MaHocKy ?? "HK";
+            byte[] excelBytes = await _excelExportService.XuatExcelAsync($"CanhBaoHocVu_{maHk}", snapshot, cotMap);
+            string fileName = $"DanhSachCanhBaoHocVu_{maHk}.xlsx";
+            string? saved = await SaveFileDialogFunc(fileName, "xlsx", excelBytes);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                ShowMessage($"✔ Đã xuất danh sách cảnh báo học vụ gửi CVHT tại: {saved}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message, true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    // ==========================================
+    // TAB 6 METHODS: RÀ SOÁT TRÙNG PHÒNG / GIẢNG VIÊN & ĐỊNH MỨC GIỜ GIẢNG (NÂNG CẤP 3 - MỤC TIÊU 1 & 4)
+    // ==========================================
+    [RelayCommand]
+    public async Task LoadTab6DaoTaoVaGiangDayAsync()
+    {
+        if (HocKyDangChon == null || App.ServiceProvider == null) return;
+        try
+        {
+            IsLoading = true;
+            var dbFactory = App.ServiceProvider.GetService<IDbContextFactory<AppDbContext>>();
+            if (dbFactory == null) return;
+
+            await using var db = await dbFactory.CreateDbContextAsync();
+            string maHk = HocKyDangChon.MaHocKy;
+
+            var lhps = await db.LopHocPhans.AsNoTracking()
+                .Include(l => l.MonHoc)
+                .Where(l => !l.IsDeleted && l.MaHocKy == maHk)
+                .OrderBy(l => l.MaLHP)
+                .ToListAsync();
+
+            var gvUsers = await db.NguoiDungs.AsNoTracking()
+                .Where(u => !u.IsDeleted)
+                .ToListAsync();
+
+            var gvNameDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var u in gvUsers)
+            {
+                if (!string.IsNullOrWhiteSpace(u.MaGV))
+                    gvNameDict[u.MaGV] = u.HoTen;
+                if (!string.IsNullOrWhiteSpace(u.TenDangNhap))
+                    gvNameDict[u.TenDangNhap] = u.HoTen;
+            }
+
+            var siSoByLhp = await db.DangKyHocPhans.AsNoTracking()
+                .Where(d => d.TrangThai == "DangHoc" && d.LopHocPhan != null && d.LopHocPhan.MaHocKy == maHk)
+                .GroupBy(d => d.MaLHP)
+                .Select(g => new { MaLHP = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.MaLHP, x => x.Count);
+
+            // --- PHẦN 1: QUÉT XUNG ĐỘT PHÒNG HỌC & GIẢNG VIÊN ---
+            var conflicts = new List<XungDotDaoTaoDto>();
+            var lhpIdsWithIssue = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int countGvOverlap = 0;
+            int countRoomOverlap = 0;
+            int countIncomplete = 0;
+
+            for (int i = 0; i < lhps.Count; i++)
+            {
+                var a = lhps[i];
+                if (!a.Thu.HasValue || !a.TietBatDau.HasValue || !a.SoTiet.HasValue)
+                    continue;
+
+                int startA = a.TietBatDau.Value;
+                int endA = startA + a.SoTiet.Value - 1;
+                string thuText = (a.Thu.Value >= 2 && a.Thu.Value <= 8) ? TenThuTuan[a.Thu.Value] : $"Thứ {a.Thu.Value}";
+
+                for (int j = i + 1; j < lhps.Count; j++)
+                {
+                    var b = lhps[j];
+                    if (!b.Thu.HasValue || !b.TietBatDau.HasValue || !b.SoTiet.HasValue)
+                        continue;
+                    if (a.Thu.Value != b.Thu.Value)
+                        continue;
+
+                    int startB = b.TietBatDau.Value;
+                    int endB = startB + b.SoTiet.Value - 1;
+                    bool overlap = startA <= endB && startB <= endA;
+                    if (!overlap) continue;
+
+                    string giaoTiet = $"Tiết {Math.Max(startA, startB)}–{Math.Min(endA, endB)}";
+
+                    // 1.1. Kiểm tra trùng Giảng viên
+                    if (!string.IsNullOrWhiteSpace(a.MaGV) &&
+                        string.Equals(a.MaGV.Trim(), b.MaGV?.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        countGvOverlap++;
+                        lhpIdsWithIssue.Add(a.MaLHP);
+                        lhpIdsWithIssue.Add(b.MaLHP);
+                        string tenGv = gvNameDict.TryGetValue(a.MaGV.Trim(), out var name) ? $"{name} ({a.MaGV})" : a.MaGV;
+
+                        conflicts.Add(new XungDotDaoTaoDto
+                        {
+                            LoaiXungDot = "TrungGiangVien",
+                            TenLoaiHienThi = "Trùng lịch Giảng viên",
+                            MucDo = "NghiemTrong",
+                            DoiTuongXungDot = $"GV: {tenGv}",
+                            MaLhpChinh = a.MaLHP,
+                            TenMonChinh = a.MonHoc?.TenMon ?? a.MaMon,
+                            MaLhpDoiUng = b.MaLHP,
+                            TenMonDoiUng = b.MonHoc?.TenMon ?? b.MaMon,
+                            ThoiGianDienRa = $"{thuText}, {giaoTiet}",
+                            KhuyenNghiXuLy = $"Đổi ca giảng hoặc phân công giảng viên khác cho lớp {b.MaLHP}"
+                        });
+                    }
+
+                    // 1.2. Kiểm tra trùng Phòng học (chỉ tính lớp học trực tiếp tại phòng)
+                    if (!a.GiangDayOnline && !b.GiangDayOnline &&
+                        !string.IsNullOrWhiteSpace(a.Phong) &&
+                        string.Equals(a.Phong.Trim(), b.Phong?.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        countRoomOverlap++;
+                        lhpIdsWithIssue.Add(a.MaLHP);
+                        lhpIdsWithIssue.Add(b.MaLHP);
+
+                        conflicts.Add(new XungDotDaoTaoDto
+                        {
+                            LoaiXungDot = "TrungPhongHoc",
+                            TenLoaiHienThi = "Trùng Phòng học",
+                            MucDo = "NghiemTrong",
+                            DoiTuongXungDot = $"Phòng {a.Phong.Trim()}",
+                            MaLhpChinh = a.MaLHP,
+                            TenMonChinh = a.MonHoc?.TenMon ?? a.MaMon,
+                            MaLhpDoiUng = b.MaLHP,
+                            TenMonDoiUng = b.MonHoc?.TenMon ?? b.MaMon,
+                            ThoiGianDienRa = $"{thuText}, {giaoTiet}",
+                            KhuyenNghiXuLy = $"Chuyển lớp {b.MaLHP} sang phòng học trống khác hoặc đổi tiết"
+                        });
+                    }
+                }
+            }
+
+            // 1.3. Kiểm tra các lớp chưa xếp đủ thông tin (Lịch / Phòng / Giảng viên)
+            foreach (var lhp in lhps)
+            {
+                var missingParts = new List<string>();
+                if (string.IsNullOrWhiteSpace(lhp.MaGV))
+                    missingParts.Add("Chưa phân công GV");
+                if (!lhp.Thu.HasValue || !lhp.TietBatDau.HasValue || !lhp.SoTiet.HasValue)
+                    missingParts.Add("Chưa xếp Thứ/Tiết");
+                else if (!lhp.GiangDayOnline && string.IsNullOrWhiteSpace(lhp.Phong))
+                    missingParts.Add("Chưa xếp Phòng học");
+
+                if (missingParts.Count > 0)
+                {
+                    countIncomplete++;
+                    lhpIdsWithIssue.Add(lhp.MaLHP);
+                    string thuHienTai = (lhp.Thu.HasValue && lhp.Thu.Value >= 2 && lhp.Thu.Value <= 8 && lhp.TietBatDau.HasValue && lhp.SoTiet.HasValue)
+                        ? $"{TenThuTuan[lhp.Thu.Value]}, tiết {lhp.TietBatDau}-{lhp.TietBatDau + lhp.SoTiet - 1}"
+                        : "Chưa xếp lịch";
+
+                    conflicts.Add(new XungDotDaoTaoDto
+                    {
+                        LoaiXungDot = "ChuaHoanThien",
+                        TenLoaiHienThi = "Thiếu thông tin LHP",
+                        MucDo = "CanhBao",
+                        DoiTuongXungDot = string.Join(" • ", missingParts),
+                        MaLhpChinh = lhp.MaLHP,
+                        TenMonChinh = lhp.MonHoc?.TenMon ?? lhp.MaMon,
+                        MaLhpDoiUng = "--",
+                        TenMonDoiUng = string.Empty,
+                        ThoiGianDienRa = thuHienTai,
+                        KhuyenNghiXuLy = "Vào màn hình Học kỳ / LHP cập nhật đầy đủ Giảng viên, Thứ, Tiết và Phòng học"
+                    });
+                }
+            }
+
+            for (int idx = 0; idx < conflicts.Count; idx++)
+            {
+                conflicts[idx].Stt = idx + 1;
+            }
+
+            Tab6DsXungDot.Clear();
+            foreach (var c in conflicts)
+            {
+                Tab6DsXungDot.Add(c);
+            }
+
+            Tab6SoTrungGiangVien = countGvOverlap;
+            Tab6SoTrungPhong = countRoomOverlap;
+            Tab6SoChuaHoanThien = countIncomplete;
+            Tab6SoLopHopLe = Math.Max(0, lhps.Count - lhpIdsWithIssue.Count);
+
+            // --- PHẦN 2: BẢNG THEO DÕI ĐỊNH MỨC & GIỜ GIẢNG GIẢNG VIÊN ---
+            var workloads = new List<DinhMucGiangDayDto>();
+            var groupedByGv = lhps
+                .GroupBy(l => string.IsNullOrWhiteSpace(l.MaGV) ? "CHUA_PHAN_CONG" : l.MaGV.Trim(), StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key == "CHUA_PHAN_CONG" ? 1 : 0)
+                .ThenBy(g => g.Key);
+
+            int sttGv = 1;
+            foreach (var group in groupedByGv)
+            {
+                string maGv = group.Key;
+                string hoTenGv = maGv == "CHUA_PHAN_CONG"
+                    ? "Chưa phân công giảng viên"
+                    : (gvNameDict.TryGetValue(maGv, out var ten) ? ten : $"Giảng viên ({maGv})");
+
+                int soLop = 0;
+                int tongSv = 0;
+                int tietLt = 0;
+                int tietTh = 0;
+                var lopNames = new List<string>();
+
+                foreach (var lhp in group)
+                {
+                    soLop++;
+                    int svCount = siSoByLhp.TryGetValue(lhp.MaLHP, out int c) ? c : 0;
+                    tongSv += svCount;
+
+                    int tcLt = lhp.MonHoc?.SoTinChiLT ?? 0;
+                    int tcTh = lhp.MonHoc?.SoTinChiTH ?? 0;
+                    tietLt += tcLt * 15;
+                    tietTh += tcTh * 30;
+                    lopNames.Add($"{lhp.MaLHP} ({svCount} SV)");
+                }
+
+                double quyDoi = Math.Round(tietLt * 1.0 + tietTh * 0.7, 1);
+                string trangThai;
+                string nhan;
+
+                if (maGv == "CHUA_PHAN_CONG")
+                {
+                    trangThai = "ThieuGio";
+                    nhan = "Cần phân công GV";
+                }
+                else if (quyDoi > 180.0)
+                {
+                    trangThai = "QuaTai";
+                    nhan = "Vượt định mức (Quá tải)";
+                }
+                else if (quyDoi >= 90.0)
+                {
+                    trangThai = "DatChuan";
+                    nhan = "Đạt định mức chuẩn";
+                }
+                else
+                {
+                    trangThai = "ThieuGio";
+                    nhan = "Chưa đủ giờ chuẩn";
+                }
+
+                workloads.Add(new DinhMucGiangDayDto
+                {
+                    Stt = sttGv++,
+                    MaGV = maGv == "CHUA_PHAN_CONG" ? "--" : maGv,
+                    HoTenGV = hoTenGv,
+                    SoLopPhuTrach = soLop,
+                    TongSinhVien = tongSv,
+                    TietLyThuyet = tietLt,
+                    TietThucHanh = tietTh,
+                    TongTietQuyDoi = quyDoi,
+                    DinhMucChuan = 135.0,
+                    TrangThaiTai = trangThai,
+                    NhanTrangThai = nhan,
+                    DanhSachLopPhuTrach = string.Join(", ", lopNames.Take(5)) + (lopNames.Count > 5 ? $" (+{lopNames.Count - 5} lớp)" : "")
+                });
+            }
+
+            Tab6DsDinhMucGiangDay.Clear();
+            foreach (var w in workloads)
+            {
+                Tab6DsDinhMucGiangDay.Add(w);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi phân tích lịch đào tạo & giờ giảng: {ex.Message}", true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task Tab6XuatExcelXungDotAsync()
+    {
+        if (IsLoading) return;
+        var snapshot = Tab6DsXungDot.ToList();
+        if (snapshot.Count == 0)
+        {
+            ShowMessage("Không có xung đột nào để xuất biên bản Excel.", true);
+            return;
+        }
+        if (SaveFileDialogFunc == null) return;
+
+        try
+        {
+            IsLoading = true;
+            var cotMap = new List<(string TieuDe, Func<XungDotDaoTaoDto, object?> LayGiaTri)>
+            {
+                ("STT", x => x.Stt),
+                ("Loại rà soát", x => x.TenLoaiHienThi),
+                ("Đối tượng / Chi tiết", x => x.DoiTuongXungDot),
+                ("Lớp học phần 1", x => x.MaLhpChinh),
+                ("Môn học 1", x => x.TenMonChinh),
+                ("Lớp học phần 2", x => x.MaLhpDoiUng),
+                ("Thời gian", x => x.ThoiGianDienRa),
+                ("Khuyến nghị xử lý", x => x.KhuyenNghiXuLy)
+            };
+
+            string maHk = HocKyDangChon?.MaHocKy ?? "HK";
+            byte[] excelBytes = await _excelExportService.XuatExcelAsync($"RaSoatLich_{maHk}", snapshot, cotMap);
+            string fileName = $"BienBanRaSoatXungDotLich_{maHk}.xlsx";
+            string? saved = await SaveFileDialogFunc(fileName, "xlsx", excelBytes);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                ShowMessage($"✔ Đã xuất biên bản rà soát xung đột lịch học tại: {saved}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ex.Message, true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task Tab6XuatExcelGiangDayAsync()
+    {
+        if (IsLoading) return;
+        var snapshot = Tab6DsDinhMucGiangDay.ToList();
+        if (snapshot.Count == 0)
+        {
+            ShowMessage("Không có dữ liệu định mức giảng dạy để xuất Excel.", true);
+            return;
+        }
+        if (SaveFileDialogFunc == null) return;
+
+        try
+        {
+            IsLoading = true;
+            var cotMap = new List<(string TieuDe, Func<DinhMucGiangDayDto, object?> LayGiaTri)>
+            {
+                ("STT", x => x.Stt),
+                ("Mã GV", x => x.MaGV),
+                ("Họ và tên Giảng viên", x => x.HoTenGV),
+                ("Số LHP phụ trách", x => x.SoLopPhuTrach),
+                ("Tổng SV theo học", x => x.TongSinhVien),
+                ("Tiết Lý thuyết", x => x.TietLyThuyet),
+                ("Tiết Thực hành", x => x.TietThucHanh),
+                ("Tổng tiết quy đổi", x => x.TongTietQuyDoi),
+                ("Định mức chuẩn", x => x.DinhMucChuan),
+                ("Đánh giá định mức", x => x.NhanTrangThai),
+                ("Danh sách lớp", x => x.DanhSachLopPhuTrach)
+            };
+
+            string maHk = HocKyDangChon?.MaHocKy ?? "HK";
+            byte[] excelBytes = await _excelExportService.XuatExcelAsync($"GioGiang_{maHk}", snapshot, cotMap);
+            string fileName = $"BangThongKeGioGiangGiangVien_{maHk}.xlsx";
+            string? saved = await SaveFileDialogFunc(fileName, "xlsx", excelBytes);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                ShowMessage($"✔ Đã xuất bảng tổng hợp định mức giờ giảng tại: {saved}", false);
             }
         }
         catch (Exception ex)
