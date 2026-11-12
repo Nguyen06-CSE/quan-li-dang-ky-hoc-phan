@@ -26,7 +26,7 @@ sidebar_position: 2
    * Tự động đối chiếu danh sách sinh viên với ngưỡng `SoTinChiToiThieu` trong cấu hình hệ thống và công nợ học phí.
    * Phân loại 3 nhóm nguy cơ kèm thẻ Bento KPI và thanh lọc Segmented Pill: *Sinh viên "Mất tích" (0 tín chỉ)*, *Sinh viên đăng ký thiếu tín chỉ tối thiểu*, và *Sinh viên nợ học phí trước kỳ thi*; hỗ trợ xuất Excel danh sách cảnh báo gửi Cố vấn học tập.
 4. **Bảng Theo Dõi Định Mức & Giờ Giảng Giảng Viên (Tab 6 - Chế độ 2):**
-   * Thống kê tự động theo từng Giảng viên: Số lớp phụ trách, tổng sinh viên theo học, tổng tiết Lý thuyết ($\text{TC}_{LT} \times 15$), tổng tiết Thực hành ($\text{TC}_{TH} \times 30$), tổng tiết quy đổi chuẩn và tỷ lệ hoàn thành định mức học kỳ ($135$ tiết chuẩn), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
+   * Thống kê tự động theo từng Giảng viên: Số lớp phụ trách, tổng sinh viên theo học, tổng tiết Lý thuyết (`TC_LT × 15`), tổng tiết Thực hành (`TC_TH × 30`), tổng tiết quy đổi chuẩn và tỷ lệ hoàn thành định mức học kỳ (`135` tiết chuẩn), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
 5. **Nâng Cao Tính Thẩm Mỹ Mã Nguồn & Giao Diện:**
    * Đại tu toàn bộ 6 Tab của `BaoCaoView.axaml` sang chuẩn Bento KPI + `table-container` + phông chữ số học `Consolas, Menlo, Monospace` + Soft Pastel Badges đồng bộ tuyệt đối.
    * Bổ sung bài kiểm thử `XuatPhieuKetQuaDKHPHangLoatPdfAsync_GeneratesMultiPageBatchPdf`, nâng tổng số Unit Tests lên **82/82 Passed (100%)**.

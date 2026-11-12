@@ -279,5 +279,5 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
   3. **Trung Tâm Cảnh Báo Học Vụ & Tín Chỉ (`CanhBaoHocVuDto` - Tab 5):**
      * Tự động đối chiếu tổng tín chỉ đăng ký của toàn bộ sinh viên với tham số `SoTinChiToiThieu` và công nợ học phí; phân loại 3 mức cảnh báo (*Mất tích 0 TC*, *Thiếu TC tối thiểu*, *Nợ học phí*) kèm xuất Excel gửi Cố vấn học tập.
   4. **Bảng Theo Dõi Định Mức & Giờ Giảng Giảng Viên (`DinhMucGiangDayDto` - Tab 6 Chế độ 2):**
-     * Tính toán tự động số lớp phụ trách, tổng sinh viên, tiết Lý thuyết ($\text{TC}_{LT} \times 15$), tiết Thực hành ($\text{TC}_{TH} \times 30$) và tiết quy đổi chuẩn so với định mức học kỳ ($135$ tiết), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
+     * Tính toán tự động số lớp phụ trách, tổng sinh viên, tiết Lý thuyết (`TC_LT × 15`), tiết Thực hành (`TC_TH × 30`) và tiết quy đổi chuẩn so với định mức học kỳ (`135` tiết), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
 * **Lý do:** Biến phân hệ Báo cáo & Thống kê thành một Trung tâm Điều hành Đào tạo toàn diện dành cho cán bộ giáo vụ trên Desktop, kết hợp tính thẩm mỹ cao của giao diện Bento KPI và mã nguồn sạch chuẩn Clean Architecture.
