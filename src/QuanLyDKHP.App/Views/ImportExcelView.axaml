@@ -31,9 +31,15 @@
         <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
 
             <!-- ================================================================= -->
-            <!-- TAB 1: 🌟 NẠP SINH VIÊN VÀO LỚP (SMART IMPORT STUDIO)             -->
+            <!-- TAB 1: NẠP SINH VIÊN VÀO LỚP (SMART IMPORT STUDIO)               -->
             <!-- ================================================================= -->
-            <TabItem Header="🌟 Nạp Sinh Viên Vào Lớp (Smart Studio)">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <materialIcons:MaterialIcon Kind="AccountPlusOutline" Width="16" Height="16" />
+                        <TextBlock Text="Nạp sinh viên vào lớp (Smart Studio)" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="0,14,0,0">
 
                     <!-- 1. Toolbar Chọn Học kỳ & Lớp Học Phần & Nút Nạp Dữ Liệu -->
@@ -323,9 +329,15 @@
             </TabItem>
 
             <!-- ================================================================= -->
-            <!-- TAB 2: 🏢 NẠP FILE 21 CỘT TOÀN TRƯỜNG                             -->
+            <!-- TAB 2: NẠP FILE 21 CỘT TOÀN TRƯỜNG                               -->
             <!-- ================================================================= -->
-            <TabItem Header="🏢 Nạp File 21 Cột Toàn Trường">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <materialIcons:MaterialIcon Kind="FileExcelOutline" Width="16" Height="16" />
+                        <TextBlock Text="Nạp file 21 cột toàn trường" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid RowDefinitions="Auto,*" Margin="0,14,0,0">
                     <!-- Form Các bước Import -->
                     <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,16">

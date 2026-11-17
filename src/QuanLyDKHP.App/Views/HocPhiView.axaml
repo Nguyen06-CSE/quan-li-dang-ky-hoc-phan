@@ -82,20 +82,21 @@
 
                         <ComboBox ItemsSource="{Binding DsHocKy}"
                                   SelectedItem="{Binding HocKyDangChon}"
-                                  Width="240" Height="34"
+                                  Width="260" Height="34"
                                   CornerRadius="6"
                                   VerticalAlignment="Center">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="entities:HocKy">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding TenHocKy}" FontWeight="Medium" VerticalAlignment="Center" />
-                                        <Border Background="#DCFCE7"
-                                                BorderBrush="#86EFAC"
+                                        <Border Background="{DynamicResource BrushBadgeSuccessBg}"
+                                                BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
                                                 BorderThickness="1"
-                                                CornerRadius="4" Padding="5,1"
+                                                CornerRadius="4" Padding="8,2"
+                                                MinWidth="60"
                                                 IsVisible="{Binding DangMo}"
                                                 VerticalAlignment="Center">
-                                            <TextBlock Text="ĐANG MỞ" FontSize="10" Foreground="#15803D" FontWeight="Bold" />
+                                            <TextBlock Text="ĐANG MỞ" FontSize="10" Foreground="{DynamicResource BrushBadgeSuccessFg}" FontWeight="Bold" HorizontalAlignment="Center" />
                                         </Border>
                                     </StackPanel>
                                 </DataTemplate>

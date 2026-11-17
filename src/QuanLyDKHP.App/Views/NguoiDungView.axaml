@@ -33,15 +33,16 @@
         <!-- 2. Bảng Danh sách Người Dùng -->
         <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
             <DataGrid ItemsSource="{Binding DanhSachNguoiDung}" AutoGenerateColumns="False" IsReadOnly="True"
+                      HorizontalScrollBarVisibility="Auto"
                       GridLinesVisibility="All" BorderThickness="0">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60" />
-                    <DataGridTextColumn Header="Tên đăng nhập" Binding="{Binding TenDangNhap}" Width="150" />
-                    <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" />
-                    <DataGridTextColumn Header="Mã GV" Binding="{Binding MaGV}" Width="110" />
+                    <DataGridTextColumn Header="STT" Binding="{Binding Id}" Width="Auto" />
+                    <DataGridTextColumn Header="Tên đăng nhập" Binding="{Binding TenDangNhap}" Width="Auto" />
+                    <DataGridTextColumn Header="Họ và tên" Binding="{Binding HoTen}" Width="*" MinWidth="180" />
+                    <DataGridTextColumn Header="Mã GV" Binding="{Binding MaGV}" Width="Auto" />
                     
                     <!-- Role Badge -->
-                    <DataGridTemplateColumn Header="Vai trò (Role)" Width="150">
+                    <DataGridTemplateColumn Header="Vai trò (Role)" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="entities:NguoiDung">
                                 <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -71,7 +72,7 @@
                     </DataGridTemplateColumn>
 
                     <!-- Trạng thái Badge -->
-                    <DataGridTemplateColumn Header="Trạng thái" Width="130">
+                    <DataGridTemplateColumn Header="Trạng thái" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="entities:NguoiDung">
                                 <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -89,7 +90,7 @@
                     </DataGridTemplateColumn>
 
                     <!-- Thao tác: Sửa, Đổi MK, Khóa/Mở khóa -->
-                    <DataGridTemplateColumn Header="Thao tác" Width="260">
+                    <DataGridTemplateColumn Header="Thao tác" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="entities:NguoiDung">
                                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">

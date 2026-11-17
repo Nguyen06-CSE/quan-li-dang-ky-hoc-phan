@@ -142,10 +142,11 @@
                                     <Border Background="{DynamicResource BrushBadgeSuccessBg}"
                                             BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
                                             BorderThickness="1"
-                                            CornerRadius="4" Padding="5,1"
+                                            CornerRadius="4" Padding="8,2"
+                                            MinWidth="60"
                                             IsVisible="{Binding DangMo}"
                                             VerticalAlignment="Center">
-                                        <TextBlock Text="ĐANG MỞ" FontSize="10" Foreground="{DynamicResource BrushBadgeSuccessFg}" FontWeight="Bold" />
+                                        <TextBlock Text="ĐANG MỞ" FontSize="10" Foreground="{DynamicResource BrushBadgeSuccessFg}" FontWeight="Bold" HorizontalAlignment="Center" />
                                     </Border>
                                 </StackPanel>
                             </DataTemplate>

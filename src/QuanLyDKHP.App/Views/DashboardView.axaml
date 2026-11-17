@@ -120,7 +120,7 @@
                                 </StackPanel>
                                 <ComboBox ItemsSource="{Binding DsHocKy}"
                                           SelectedItem="{Binding HocKyDangXem, Mode=TwoWay}"
-                                          Width="230" Height="36" CornerRadius="8">
+                                          Width="260" Height="36" CornerRadius="8">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="entities:HocKy">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -128,10 +128,11 @@
                                                 <Border Background="{DynamicResource BrushBadgeSuccessBg}"
                                                         BorderBrush="{DynamicResource BrushBadgeSuccessBorder}"
                                                         BorderThickness="1"
-                                                        CornerRadius="6" Padding="5,1"
+                                                        CornerRadius="6" Padding="8,2"
+                                                        MinWidth="60"
                                                         IsVisible="{Binding DangMo}"
                                                         VerticalAlignment="Center">
-                                                    <TextBlock Text="ĐANG MỞ" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource BrushBadgeSuccessFg}" />
+                                                    <TextBlock Text="ĐANG MỞ" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource BrushBadgeSuccessFg}" HorizontalAlignment="Center" />
                                                 </Border>
                                             </StackPanel>
                                         </DataTemplate>
