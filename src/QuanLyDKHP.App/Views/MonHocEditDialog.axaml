@@ -18,19 +18,25 @@
 
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*" RowSpacing="12" ColumnSpacing="8">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã môn học *:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaMon}" IsReadOnly="{Binding IsEditMode}" PlaceholderText="Ví dụ: INT1001" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaMon}" IsReadOnly="{Binding IsEditMode}" 
+                         PlaceholderText="Ví dụ: INT1001" Height="36" CornerRadius="8" VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Tên môn học *:" VerticalAlignment="Center" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TenMon}" PlaceholderText="Ví dụ: Lập trình C++" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TenMon}" 
+                         PlaceholderText="Ví dụ: Lập trình C++" Height="36" CornerRadius="8" VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Số TC Lý thuyết:" VerticalAlignment="Center" />
-                <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SoTinChiLT}" Minimum="0" Maximum="20" FormatString="0" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SoTinChiLT}" 
+                         PlaceholderText="0" Height="36" CornerRadius="8" VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Số TC Thực hành:" VerticalAlignment="Center" />
-                <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SoTinChiTH}" Minimum="0" Maximum="20" FormatString="0" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SoTinChiTH}" 
+                         PlaceholderText="0" Height="36" CornerRadius="8" VerticalContentAlignment="Center" />
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Bậc đào tạo:" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="4" Grid.Column="1" SelectedItem="{Binding BacDaoTao}" HorizontalAlignment="Stretch">
+                <ComboBox Grid.Row="4" Grid.Column="1" SelectedItem="{Binding BacDaoTao}" 
+                          PlaceholderText="Chọn bậc đào tạo..." HorizontalAlignment="Stretch" 
+                          Height="36" CornerRadius="8" VerticalContentAlignment="Center">
                     <ComboBoxItem Content="Đại học" />
                     <ComboBoxItem Content="Cao đẳng" />
                     <ComboBoxItem Content="Thạc sĩ" />
