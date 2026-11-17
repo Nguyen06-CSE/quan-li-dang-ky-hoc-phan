@@ -369,6 +369,7 @@
                       SelectionMode="Single"
                       RowHeight="46"
                       CanUserResizeColumns="True"
+                      HorizontalScrollBarVisibility="Auto"
                       DoubleTapped="OnDataGridDoubleTapped">
 
             <!-- ContextMenu cấp DataGrid dùng chung an toàn -->
@@ -428,7 +429,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 2: Mã SV (in đậm nổi bật) -->
-                <DataGridTemplateColumn Header="Mã SV" Width="135" SortMemberPath="MaSV">
+                <DataGridTemplateColumn Header="Mã SV" Width="Auto" SortMemberPath="MaSV">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:SinhVienDto">
                             <TextBlock Text="{Binding MaSV}"
@@ -445,7 +446,7 @@
                                     CustomSortComparer="{StaticResource VietnameseNameComparer}" />
 
                 <!-- Cột 4: Lớp sinh hoạt (hiển thị dạng Tag/Badge nổi bật dễ nhìn) -->
-                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="150" SortMemberPath="LopSinhHoat">
+                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="Auto" SortMemberPath="LopSinhHoat">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:SinhVienDto">
                             <Border HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -463,7 +464,10 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 5: Khóa học -->
-                <DataGridTemplateColumn Header="Khóa học" Width="130" SortMemberPath="KhoaHoc">
+                <DataGridTemplateColumn Width="Auto" SortMemberPath="KhoaHoc">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Khóa học" HorizontalAlignment="Center" />
+                    </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:SinhVienDto">
                             <TextBlock Text="{Binding KhoaHoc, FallbackValue='--'}"
@@ -475,13 +479,13 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 6: Số TC ĐK (HK hiện tại) - Căn giữa -->
-                <DataGridTemplateColumn Width="175" SortMemberPath="SoTinChiDangKy">
+                <DataGridTemplateColumn Width="Auto" SortMemberPath="SoTinChiDangKy">
                     <DataGridTemplateColumn.Header>
                         <TextBlock Text="Số TC ĐK (HK hiện tại)" HorizontalAlignment="Center" />
                     </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:SinhVienDto">
-                            <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Panel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12,0">
                                 <!-- Khi đã đăng ký (> 0 TC): Badge nổi bật -->
                                 <Border IsVisible="{Binding DaDangKyTinChi}"
                                         Background="{DynamicResource BrushPrimaryLight}"
@@ -508,13 +512,13 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 7: Thao tác nhanh (Đăng ký HP / Sửa / Xóa) - Căn giữa -->
-                <DataGridTemplateColumn Width="120" CanUserSort="False">
+                <DataGridTemplateColumn Width="Auto" CanUserSort="False">
                     <DataGridTemplateColumn.Header>
                         <TextBlock Text="Thao tác" HorizontalAlignment="Center" />
                     </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:SinhVienDto">
-                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8,0">
                                 <!-- Nút mở nhanh Đăng ký học phần -->
                                 <Button Classes="row-action register"
                                         ClickMode="Release"
