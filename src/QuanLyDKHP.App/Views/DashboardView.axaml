@@ -10,25 +10,24 @@
              x:DataType="vm:DashboardViewModel">
 
     <UserControl.Styles>
-        <!-- Thẻ KPI Bento có hiệu ứng nâng nhẹ khi rê chuột -->
+        <!-- Thẻ KPI Bento với viền và shadow tinh tế khi rê chuột -->
         <Style Selector="Border.kpi-card">
             <Setter Property="Background" Value="{DynamicResource BrushBackground}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="20,18" />
             <Setter Property="BoxShadow" Value="0 4 20 0 #08000000, 0 1 3 0 #04000000" />
-            <Setter Property="RenderTransform" Value="scale(1)" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut" />
                     <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Border.kpi-card:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.015)" />
             <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
+            <Setter Property="BoxShadow" Value="0 6 24 0 #0D000000, 0 2 6 0 #06000000" />
         </Style>
 
         <!-- Nút Thao tác nhanh dạng Action Tile sang trọng -->
@@ -36,27 +35,24 @@
             <Setter Property="Background" Value="{DynamicResource BrushBackground}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="18,16" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="RenderTransform" Value="scale(1)" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut" />
                     <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
                     <BrushTransition Property="Background" Duration="0:0:0.18" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Button.action-tile:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.015)" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimaryDark}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
         </Style>
         <Style Selector="Button.action-tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource BrushRowHover}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimaryDark}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}" />
         </Style>
     </UserControl.Styles>
 
@@ -101,11 +97,11 @@
 
                             <TextBlock Text="{Binding TenNguoiDung, StringFormat='Xin chào, {0}!'}"
                                        FontSize="24" FontWeight="Bold"
-                                       Foreground="#1A2612" />
+                                       Foreground="{DynamicResource BrushTextPrimary}" />
 
                             <TextBlock Text="Hệ thống Quản lý Đào tạo, Đăng ký Học phần &amp; Học phí Tín chỉ"
                                        FontSize="13" FontWeight="Medium"
-                                       Foreground="#2E4021" Opacity="0.88" />
+                                       Foreground="{DynamicResource BrushTextSecondary}" Opacity="0.88" />
                         </StackPanel>
 
                         <!-- Khối chọn Học kỳ kính mờ bên phải -->
@@ -182,9 +178,11 @@
                     <StackPanel Spacing="14">
                         <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                             <Border Grid.Column="0" Width="44" Height="44" CornerRadius="12"
-                                    Background="#EDE9FE" BorderBrush="#C4B5FD" BorderThickness="1">
+                                    Background="{DynamicResource BrushBadgeInfoBg}"
+                                    BorderBrush="{DynamicResource BrushBadgeInfoBorder}"
+                                    BorderThickness="1">
                                 <materialIcons:MaterialIcon Kind="BookOpenPageVariant" Width="22" Height="22"
-                                                            Foreground="#7C3AED"
+                                                            Foreground="{DynamicResource BrushBadgeInfoFg}"
                                                             HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <Border Grid.Column="2" Background="{DynamicResource BrushSurfaceAlt}"
@@ -333,10 +331,11 @@
                             CommandParameter="CrudMonHoc">
                         <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                             <Border Grid.Column="0" Width="42" Height="42" CornerRadius="10"
-                                    Background="#EDE9FE" BorderBrush="#C4B5FD"
+                                    Background="{DynamicResource BrushBadgeInfoBg}"
+                                    BorderBrush="{DynamicResource BrushBadgeInfoBorder}"
                                     BorderThickness="1" Margin="0,0,14,0">
                                 <materialIcons:MaterialIcon Kind="BookPlusOutline" Width="20" Height="20"
-                                                            Foreground="#7C3AED"
+                                                            Foreground="{DynamicResource BrushBadgeInfoFg}"
                                                             HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
