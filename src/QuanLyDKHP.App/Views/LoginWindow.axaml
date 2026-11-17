@@ -176,11 +176,11 @@
 
                 <!-- Mã số sinh viên -->
                 <StackPanel Spacing="6" Margin="0,0,0,14">
-                    <TextBlock Text="Mã số sinh viên" Classes="field-label" />
+                    <TextBlock Text="Tên đăng nhập" Classes="field-label" />
                     <TextBox x:Name="TenDangNhapBox"
                              Classes="input-login"
                              Text="{Binding TenDangNhap, Mode=TwoWay}"
-                             PlaceholderText="Nhập mã số sinh viên"
+                             PlaceholderText="Nhập tên đăng nhập"
                              IsEnabled="{Binding !DangXuLy}" />
                 </StackPanel>
 
@@ -231,7 +231,7 @@
 
                 <!-- Remember me -->
                 <CheckBox Content="Lưu đăng nhập"
-                          IsChecked="{Binding GhiNhoDangNhap, Mode=TwoWay}"
+                          IsChecked="False"
                           IsEnabled="{Binding !DangXuLy}"
                           ToolTip.Tip="Chỉ ghi nhớ mã số sinh viên cho lần sau, không lưu mật khẩu."
                           Margin="0,4,0,4" />

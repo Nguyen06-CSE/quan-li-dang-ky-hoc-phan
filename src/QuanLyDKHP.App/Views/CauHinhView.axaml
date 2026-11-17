@@ -224,7 +224,7 @@
                                                     <Button Content="Khôi phục"
                                                             Command="{Binding $parent[UserControl].((vm:CauHinhViewModel)DataContext).MoXacNhanKhoiPhucCommand}"
                                                             CommandParameter="{Binding}"
-                                                            Classes="btn-primary" FontSize="11" Padding="8,4"
+                                                            Classes="btn-secondary" FontSize="11" Padding="8,4"
                                                             ToolTip.Tip="Khôi phục CSDL về phiên bản này"/>
                                                 </StackPanel>
                                             </Grid>
@@ -278,7 +278,7 @@
                                                 <Button Content="Khôi phục bản này"
                                                         Command="{Binding MoXacNhanKhoiPhucCommand}"
                                                         CommandParameter="{Binding SelectedBackupCommit}"
-                                                        Classes="btn-primary" Padding="10,6" FontSize="12"/>
+                                                        Classes="btn-secondary" Padding="10,6" FontSize="12"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -380,7 +380,7 @@
                                TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
                         <Button Content="Hủy bỏ" Command="{Binding HuyKhoiPhucCommand}" Classes="btn-secondary"/>
-                        <Button Content="Khôi phục ngay" Command="{Binding XacNhanKhoiPhucCommand}" Classes="btn-primary"/>
+                        <Button Content="Khôi phục ngay" Command="{Binding XacNhanKhoiPhucCommand}" Classes="btn-danger"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -398,7 +398,7 @@
                                TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
                         <Button Content="Hủy bỏ" Command="{Binding HuyImportGhiDeCommand}" Classes="btn-secondary"/>
-                        <Button Content="Xác nhận Ghi đè CSDL" Command="{Binding XacNhanImportGhiDeCommand}" Classes="btn-primary"/>
+                        <Button Content="Xác nhận Ghi đè CSDL" Command="{Binding XacNhanImportGhiDeCommand}" Classes="btn-danger"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

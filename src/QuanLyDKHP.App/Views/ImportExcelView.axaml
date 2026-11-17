@@ -7,6 +7,12 @@
              x:Class="QuanLyDKHP.App.Views.ImportExcelView"
              x:DataType="vm:ImportExcelViewModel">
 
+    <UserControl.Styles>
+        <Style Selector="DataGridColumnHeader TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </UserControl.Styles>
+
     <Grid RowDefinitions="Auto,*" Margin="24">
         <!-- 1. Header & Giới thiệu -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,14">
@@ -45,8 +51,8 @@
                     <!-- 1. Toolbar Chọn Học kỳ & Lớp Học Phần & Nút Nạp Dữ Liệu -->
                     <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
                             BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,12">
-                        <Grid ColumnDefinitions="Auto,200,16,Auto,280,*,Auto" VerticalAlignment="Center">
-                            <!-- Chọn học kỳ -->
+                        <Grid ColumnDefinitions="Auto,265,16,Auto,280,*,Auto" VerticalAlignment="Center">
+                            <!-- Chọn học kỳ (Nới từ 200 lên 265 để không lấn badge ĐANG MỞ) -->
                             <TextBlock Grid.Column="0" Text="Học kỳ:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <ComboBox Grid.Column="1" ItemsSource="{Binding DsHocKy}"
                                       SelectedItem="{Binding HocKyDangChon}"
@@ -55,7 +61,7 @@
                                     <DataTemplate DataType="entities:HocKy">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Text="{Binding TenHocKy}" VerticalAlignment="Center"/>
-                                            <Border Background="{DynamicResource BrushSuccess}" CornerRadius="3" Padding="4,1" IsVisible="{Binding DangMo}" VerticalAlignment="Center">
+                                            <Border Background="{DynamicResource BrushSuccess}" CornerRadius="3" Padding="5,1" IsVisible="{Binding DangMo}" VerticalAlignment="Center">
                                                 <TextBlock Text="ĐANG MỞ" FontSize="9" Foreground="White" FontWeight="Bold"/>
                                             </Border>
                                         </StackPanel>
@@ -98,14 +104,14 @@
 
                                 <Button Command="{Binding XoaDanhSachPreviewCommand}"
                                         Classes="btn-secondary" Height="38" Padding="10,0" CornerRadius="8"
-                                        ToolTip.Tip="Xóa danh sách đang xem trước">
+                                        ToolTip.Tip="Xóa danh sách xem trước">
                                     <materialIcons:MaterialIcon Kind="DeleteSweepOutline" Width="18" Height="18" Foreground="{DynamicResource BrushDanger}" />
                                 </Button>
                             </StackPanel>
                         </Grid>
                     </Border>
 
-                    <!-- 2. Class Insights & Thống Kê Phân Tích (Dashboard trực quan) -->
+                    <!-- 2. Class Insights & Thống Kê Phân Tích -->
                     <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}"
                             BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,12"
                             IsVisible="{Binding Insights, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -229,31 +235,58 @@
                                 </Grid>
                             </Border>
 
-                            <!-- DataGrid Editable -->
+                            <!-- DataGrid Editable (Đã nới rộng các cột để không bị cắt chữ) -->
                             <DataGrid Grid.Row="1" ItemsSource="{Binding DanhSachPreview}" AutoGenerateColumns="False"
                                       CanUserResizeColumns="True" CanUserSortColumns="True"
                                       GridLinesVisibility="All" BorderThickness="0">
                                 <DataGrid.Columns>
                                     <!-- Cột chọn -->
-                                    <DataGridCheckBoxColumn Header="Chọn" Binding="{Binding IsSelected}" Width="65" />
+                                    <DataGridCheckBoxColumn Binding="{Binding IsSelected}" Width="105" MinWidth="95">
+                                        <DataGridCheckBoxColumn.Header>
+                                            <TextBlock Text="Chọn" />
+                                        </DataGridCheckBoxColumn.Header>
+                                    </DataGridCheckBoxColumn>
 
                                     <!-- Dòng số -->
-                                    <DataGridTextColumn Header="#" Binding="{Binding DongSo}" Width="50" IsReadOnly="True" />
+                                    <DataGridTextColumn Binding="{Binding DongSo}" Width="90" MinWidth="80" IsReadOnly="True">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="STT" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
 
                                     <!-- Mã SV (Editable) -->
-                                    <DataGridTextColumn Header="Mã Sinh Viên" Binding="{Binding MaSV}" Width="130" />
+                                    <DataGridTextColumn Binding="{Binding MaSV}" Width="165" MinWidth="145">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Mã Sinh Viên" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
 
                                     <!-- Họ và Tên (Editable) -->
-                                    <DataGridTextColumn Header="Họ và Tên" Binding="{Binding HoTen}" Width="220" />
+                                    <DataGridTextColumn Binding="{Binding HoTen}" Width="240" MinWidth="190">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Họ và Tên" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
 
                                     <!-- Lớp Sinh Hoạt (Editable) -->
-                                    <DataGridTextColumn Header="Lớp Sinh Hoạt" Binding="{Binding LopSinhHoat}" Width="140" />
+                                    <DataGridTextColumn Binding="{Binding LopSinhHoat}" Width="165" MinWidth="145">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Lớp Sinh Hoạt" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
 
                                     <!-- Khóa Học (Editable) -->
-                                    <DataGridTextColumn Header="Khóa Học" Binding="{Binding KhoaHoc}" Width="100" />
+                                    <DataGridTextColumn Binding="{Binding KhoaHoc}" Width="135" MinWidth="120">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Khóa Học" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
 
                                     <!-- Trạng thái & Xung đột Badge -->
-                                    <DataGridTemplateColumn Header="Trạng thái &amp; Cảnh báo" Width="*">
+                                    <DataGridTemplateColumn Width="*" MinWidth="240">
+                                        <DataGridTemplateColumn.Header>
+                                            <TextBlock Text="Trạng thái &amp; Cảnh báo" />
+                                        </DataGridTemplateColumn.Header>
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate DataType="coreDtos:SinhVienImportPreviewDto">
                                                 <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="8,0">
@@ -304,11 +337,11 @@
                         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                             <!-- Tuỳ chọn nâng cao -->
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                <CheckBox IsChecked="{Binding TuDongTaoSv}"
+                                <CheckBox IsChecked="False"
                                           Content="Tự động tạo hồ sơ sinh viên nếu chưa có trong danh mục trường"
                                           FontWeight="Medium" FontSize="13" />
 
-                                <CheckBox IsChecked="{Binding BoQuaTrungMon}"
+                                <CheckBox IsChecked="False"
                                           Content="Cho phép nạp dù đã đăng ký/học môn này (Học lại / Cải thiện)"
                                           FontWeight="Medium" FontSize="13" />
                             </StackPanel>
@@ -343,7 +376,7 @@
                     <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,16">
                         <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
                             <!-- Bước 1 & 2: Chọn File và Học Kỳ (tùy chọn) -->
-                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,24,Auto,260" VerticalAlignment="Center">
+                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,24,Auto,265" VerticalAlignment="Center">
                                 <!-- Chọn file -->
                                 <TextBlock Grid.Column="0" Text="1. File Excel:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                 <TextBox Grid.Column="1" Text="{Binding FileName, Mode=OneWay}" 
@@ -425,13 +458,21 @@
                         </Grid>
                     </Border>
 
-                    <!-- Chi tiết bảng Log Import -->
+                    <!-- Chi tiết bảng Log Import (Đã nới rộng các cột & bật kéo dãn) -->
                     <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
                         <DataGrid ItemsSource="{Binding DanhSachLogHienThi}" AutoGenerateColumns="False" IsReadOnly="True"
+                                  CanUserResizeColumns="True" CanUserSortColumns="True"
                                   GridLinesVisibility="All" BorderThickness="0">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Dòng" Binding="{Binding DongSo}" Width="70" />
-                                <DataGridTemplateColumn Header="Loại log" Width="110">
+                                <DataGridTextColumn Binding="{Binding DongSo}" Width="105" MinWidth="95">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Dòng" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Width="135" MinWidth="120">
+                                    <DataGridTemplateColumn.Header>
+                                        <TextBlock Text="Loại log" />
+                                    </DataGridTemplateColumn.Header>
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:LogDongImportDto">
                                             <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -451,10 +492,26 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Mã SV" Binding="{Binding MaSV}" Width="110" />
-                                <DataGridTextColumn Header="Mã môn" Binding="{Binding MaMon}" Width="100" />
-                                <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="110" />
-                                <DataGridTextColumn Header="Nội dung chi tiết" Binding="{Binding NoiDung}" Width="*" />
+                                <DataGridTextColumn Binding="{Binding MaSV}" Width="140" MinWidth="120">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Mã SV" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding MaMon}" Width="135" MinWidth="115">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Mã môn" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding MaLHP}" Width="145" MinWidth="125">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Mã LHP" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding NoiDung}" Width="*" MinWidth="220">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Nội dung chi tiết" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

@@ -1,14 +1,25 @@
-<!-- src/QuanLyDKHP.App/Views/HocPhiView.axaml -->
-
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:QuanLyDKHP.App.ViewModels"
              xmlns:coreDtos="using:QuanLyDKHP.Core.Dtos"
              xmlns:entities="using:QuanLyDKHP.Core.Entities"
+             xmlns:materialIcons="using:Material.Icons.Avalonia"
              x:Class="QuanLyDKHP.App.Views.HocPhiView"
              x:DataType="vm:HocPhiViewModel">
 
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="BrushBackdropDim" Color="#80000000" />
+    </UserControl.Resources>
+
     <UserControl.Styles>
+        <!-- Đảm bảo Header DataGrid không cắt chữ vô lý và hỗ trợ căn phải -->
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="DataGridColumnHeader TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
         <!-- ListBox bên trong Flyout / Popup tìm kiếm gợi ý SV -->
         <Style Selector="ListBox.filter-popup-list">
             <Setter Property="Background" Value="Transparent" />
@@ -35,13 +46,13 @@
             <Setter Property="Background" Value="{DynamicResource BrushSurfaceAlt}" />
         </Style>
         <Style Selector="Button.row-action.view:pointerover">
-            <Setter Property="Background" Value="#DBEAFE" />
+            <Setter Property="Background" Value="{DynamicResource BrushBadgeInfoBg}" />
         </Style>
         <Style Selector="Button.row-action.copy:pointerover">
-            <Setter Property="Background" Value="#E0E7FF" />
+            <Setter Property="Background" Value="{DynamicResource BrushBadgeInfoBg}" />
         </Style>
         <Style Selector="Button.row-action.pdf:pointerover">
-            <Setter Property="Background" Value="#FEE2E2" />
+            <Setter Property="Background" Value="{DynamicResource BrushBadgeDangerBg}" />
         </Style>
     </UserControl.Styles>
 
@@ -154,13 +165,13 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <!-- Nút Tính lại học phí -->
                         <Button Command="{Binding TinhLaiHocPhiCommand}"
-                                Classes="btn-primary"
+                                Classes="btn-secondary"
                                 Height="38" Padding="14,0"
                                 CornerRadius="8" Cursor="Hand"
-                                ToolTip.Tip="Tính toán lại học phí cho danh sách hiện tại theo dữ liệu tín chỉ">
+                                ToolTip.Tip="Thao tác này sẽ tính toán lại toàn bộ học phí">
                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                <PathIcon Data="M 19 3 H 5 C 3.9 3 3 3.9 3 5 V 19 C 3 20.1 3.9 21 5 21 H 19 C 20.1 21 21 20.1 21 19 V 5 C 21 3.9 20.1 3 19 3 Z M 19 19 H 5 V 5 H 19 V 19 Z M 7 7 H 9 V 9 H 7 Z M 11 7 H 13 V 9 H 11 Z M 15 7 H 17 V 9 H 15 Z M 7 11 H 9 V 13 H 7 Z M 11 11 H 13 V 13 H 11 Z M 15 11 H 17 V 13 H 15 Z M 7 15 H 9 V 17 H 7 Z M 11 15 H 13 V 17 H 11 Z M 15 15 H 17 V 17 H 15 Z"
-                                          Width="15" Height="15" />
+                                <materialIcons:MaterialIcon Kind="Calculator"
+                                                            Width="16" Height="16" />
                                 <TextBlock Text="Tính lại học phí" VerticalAlignment="Center" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
@@ -297,218 +308,251 @@
                           ItemsSource="{Binding DsHocPhiTongHop}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
+                          CanUserResizeColumns="True"
+                          CanUserSortColumns="True"
                           SelectionMode="Single"
                           RowHeight="46"
                           DoubleTapped="OnDataGridDoubleTapped">
 
-                <!-- ContextMenu cấp DataGrid -->
-                <DataGrid.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Xem chi tiết học phí"
-                                  Command="{Binding XemChiTietCommand}"
-                                  CommandParameter="{Binding #HocPhiDataGrid.SelectedItem}">
-                            <MenuItem.Icon>
-                                <PathIcon Data="M 12 4.5 C 7 4.5 2.73 7.61 1 12 C 2.73 16.39 7 19.5 12 19.5 C 17 19.5 21.27 16.39 23 12 C 21.27 7.61 17 4.5 12 4.5 Z M 12 17 C 9.24 17 7 14.76 7 12 C 7 9.24 9.24 7 12 7 C 14.76 7 17 9.24 17 12 C 17 14.76 14.76 17 12 17 Z M 12 9 C 10.34 9 9 10.34 9 12 C 9 13.66 10.34 15 12 15 C 13.66 15 15 13.66 15 12 C 15 10.34 13.66 9 12 9 Z"
-                                          Width="14" Height="14" />
-                            </MenuItem.Icon>
-                        </MenuItem>
-                        <MenuItem Header="Sao chép mã SV"
-                                  Command="{Binding SaoChepMaSvCommand}"
-                                  CommandParameter="{Binding #HocPhiDataGrid.SelectedItem}">
-                            <MenuItem.Icon>
-                                <PathIcon Data="M 16 1 L 4 1 C 2.9 1 2 1.9 2 3 L 2 17 L 4 17 L 4 3 L 16 3 L 16 1 Z M 19 5 L 8 5 C 6.9 5 6 5.9 6 7 L 6 21 C 6 22.1 6.9 23 8 23 L 19 23 C 20.1 23 21 22.1 21 21 L 21 7 C 21 5.9 20.1 5 19 5 Z M 19 21 L 8 21 L 8 7 L 19 7 L 19 21 Z"
-                                          Width="14" Height="14" />
-                            </MenuItem.Icon>
-                        </MenuItem>
-                    </ContextMenu>
-                </DataGrid.ContextMenu>
+                    <!-- ContextMenu cấp DataGrid -->
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Xem chi tiết học phí"
+                                      Command="{Binding XemChiTietCommand}"
+                                      CommandParameter="{Binding #HocPhiDataGrid.SelectedItem}">
+                                <MenuItem.Icon>
+                                    <PathIcon Data="M 12 4.5 C 7 4.5 2.73 7.61 1 12 C 2.73 16.39 7 19.5 12 19.5 C 17 19.5 21.27 16.39 23 12 C 21.27 7.61 17 4.5 12 4.5 Z M 12 17 C 9.24 17 7 14.76 7 12 C 7 9.24 9.24 7 12 7 C 14.76 7 17 9.24 17 12 C 17 14.76 14.76 17 12 17 Z M 12 9 C 10.34 9 9 10.34 9 12 C 9 13.66 10.34 15 12 15 C 13.66 15 15 13.66 15 12 C 15 10.34 13.66 9 12 9 Z"
+                                              Width="14" Height="14" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Sao chép mã SV"
+                                      Command="{Binding SaoChepMaSvCommand}"
+                                      CommandParameter="{Binding #HocPhiDataGrid.SelectedItem}">
+                                <MenuItem.Icon>
+                                    <PathIcon Data="M 16 1 L 4 1 C 2.9 1 2 1.9 2 3 L 2 17 L 4 17 L 4 3 L 16 3 L 16 1 Z M 19 5 L 8 5 C 6.9 5 6 5.9 6 7 L 6 21 C 6 22.1 6.9 23 8 23 L 19 23 C 20.1 23 21 22.1 21 21 L 21 7 C 21 5.9 20.1 5 19 5 Z M 19 21 L 8 21 L 8 7 L 19 7 L 19 21 Z"
+                                              Width="14" Height="14" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
 
-                <DataGrid.Columns>
-                    <!-- Cột 1: Mã SV (in đậm nổi bật, Tabular Monospace) -->
-                    <DataGridTemplateColumn Header="Mã SV" Width="105" MinWidth="95" SortMemberPath="MaSV">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <TextBlock Text="{Binding MaSV}"
-                                           FontFamily="Consolas, Menlo, Monospace"
-                                           FontWeight="Bold"
-                                           FontSize="12.5"
-                                           Foreground="{DynamicResource BrushPrimaryDark}"
-                                           VerticalAlignment="Center"
-                                           Margin="10,0" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+                    <DataGrid.Columns>
+                        <!-- Cột 1: Mã SV -->
+                        <DataGridTemplateColumn Width="115" MinWidth="95" SortMemberPath="MaSV">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Mã SV" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <TextBlock Text="{Binding MaSV}"
+                                               FontFamily="Consolas, Menlo, Monospace"
+                                               FontWeight="Bold"
+                                               FontSize="12.5"
+                                               Foreground="{DynamicResource BrushPrimaryDark}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                    <!-- Cột 2: Họ và tên (rộng rãi, hiển thị đầy đủ, không bị cắt ngắn) -->
-                    <DataGridTemplateColumn Header="Họ và tên" Width="2*" MinWidth="220" SortMemberPath="HoTen">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <TextBlock Text="{Binding HoTen}"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource BrushTextPrimary}"
-                                           VerticalAlignment="Center"
-                                           Margin="10,0"
-                                           ToolTip.Tip="{Binding HoTen}" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <!-- Cột 3: Lớp sinh hoạt (dạng Pill Tag) -->
-                    <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="105" MinWidth="95" SortMemberPath="LopSinhHoat">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <Border Background="{DynamicResource BrushSurfaceAlt}"
-                                        BorderBrush="{DynamicResource BrushBorder}"
-                                        BorderThickness="1"
-                                        CornerRadius="6"
-                                        Padding="8,2"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Center"
-                                        Margin="8,0">
-                                    <TextBlock Text="{Binding LopSinhHoat, FallbackValue='--'}"
-                                               FontSize="12"
+                        <!-- Cột 2: Họ và tên -->
+                        <DataGridTemplateColumn Width="2*" MinWidth="180" SortMemberPath="HoTen">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Họ và tên" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <TextBlock Text="{Binding HoTen}"
                                                FontWeight="SemiBold"
-                                               Foreground="{DynamicResource BrushTextPrimary}" />
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0"
+                                               ToolTip.Tip="{Binding HoTen}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                    <!-- Cột 4: Tổng TC -->
-                    <DataGridTemplateColumn Header="Tổng TC" Width="80" MinWidth="75" SortMemberPath="TongSoTinChi">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <TextBlock Text="{Binding TongSoTinChi, StringFormat='{}{0} TC'}"
-                                           FontWeight="SemiBold"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <!-- Cột 5: Tổng học phí -->
-                    <DataGridTemplateColumn Header="Tổng học phí" Width="130" MinWidth="115" SortMemberPath="TongHocPhi">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <TextBlock Text="{Binding TongHocPhiFormat}"
-                                           FontFamily="Consolas, Menlo, Monospace"
-                                           FontWeight="SemiBold"
-                                           FontSize="12.5"
-                                           Foreground="{DynamicResource BrushTextPrimary}"
-                                           HorizontalAlignment="Right"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,0" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <!-- Cột 6: Đã đóng -->
-                    <DataGridTemplateColumn Header="Đã đóng" Width="120" MinWidth="105" SortMemberPath="DaDong">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <TextBlock Text="{Binding DaDongFormat}"
-                                           FontFamily="Consolas, Menlo, Monospace"
-                                           FontWeight="SemiBold"
-                                           FontSize="12.5"
-                                           Foreground="{DynamicResource BrushSuccess}"
-                                           HorizontalAlignment="Right"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,0" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <!-- Cột 7: Còn nợ -->
-                    <DataGridTemplateColumn Header="Còn nợ" Width="120" MinWidth="105" SortMemberPath="ConNo">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <TextBlock Text="{Binding ConNoFormat}"
-                                           FontFamily="Consolas, Menlo, Monospace"
-                                           FontWeight="SemiBold"
-                                           FontSize="12.5"
-                                           Foreground="{DynamicResource BrushDanger}"
-                                           HorizontalAlignment="Right"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,0" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <!-- Cột 8: Trạng thái (Pill Badge) -->
-                    <DataGridTemplateColumn Header="Trạng thái" Width="110" MinWidth="100">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <!-- Khi đã đóng đủ -->
-                                    <Border Background="#DCFCE7"
-                                            BorderBrush="#86EFAC"
+                        <!-- Cột 3: Lớp sinh hoạt -->
+                        <DataGridTemplateColumn Width="145" MinWidth="115" SortMemberPath="LopSinhHoat">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Lớp sinh hoạt" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                            BorderBrush="{DynamicResource BrushBorder}"
                                             BorderThickness="1"
-                                            CornerRadius="10" Padding="10,2"
-                                            IsVisible="{Binding DaDongDu}">
-                                        <TextBlock Text="Đã đóng đủ"
-                                                   FontSize="11"
-                                                   FontWeight="Bold"
-                                                   Foreground="#15803D" />
+                                            CornerRadius="6"
+                                            Padding="8,2"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Margin="8,0">
+                                        <TextBlock Text="{Binding LopSinhHoat, FallbackValue='--'}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrushTextPrimary}" />
                                     </Border>
-                                    <!-- Khi còn nợ -->
-                                    <Border Background="#FEE2E2"
-                                            BorderBrush="#FCA5A5"
-                                            BorderThickness="1"
-                                            CornerRadius="10" Padding="10,2"
-                                            IsVisible="{Binding !DaDongDu}">
-                                        <TextBlock Text="Còn nợ"
-                                                   FontSize="11"
-                                                   FontWeight="Bold"
-                                                   Foreground="#B91C1C" />
-                                    </Border>
-                                </Panel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                    <!-- Cột 9: Thao tác nhanh -->
-                    <DataGridTemplateColumn Header="Thao tác" Width="125" MinWidth="115" CanUserSort="False">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
-                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <!-- Nút xem chi tiết -->
-                                    <Button Classes="row-action view"
-                                            ClickMode="Release"
-                                            ContextMenu="{x:Null}"
-                                            Command="{Binding $parent[UserControl].((vm:HocPhiViewModel)DataContext).XemChiTietCommand}"
-                                            CommandParameter="{Binding}"
-                                            ToolTip.Tip="Xem chi tiết học phí của sinh viên này">
-                                        <PathIcon Data="M 12 4.5 C 7 4.5 2.73 7.61 1 12 C 2.73 16.39 7 19.5 12 19.5 C 17 19.5 21.27 16.39 23 12 C 21.27 7.61 17 4.5 12 4.5 Z M 12 17 C 9.24 17 7 14.76 7 12 C 7 9.24 9.24 7 12 7 C 14.76 7 17 9.24 17 12 C 17 14.76 14.76 17 12 17 Z M 12 9 C 10.34 9 9 10.34 9 12 C 9 13.66 10.34 15 12 15 C 13.66 15 15 13.66 15 12 C 15 10.34 13.66 9 12 9 Z"
-                                                  Width="15" Height="15" Foreground="#2563EB" />
-                                    </Button>
+                        <!-- Cột 4: Tổng TC (Tăng width lên 125 để chứa đủ chữ + icon Sort) -->
+                        <DataGridTemplateColumn Width="125" MinWidth="105" SortMemberPath="TongSoTinChi">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Tổng TC" HorizontalAlignment="Center" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <TextBlock Text="{Binding TongSoTinChi, StringFormat='{}{0} TC'}"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                                    <!-- Nút ghi nhận nộp tiền -->
-                                    <Button Classes="row-action edit"
-                                            ClickMode="Release"
-                                            ContextMenu="{x:Null}"
-                                            Command="{Binding $parent[UserControl].((vm:HocPhiViewModel)DataContext).MoHopThoaiNopTienCommand}"
-                                            CommandParameter="{Binding}"
-                                            ToolTip.Tip="Ghi nhận nộp học phí">
-                                        <PathIcon Data="M 12 2 C 6.48 2 2 6.48 2 12 C 2 17.52 6.48 22 12 22 C 17.52 22 22 17.52 22 12 C 22 6.48 17.52 2 12 2 Z M 12.5 7 H 11 V 8.08 C 9.53 8.37 8.5 9.68 8.5 11.25 C 8.5 13.04 9.96 13.96 11.77 14.38 C 13.14 14.7 13.5 15.24 13.5 15.82 C 13.5 16.49 12.92 17 12 17 C 10.98 17 10.37 16.5 10.14 15.68 L 8.72 16.27 C 9.09 17.58 10.27 18.5 11.5 18.73 V 20 H 13 V 18.91 C 14.54 18.61 15.5 17.34 15.5 15.81 C 15.5 13.88 13.94 13.06 12.22 12.65 C 10.95 12.35 10.5 11.83 10.5 11.23 C 10.5 10.63 11.02 10 12 10 C 12.87 10 13.39 10.42 13.67 11.12 L 15.02 10.46 C 14.62 9.38 13.68 8.44 12.5 8.16 V 7 Z"
-                                                  Width="15" Height="15" Foreground="#15803D" />
-                                    </Button>
+                        <!-- Cột 5: Tổng học phí (Căn lề phải) -->
+                        <DataGridTemplateColumn Width="155" MinWidth="125" SortMemberPath="TongHocPhi">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Tổng học phí"
+                                           HorizontalAlignment="Right"
+                                           TextAlignment="Right"
+                                           Margin="0,0,6,0" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <TextBlock Text="{Binding TongHocPhiFormat}"
+                                               FontFamily="Consolas, Menlo, Monospace"
+                                               FontWeight="SemiBold"
+                                               FontSize="12.5"
+                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                                    <!-- Nút sao chép mã SV -->
-                                    <Button Classes="row-action copy"
-                                            ClickMode="Release"
-                                            ContextMenu="{x:Null}"
-                                            Command="{Binding $parent[UserControl].((vm:HocPhiViewModel)DataContext).SaoChepMaSvCommand}"
-                                            CommandParameter="{Binding}"
-                                            ToolTip.Tip="Sao chép mã SV">
-                                        <PathIcon Data="M 16 1 L 4 1 C 2.9 1 2 1.9 2 3 L 2 17 L 4 17 L 4 3 L 16 3 L 16 1 Z M 19 5 L 8 5 C 6.9 5 6 5.9 6 7 L 6 21 C 6 22.1 6.9 23 8 23 L 19 23 C 20.1 23 21 22.1 21 21 L 21 7 C 21 5.9 20.1 5 19 5 Z M 19 21 L 8 21 L 8 7 L 19 7 L 19 21 Z"
-                                                  Width="13" Height="13" Foreground="{DynamicResource BrushTextSecondary}" />
-                                    </Button>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+                        <!-- Cột 6: Đã đóng (Căn lề phải) -->
+                        <DataGridTemplateColumn Width="140" MinWidth="115" SortMemberPath="DaDong">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Đã đóng"
+                                           HorizontalAlignment="Right"
+                                           TextAlignment="Right"
+                                           Margin="0,0,6,0" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <TextBlock Text="{Binding DaDongFormat}"
+                                               FontFamily="Consolas, Menlo, Monospace"
+                                               FontWeight="SemiBold"
+                                               FontSize="12.5"
+                                               Foreground="{DynamicResource BrushSuccess}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 7: Còn nợ (Căn lề phải) -->
+                        <DataGridTemplateColumn Width="145" MinWidth="115" SortMemberPath="ConNo">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Còn nợ"
+                                           HorizontalAlignment="Right"
+                                           TextAlignment="Right"
+                                           Margin="0,0,6,0" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <TextBlock Text="{Binding ConNoFormat}"
+                                               FontFamily="Consolas, Menlo, Monospace"
+                                               FontWeight="SemiBold"
+                                               FontSize="12.5"
+                                               Foreground="{DynamicResource BrushDanger}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 8: Trạng thái (Pill Badge) -->
+                        <DataGridTemplateColumn Width="130" MinWidth="110">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Trạng thái" HorizontalAlignment="Center" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Background="#DCFCE7"
+                                                BorderBrush="#86EFAC"
+                                                BorderThickness="1"
+                                                CornerRadius="10" Padding="10,2"
+                                                IsVisible="{Binding DaDongDu}">
+                                            <TextBlock Text="Đã đóng đủ"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Foreground="#15803D" />
+                                        </Border>
+                                        <Border Background="#FEE2E2"
+                                                BorderBrush="#FCA5A5"
+                                                BorderThickness="1"
+                                                CornerRadius="10" Padding="10,2"
+                                                IsVisible="{Binding !DaDongDu}">
+                                            <TextBlock Text="Còn nợ"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Foreground="#B91C1C" />
+                                        </Border>
+                                    </Panel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 9: Thao tác nhanh -->
+                        <DataGridTemplateColumn Width="125" MinWidth="110" CanUserSort="False">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Thao tác" HorizontalAlignment="Center" />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="coreDtos:HocPhiTongHopDto">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Button Classes="row-action view"
+                                                ClickMode="Release"
+                                                ContextMenu="{x:Null}"
+                                                Command="{Binding $parent[UserControl].((vm:HocPhiViewModel)DataContext).XemChiTietCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="Xem chi tiết học phí của sinh viên này">
+                                            <PathIcon Data="M 12 4.5 C 7 4.5 2.73 7.61 1 12 C 2.73 16.39 7 19.5 12 19.5 C 17 19.5 21.27 16.39 23 12 C 21.27 7.61 17 4.5 12 4.5 Z M 12 17 C 9.24 17 7 14.76 7 12 C 7 9.24 9.24 7 12 7 C 14.76 7 17 9.24 17 12 C 17 14.76 14.76 17 12 17 Z M 12 9 C 10.34 9 9 10.34 9 12 C 9 13.66 10.34 15 12 15 C 13.66 15 15 13.66 15 12 C 15 10.34 13.66 9 12 9 Z"
+                                                      Width="15" Height="15" Foreground="#2563EB" />
+                                        </Button>
+
+                                        <Button Classes="row-action edit"
+                                                ClickMode="Release"
+                                                ContextMenu="{x:Null}"
+                                                Command="{Binding $parent[UserControl].((vm:HocPhiViewModel)DataContext).MoHopThoaiNopTienCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="Ghi nhận nộp học phí">
+                                            <PathIcon Data="M 12 2 C 6.48 2 2 6.48 2 12 C 2 17.52 6.48 22 12 22 C 17.52 22 22 17.52 22 12 C 22 6.48 17.52 2 12 2 Z M 12.5 7 H 11 V 8.08 C 9.53 8.37 8.5 9.68 8.5 11.25 C 8.5 13.04 9.96 13.96 11.77 14.38 C 13.14 14.7 13.5 15.24 13.5 15.82 C 13.5 16.49 12.92 17 12 17 C 10.98 17 10.37 16.5 10.14 15.68 L 8.72 16.27 C 9.09 17.58 10.27 18.5 11.5 18.73 V 20 H 13 V 18.91 C 14.54 18.61 15.5 17.34 15.5 15.81 C 15.5 13.88 13.94 13.06 12.22 12.65 C 10.95 12.35 10.5 11.83 10.5 11.23 C 10.5 10.63 11.02 10 12 10 C 12.87 10 13.39 10.42 13.67 11.12 L 15.02 10.46 C 14.62 9.38 13.68 8.44 12.5 8.16 V 7 Z"
+                                                      Width="15" Height="15" Foreground="#15803D" />
+                                        </Button>
+
+                                        <Button Classes="row-action copy"
+                                                ClickMode="Release"
+                                                ContextMenu="{x:Null}"
+                                                Command="{Binding $parent[UserControl].((vm:HocPhiViewModel)DataContext).SaoChepMaSvCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="Sao chép mã SV">
+                                            <PathIcon Data="M 16 1 L 4 1 C 2.9 1 2 1.9 2 3 L 2 17 L 4 17 L 4 3 L 16 3 L 16 1 Z M 19 5 L 8 5 C 6.9 5 6 5.9 6 7 L 6 21 C 6 22.1 6.9 23 8 23 L 19 23 C 20.1 23 21 22.1 21 21 L 21 7 C 21 5.9 20.1 5 19 5 Z M 19 21 L 8 21 L 8 7 L 19 7 L 19 21 Z"
+                                                      Width="13" Height="13" Foreground="{DynamicResource BrushTextSecondary}" />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
             </Border>
 
             <!-- 5. Modal Panel Xem Chi tiết Học phí (Sleek Overlay) -->
@@ -586,6 +630,7 @@
                         </Border>
 
                         <!-- 5.3. Bảng Chi tiết từng môn học phần -->
+                       <!-- 5.3. Bảng Chi tiết từng môn học phần -->
                         <DataGrid Grid.Row="2"
                                   ItemsSource="{Binding HocPhiChiTietHienTai.DanhSachMon}"
                                   AutoGenerateColumns="False"
@@ -593,14 +638,31 @@
                                   GridLinesVisibility="Horizontal"
                                   BorderThickness="0"
                                   RowHeight="40">
+                            <DataGrid.Styles>
+                                <Style Selector="DataGridCell.right-align">
+                                    <Setter Property="HorizontalContentAlignment" Value="Right" />
+                                </Style>
+                            </DataGrid.Styles>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="120" />
+                                <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="125" />
                                 <DataGridTextColumn Header="Tên môn học" Binding="{Binding TenMon}" Width="*" />
-                                <DataGridTextColumn Header="TC LT" Binding="{Binding SoTinChiLT}" Width="75" />
-                                <DataGridTextColumn Header="TC TH" Binding="{Binding SoTinChiTH}" Width="75" />
-                                <DataGridTextColumn Header="ĐG LT" Binding="{Binding DonGiaLT, StringFormat='{}{0:N0} đ'}" Width="110" />
-                                <DataGridTextColumn Header="ĐG TH" Binding="{Binding DonGiaTH, StringFormat='{}{0:N0} đ'}" Width="110" />
-                                <DataGridTextColumn Header="Thành tiền" Binding="{Binding ThanhTienFormat}" Width="135" />
+                                <DataGridTextColumn Header="TC LT" Binding="{Binding SoTinChiLT}" Width="80" />
+                                <DataGridTextColumn Header="TC TH" Binding="{Binding SoTinChiTH}" Width="80" />
+                                <DataGridTextColumn Binding="{Binding DonGiaLT, StringFormat='{}{0:N0} đ'}" Width="125">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="ĐG LT" HorizontalAlignment="Right" TextAlignment="Right" Margin="0,0,6,0" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding DonGiaTH, StringFormat='{}{0:N0} đ'}" Width="125">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="ĐG TH" HorizontalAlignment="Right" TextAlignment="Right" Margin="0,0,6,0" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding ThanhTienFormat}" Width="140">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Thành tiền" HorizontalAlignment="Right" TextAlignment="Right" Margin="0,0,6,0" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 

@@ -18,7 +18,7 @@
                         BorderThickness="1" CornerRadius="10" Padding="12,6" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         <materialIcons:MaterialIcon Kind="CalendarMonthOutline"
-                                                   Width="16" Height="16" Foreground="{DynamicResource BrushPrimaryDark}" VerticalAlignment="Center" />
+                                                    Width="16" Height="16" Foreground="{DynamicResource BrushPrimaryDark}" VerticalAlignment="Center" />
                         <TextBlock Text="Học kỳ:" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" FontSize="13" />
                         <ComboBox ItemsSource="{Binding DsHocKy}"
                                   SelectedItem="{Binding HocKyDangChon}"
@@ -108,7 +108,7 @@
                         <DataGrid ItemsSource="{Binding Tab1DsSinhVien}" AutoGenerateColumns="False" IsReadOnly="True"
                                   RowHeight="46" CanUserResizeColumns="True" HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Mã SV" Width="125" MinWidth="105" SortMemberPath="MaSV">
+                                <DataGridTemplateColumn Header="Mã SV" Width="130" MinWidth="115" SortMemberPath="MaSV">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienTheoMonDto">
                                             <TextBlock Text="{Binding MaSV}" FontFamily="Consolas, Menlo, Monospace"
@@ -118,7 +118,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Họ và tên" Width="2*" MinWidth="200" SortMemberPath="HoTen">
+                                <DataGridTemplateColumn Header="Họ và tên" Width="2*" MinWidth="210" SortMemberPath="HoTen">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienTheoMonDto">
                                             <TextBlock Text="{Binding HoTen}" FontWeight="SemiBold"
@@ -128,7 +128,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="130" MinWidth="105" SortMemberPath="LopSinhHoat">
+                                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="140" MinWidth="120" SortMemberPath="LopSinhHoat">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienTheoMonDto">
                                             <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
@@ -139,7 +139,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Mã LHP" Width="140" MinWidth="120" SortMemberPath="MaLHP">
+                                <DataGridTemplateColumn Header="Mã LHP" Width="145" MinWidth="125" SortMemberPath="MaLHP">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienTheoMonDto">
                                             <TextBlock Text="{Binding MaLHP}" FontFamily="Consolas, Menlo, Monospace"
@@ -148,7 +148,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Giảng viên" Width="170" MinWidth="140" SortMemberPath="TenGiangVien">
+                                <DataGridTemplateColumn Header="Giảng viên" Width="180" MinWidth="150" SortMemberPath="TenGiangVien">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienTheoMonDto">
                                             <TextBlock Text="{Binding TenGiangVien, FallbackValue='Chưa phân công'}"
@@ -157,7 +157,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Trạng thái" Width="120" MinWidth="105">
+                                <DataGridTemplateColumn Header="Trạng thái" Width="130" MinWidth="115">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:SinhVienTheoMonDto">
                                             <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -245,7 +245,7 @@
                         <DataGrid ItemsSource="{Binding Tab2DsThi}" AutoGenerateColumns="False" IsReadOnly="True"
                                   RowHeight="46" CanUserResizeColumns="True" HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="STT" Width="65" MinWidth="55">
+                                <DataGridTemplateColumn Header="STT" Width="80" MinWidth="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DanhSachThiDto">
                                             <TextBlock Text="{Binding Stt}" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -254,7 +254,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Mã SV" Width="125" MinWidth="105" SortMemberPath="MaSV">
+                                <DataGridTemplateColumn Header="Mã SV" Width="130" MinWidth="115" SortMemberPath="MaSV">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DanhSachThiDto">
                                             <TextBlock Text="{Binding MaSV}" FontFamily="Consolas, Menlo, Monospace"
@@ -264,7 +264,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Họ và tên thí sinh" Width="2*" MinWidth="200" SortMemberPath="HoTen">
+                                <DataGridTemplateColumn Header="Họ và tên thí sinh" Width="2*" MinWidth="210" SortMemberPath="HoTen">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DanhSachThiDto">
                                             <TextBlock Text="{Binding HoTen}" FontWeight="SemiBold"
@@ -273,7 +273,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="135" MinWidth="110" SortMemberPath="LopSinhHoat">
+                                <DataGridTemplateColumn Header="Lớp sinh hoạt" Width="140" MinWidth="120" SortMemberPath="LopSinhHoat">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DanhSachThiDto">
                                             <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
@@ -293,7 +293,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Giảng viên phụ trách" Width="180" MinWidth="145" SortMemberPath="TenGiangVien">
+                                <DataGridTemplateColumn Header="Giảng viên phụ trách" Width="190" MinWidth="165" SortMemberPath="TenGiangVien">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DanhSachThiDto">
                                             <TextBlock Text="{Binding TenGiangVien, FallbackValue='Chưa phân công'}"
@@ -350,7 +350,7 @@
                         <DataGrid ItemsSource="{Binding Tab3DsThongKe}" AutoGenerateColumns="False" IsReadOnly="True"
                                   RowHeight="48" CanUserResizeColumns="True" HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Mã môn" Width="130" MinWidth="110" SortMemberPath="MaMon">
+                                <DataGridTemplateColumn Header="Mã môn" Width="135" MinWidth="115" SortMemberPath="MaMon">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:ThongKeMonDto">
                                             <TextBlock Text="{Binding MaMon}" FontFamily="Consolas, Menlo, Monospace"
@@ -369,7 +369,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Quy mô SV đăng ký" Width="210" MinWidth="180" SortMemberPath="SoSinhVien">
+                                <DataGridTemplateColumn Header="Quy mô SV đăng ký" Width="220" MinWidth="190" SortMemberPath="SoSinhVien">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:ThongKeMonDto">
                                             <StackPanel VerticalAlignment="Center" Margin="12,4" Spacing="4">
@@ -385,7 +385,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Số LHP đang mở" Width="140" MinWidth="120" SortMemberPath="SoLhpDangMo">
+                                <DataGridTemplateColumn Header="Số LHP đang mở" Width="155" MinWidth="140" SortMemberPath="SoLhpDangMo">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:ThongKeMonDto">
                                             <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
@@ -396,7 +396,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Mật độ trung bình" Width="150" MinWidth="130">
+                                <DataGridTemplateColumn Header="Mật độ trung bình" Width="165" MinWidth="150">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:ThongKeMonDto">
                                             <TextBlock Text="{Binding BinhQuanMoiLop}" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -522,14 +522,14 @@
                                     <DataGrid ItemsSource="{Binding Tab4PhieuDangKy.DanhSachMon}" AutoGenerateColumns="False" IsReadOnly="True"
                                               RowHeight="42" CanUserResizeColumns="True">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="55" />
-                                            <DataGridTextColumn Header="Mã môn" Binding="{Binding MaMon}" Width="95" />
+                                            <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="65" MinWidth="60" />
+                                            <DataGridTextColumn Header="Mã môn" Binding="{Binding MaMon}" Width="105" MinWidth="95" />
                                             <DataGridTextColumn Header="Tên môn học" Binding="{Binding TenMon}" Width="*" MinWidth="180" />
-                                            <DataGridTextColumn Header="Số TC" Binding="{Binding SoTinChi}" Width="65" />
-                                            <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="115" />
-                                            <DataGridTextColumn Header="Giảng viên" Binding="{Binding TenGiangVien, FallbackValue='--'}" Width="140" />
-                                            <DataGridTextColumn Header="Điểm số" Binding="{Binding DiemSoFormat}" Width="75" />
-                                            <DataGridTextColumn Header="Điểm chữ" Binding="{Binding DiemChuFormat}" Width="75" />
+                                            <DataGridTextColumn Header="Số TC" Binding="{Binding SoTinChi}" Width="80" MinWidth="75" />
+                                            <DataGridTextColumn Header="Mã LHP" Binding="{Binding MaLHP}" Width="120" MinWidth="110" />
+                                            <DataGridTextColumn Header="Giảng viên" Binding="{Binding TenGiangVien, FallbackValue='--'}" Width="145" MinWidth="125" />
+                                            <DataGridTextColumn Header="Điểm số" Binding="{Binding DiemSoFormat}" Width="85" MinWidth="80" />
+                                            <DataGridTextColumn Header="Điểm chữ" Binding="{Binding DiemChuFormat}" Width="90" MinWidth="85" />
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </Border>
@@ -633,7 +633,7 @@
                         <DataGrid ItemsSource="{Binding Tab5DsCanhBao}" AutoGenerateColumns="False" IsReadOnly="True"
                                   RowHeight="46" CanUserResizeColumns="True" HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="STT" Width="58" MinWidth="50">
+                                <DataGridTemplateColumn Header="STT" Width="80" MinWidth="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <TextBlock Text="{Binding Stt}" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -642,7 +642,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Mã SV" Width="115" MinWidth="100" SortMemberPath="MaSV">
+                                <DataGridTemplateColumn Header="Mã SV" Width="125" MinWidth="110" SortMemberPath="MaSV">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <TextBlock Text="{Binding MaSV}" FontFamily="Consolas, Menlo, Monospace"
@@ -652,7 +652,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Họ và tên sinh viên" Width="1.6*" MinWidth="190" SortMemberPath="HoTen">
+                                <DataGridTemplateColumn Header="Họ và tên sinh viên" Width="1.5*" MinWidth="190" SortMemberPath="HoTen">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <TextBlock Text="{Binding HoTen}" FontWeight="SemiBold"
@@ -661,7 +661,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Lớp SH" Width="105" MinWidth="90" SortMemberPath="LopSinhHoat">
+                                <DataGridTemplateColumn Header="Lớp SH" Width="115" MinWidth="100" SortMemberPath="LopSinhHoat">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <Border Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
@@ -672,7 +672,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Tín chỉ ĐK" Width="110" MinWidth="95" SortMemberPath="SoTinChiDangKy">
+                                <DataGridTemplateColumn Header="Tín chỉ ĐK" Width="130" MinWidth="115" SortMemberPath="SoTinChiDangKy">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <TextBlock Text="{Binding TinChiHienThi}" FontFamily="Consolas, Menlo, Monospace"
@@ -681,7 +681,10 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Còn nợ học phí" Width="130" MinWidth="115" SortMemberPath="ConNoHocPhi">
+                                <DataGridTemplateColumn Width="165" MinWidth="145" SortMemberPath="ConNoHocPhi">
+                                    <DataGridTemplateColumn.Header>
+                                        <TextBlock Text="Còn nợ học phí" HorizontalAlignment="Right" Margin="0,0,4,0" />
+                                    </DataGridTemplateColumn.Header>
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <TextBlock Text="{Binding ConNoFormat}" FontFamily="Consolas, Menlo, Monospace"
@@ -712,7 +715,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Khuyến nghị xử lý dành cho Giáo vụ / CVHT" Width="2*" MinWidth="240">
+                                <DataGridTemplateColumn Header="Khuyến nghị xử lý dành cho Giáo vụ / CVHT" Width="2*" MinWidth="250">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:CanhBaoHocVuDto">
                                             <TextBlock Text="{Binding HuongXuLyDeXuat}" Foreground="{DynamicResource BrushTextSecondary}"
@@ -811,7 +814,7 @@
                         <DataGrid ItemsSource="{Binding Tab6DsXungDot}" AutoGenerateColumns="False" IsReadOnly="True"
                                   RowHeight="46" CanUserResizeColumns="True" HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="STT" Width="58" MinWidth="50">
+                                <DataGridTemplateColumn Header="STT" Width="80" MinWidth="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:XungDotDaoTaoDto">
                                             <TextBlock Text="{Binding Stt}" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -820,7 +823,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Loại phát hiện" Width="165" MinWidth="145" SortMemberPath="TenLoaiHienThi">
+                                <DataGridTemplateColumn Header="Loại phát hiện" Width="170" MinWidth="150" SortMemberPath="TenLoaiHienThi">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:XungDotDaoTaoDto">
                                             <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -837,7 +840,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Giảng viên / Phòng / Chi tiết" Width="1.4*" MinWidth="180" SortMemberPath="DoiTuongXungDot">
+                                <DataGridTemplateColumn Header="Giảng viên / Phòng / Chi tiết" Width="1.4*" MinWidth="195" SortMemberPath="DoiTuongXungDot">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:XungDotDaoTaoDto">
                                             <TextBlock Text="{Binding DoiTuongXungDot}" FontWeight="SemiBold"
@@ -846,7 +849,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Lớp học phần liên quan" Width="1.4*" MinWidth="190" SortMemberPath="MaLhpChinh">
+                                <DataGridTemplateColumn Header="Lớp học phần liên quan" Width="1.4*" MinWidth="195" SortMemberPath="MaLhpChinh">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:XungDotDaoTaoDto">
                                             <TextBlock Text="{Binding MoTaCapLop}" FontFamily="Consolas, Menlo, Monospace"
@@ -856,7 +859,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Thời gian ca học" Width="145" MinWidth="125" SortMemberPath="ThoiGianDienRa">
+                                <DataGridTemplateColumn Header="Thời gian ca học" Width="160" MinWidth="145" SortMemberPath="ThoiGianDienRa">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:XungDotDaoTaoDto">
                                             <TextBlock Text="{Binding ThoiGianDienRa}" FontWeight="Medium"
@@ -865,7 +868,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Hướng xử lý đề xuất cho Giáo vụ" Width="2*" MinWidth="230">
+                                <DataGridTemplateColumn Header="Hướng xử lý đề xuất cho Giáo vụ" Width="2*" MinWidth="240">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:XungDotDaoTaoDto">
                                             <TextBlock Text="{Binding KhuyenNghiXuLy}" Foreground="{DynamicResource BrushTextSecondary}"
@@ -883,7 +886,7 @@
                         <DataGrid ItemsSource="{Binding Tab6DsDinhMucGiangDay}" AutoGenerateColumns="False" IsReadOnly="True"
                                   RowHeight="48" CanUserResizeColumns="True" HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="STT" Width="55" MinWidth="48">
+                                <DataGridTemplateColumn Header="STT" Width="80" MinWidth="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock Text="{Binding Stt}" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -892,7 +895,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Mã GV" Width="95" MinWidth="80" SortMemberPath="MaGV">
+                                <DataGridTemplateColumn Header="Mã GV" Width="115" MinWidth="100" SortMemberPath="MaGV">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock Text="{Binding MaGV}" FontFamily="Consolas, Menlo, Monospace"
@@ -902,7 +905,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Họ và tên Giảng viên" Width="1.5*" MinWidth="185" SortMemberPath="HoTenGV">
+                                <DataGridTemplateColumn Header="Họ và tên Giảng viên" Width="1.5*" MinWidth="195" SortMemberPath="HoTenGV">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock Text="{Binding HoTenGV}" FontWeight="SemiBold"
@@ -911,7 +914,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Số LHP" Width="80" MinWidth="70" SortMemberPath="SoLopPhuTrach">
+                                <DataGridTemplateColumn Header="Số LHP" Width="110" MinWidth="95" SortMemberPath="SoLopPhuTrach">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock Text="{Binding SoLopPhuTrach, StringFormat='{}{0} lớp'}" FontWeight="SemiBold"
@@ -920,7 +923,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Tổng SV" Width="85" MinWidth="75" SortMemberPath="TongSinhVien">
+                                <DataGridTemplateColumn Header="Tổng SV" Width="115" MinWidth="100" SortMemberPath="TongSinhVien">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock Text="{Binding TongSinhVien, StringFormat='{}{0} SV'}"
@@ -929,7 +932,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Tiết LT / TH" Width="110" MinWidth="95">
+                                <DataGridTemplateColumn Header="Tiết LT / TH" Width="135" MinWidth="120">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas, Menlo, Monospace" FontSize="12">
@@ -944,7 +947,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Tiết quy đổi / Định mức" Width="185" MinWidth="165" SortMemberPath="TongTietQuyDoi">
+                                <DataGridTemplateColumn Header="Tiết quy đổi / Định mức" Width="195" MinWidth="180" SortMemberPath="TongTietQuyDoi">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <StackPanel VerticalAlignment="Center" Margin="10,4" Spacing="4">
@@ -956,7 +959,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Đánh giá tải" Width="155" MinWidth="140" SortMemberPath="TrangThaiTai">
+                                <DataGridTemplateColumn Header="Đánh giá tải" Width="160" MinWidth="145" SortMemberPath="TrangThaiTai">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -977,7 +980,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Các lớp phụ trách" Width="1.6*" MinWidth="200">
+                                <DataGridTemplateColumn Header="Các lớp phụ trách" Width="1.6*" MinWidth="210">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate DataType="coreDtos:DinhMucGiangDayDto">
                                             <TextBlock Text="{Binding DanhSachLopPhuTrach}" Foreground="{DynamicResource BrushTextSecondary}"
