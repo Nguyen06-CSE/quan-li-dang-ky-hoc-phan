@@ -169,7 +169,7 @@
                 <Button Grid.Column="2"
                         Command="{Binding ThemHocKyCommand}"
                         IsVisible="{Binding CanThemSuaXoa}"
-                        Classes="btn-primary"
+                        Classes="btn-secondary"
                         Height="36" Padding="14,0"
                         CornerRadius="6" Cursor="Hand"
                         ToolTip.Tip="Tạo thêm học kỳ niên khóa mới">
@@ -318,26 +318,29 @@
 
             <DataGrid.Columns>
                 <!-- Cột 1: Mã LHP (in đậm) -->
-                <DataGridTemplateColumn Header="Mã LHP" Width="130" MinWidth="115" SortMemberPath="MaLHP">
+                <DataGridTemplateColumn Header="Mã LHP" Width="165" MinWidth="150" SortMemberPath="MaLHP">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <TextBlock Text="{Binding MaLHP}"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource BrushTextPrimary}"
                                        VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip.Tip="{Binding MaLHP}"
                                        Margin="10,0" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
                 <!-- Cột 2: Môn học (rộng rãi, hiển thị đầy đủ không bị co rút) -->
-                <DataGridTemplateColumn Header="Môn học" Width="2*" MinWidth="200" SortMemberPath="TenMon">
+                <DataGridTemplateColumn Header="Môn học" Width="2*" MinWidth="130" SortMemberPath="TenMon">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <TextBlock Text="{Binding TenMon}"
                                        FontWeight="Medium"
                                        Foreground="{DynamicResource BrushTextPrimary}"
                                        VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
                                        ToolTip.Tip="{Binding TenMon}"
                                        Margin="10,0" />
                         </DataTemplate>
@@ -377,7 +380,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 4: Loại hình ĐT (hiển thị dạng Pill Tag) -->
-                <DataGridTemplateColumn Header="Loại hình" Width="85" MinWidth="75" SortMemberPath="LoaiHinhDT">
+                <DataGridTemplateColumn Header="Loại hình" Width="115" MinWidth="100" SortMemberPath="LoaiHinhDT">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <Border Background="{DynamicResource BrushSurfaceAlt}"
@@ -413,7 +416,10 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 6: Sĩ số (ĐK / Tối đa) kèm ProgressBar hiển thị tỷ lệ lấp đầy -->
-                <DataGridTemplateColumn Header="Sĩ số (ĐK/Tối đa)" Width="120" MinWidth="105" SortMemberPath="SiSoDangKy">
+                <DataGridTemplateColumn Width="100" MinWidth="90" SortMemberPath="SiSoDangKy">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Sĩ số" ToolTip.Tip="Đã đăng ký / Tối đa" />
+                    </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <StackPanel VerticalAlignment="Center" Margin="8,4" Spacing="4">
@@ -432,7 +438,10 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 7: Hình thức Online -->
-                <DataGridTemplateColumn Header="Online" Width="68" MinWidth="58">
+                <DataGridTemplateColumn Width="90" MinWidth="80">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Online" />
+                    </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -456,7 +465,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Cột 8: Thao tác nhanh (Điều phối SV / Smart Import / Sao chép / Sửa / Xóa) -->
-                <DataGridTemplateColumn Header="Thao tác" Width="170" MinWidth="160" CanUserSort="False">
+                <DataGridTemplateColumn Header="Thao tác" Width="180" MinWidth="170" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="dtos:LopHocPhanDisplayDto">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -511,6 +520,7 @@
 
                                 <!-- Nút Xóa -->
                                 <Button Classes="row-action delete"
+                                        Margin="8,0,0,0"
                                         ClickMode="Release"
                                         ContextMenu="{x:Null}"
                                         Command="{Binding $parent[UserControl].((vm:HocKyLopHocPhanViewModel)DataContext).XoaLhpCommand}"
