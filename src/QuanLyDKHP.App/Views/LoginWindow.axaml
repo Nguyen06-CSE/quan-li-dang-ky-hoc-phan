@@ -102,6 +102,7 @@
         <Style Selector="Button.btn-primary.submit">
             <Setter Property="FontSize" Value="14" />
             <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushOnPrimary}" />
         </Style>
         <Style Selector="Ellipse.eye">
             <Setter Property="Stroke" Value="{DynamicResource BrushTextSecondary}" />
@@ -248,11 +249,13 @@
                         Command="{Binding DangNhapCommand}"
                         IsDefault="True"
                         IsEnabled="{Binding !DangXuLy}"
+                        Foreground="{DynamicResource BrushOnPrimary}"
                         HorizontalAlignment="Stretch"
                         Height="46"
                         Margin="0,14,0,0">
                     <Grid>
                         <TextBlock Text="ĐĂNG NHẬP"
+                                   Foreground="{DynamicResource BrushOnPrimary}"
                                    IsVisible="{Binding !DangXuLy}"
                                    HorizontalAlignment="Center" />
                         <ProgressBar IsIndeterminate="True"
@@ -264,6 +267,7 @@
                 <TextBlock Text="Quên mật khẩu? Liên hệ phòng Đào tạo để được hỗ trợ."
                            Classes="hint"
                            HorizontalAlignment="Center"
+                           TextAlignment="Center"
                            TextWrapping="Wrap"
                            Margin="0,16,0,0" />
             </StackPanel>

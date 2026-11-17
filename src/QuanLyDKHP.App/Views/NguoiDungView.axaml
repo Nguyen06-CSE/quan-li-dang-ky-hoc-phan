@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:QuanLyDKHP.App.ViewModels"
              xmlns:entities="using:QuanLyDKHP.Core.Entities"
+             xmlns:materialIcons="using:Material.Icons.Avalonia"
              x:Class="QuanLyDKHP.App.Views.NguoiDungView"
              x:DataType="vm:NguoiDungViewModel">
 
@@ -24,7 +25,7 @@
             </Border>
 
             <!-- Nút Thêm mới -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Content="Làm mới" Command="{Binding LoadDanhSachCommand}" Classes="btn-secondary"/>
                 <Button Content="+ Thêm tài khoản" Command="{Binding MoDialogThemCommand}" Classes="btn-primary"/>
             </StackPanel>
@@ -90,35 +91,43 @@
                     </DataGridTemplateColumn>
 
                     <!-- Thao tác: Sửa, Đổi MK, Khóa/Mở khóa -->
-                    <DataGridTemplateColumn Header="Thao tác" Width="Auto">
+                    <DataGridTemplateColumn Header="Thao tác" Width="135" MinWidth="125">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="entities:NguoiDung">
                                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Button Content="Sửa" 
-                                            Classes="btn-secondary"
+                                    <Button Classes="btn-secondary"
+                                            ToolTip.Tip="Sửa thông tin tài khoản"
                                             Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).MoDialogSuaCommand}"
                                             CommandParameter="{Binding}"
-                                            Padding="6,2" FontSize="11"/>
+                                            Padding="6,4">
+                                        <materialIcons:MaterialIcon Kind="PencilOutline" Width="16" Height="16" />
+                                    </Button>
                                     
-                                    <Button Content="Đổi mật khẩu" 
-                                            Classes="btn-secondary"
+                                    <Button Classes="btn-secondary"
+                                            ToolTip.Tip="Đổi mật khẩu"
                                             Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).MoDialogDoiMatKhauCommand}"
                                             CommandParameter="{Binding}"
-                                            Padding="6,2" FontSize="11"/>
+                                            Padding="6,4">
+                                        <materialIcons:MaterialIcon Kind="KeyOutline" Width="16" Height="16" />
+                                    </Button>
 
-                                    <Button Content="Khóa" 
-                                            Classes="btn-secondary"
+                                    <Button Classes="btn-secondary"
+                                            ToolTip.Tip="Khóa tài khoản"
                                             IsVisible="{Binding TrangThai, Converter={x:Static ObjectConverters.Equal}, ConverterParameter='HoatDong'}"
                                             Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).ToggleKhoaTaiKhoanCommand}"
                                             CommandParameter="{Binding}"
-                                            Padding="6,2" FontSize="11"/>
+                                            Padding="6,4">
+                                        <materialIcons:MaterialIcon Kind="LockOutline" Width="16" Height="16" />
+                                    </Button>
 
-                                    <Button Content="Mở khóa" 
-                                            Classes="btn-primary"
+                                    <Button Classes="btn-primary"
+                                            ToolTip.Tip="Mở khóa tài khoản"
                                             IsVisible="{Binding TrangThai, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter='HoatDong'}"
                                             Command="{Binding $parent[UserControl].((vm:NguoiDungViewModel)DataContext).ToggleKhoaTaiKhoanCommand}"
                                             CommandParameter="{Binding}"
-                                            Padding="6,2" FontSize="11"/>
+                                            Padding="6,4">
+                                        <materialIcons:MaterialIcon Kind="LockOpenOutline" Width="16" Height="16" />
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

@@ -105,30 +105,45 @@
 
                     <!-- Hàng 1: Thanh chỉ số trạng thái CSDL + Nút Import file Backup -->
                     <Border Grid.Row="0"
-                            Background="{DynamicResource BrushSurfaceAlt}"
+                            Background="{DynamicResource BrushBackground}"
                             BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="0,0,0,12">
-                        <Grid ColumnDefinitions="*,*,*,Auto">
-                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                <TextBlock Text="CSDL CHÍNH (LOCAL SQLITE)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <TextBlock Text="quanlydkhp.db (WAL Mode)" FontWeight="SemiBold" FontSize="13"/>
-                                <TextBlock Text="{Binding BackupStatus.FormattedSize, StringFormat='Dung lượng: {0}', FallbackValue='Dung lượng: 0 KB'}"
-                                           Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
-                            </StackPanel>
+                            BorderThickness="1" CornerRadius="10" Padding="14,12" Margin="0,0,0,12">
+                        <Grid ColumnDefinitions="*,*,1.35*,Auto" ColumnSpacing="12">
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <StackPanel Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="CSDL CHÍNH (LOCAL SQLITE)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="quanlydkhp.db (WAL Mode)" FontWeight="SemiBold" FontSize="13"/>
+                                    <TextBlock Text="{Binding BackupStatus.FormattedSize, StringFormat='Dung lượng: {0}', FallbackValue='Dung lượng: 0 KB'}"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
 
-                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                <TextBlock Text="KHO LỊCH SỬ GIT LOCAL" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource BrushTextSecondary}"/>
-                                <TextBlock Text="{Binding BackupStatus.TotalCommits, StringFormat='{}{0} phiên bản (commits)', FallbackValue='0 phiên bản'}"
-                                           FontWeight="SemiBold" FontSize="13"/>
-                                <TextBlock Text="{Binding BackupStatus.LastLocalBackupAt, StringFormat='Gần nhất: {0:dd/MM/yyyy HH:mm}', FallbackValue='Chưa sao lưu'}"
-                                           Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
-                            </StackPanel>
+                            <Border Grid.Column="1"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <StackPanel Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="KHO LỊCH SỬ GIT LOCAL" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    <TextBlock Text="{Binding BackupStatus.TotalCommits, StringFormat='{}{0} phiên bản (commits)', FallbackValue='0 phiên bản'}"
+                                               FontWeight="SemiBold" FontSize="13"/>
+                                    <TextBlock Text="{Binding BackupStatus.LastLocalBackupAt, StringFormat='Gần nhất: {0:dd/MM/yyyy HH:mm}', FallbackValue='Chưa sao lưu'}"
+                                               Foreground="{DynamicResource BrushTextSecondary}" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
 
-                            <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0">
-                                <TextBlock Text="YÊU CẦU ĐỊNH DẠNG FILE IMPORT" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource BrushPrimaryDark}"/>
-                                <TextBlock Text="Chỉ chấp nhận tệp .dkhp-backup.zip / .zip được xuất (Export) trực tiếp từ chương trình (có chữ ký QuanLyDKHP-Backup-v1 &amp; kiểm tra toàn vẹn SHA-256)."
-                                           TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11.5"/>
-                            </StackPanel>
+                            <Border Grid.Column="2"
+                                    Background="{DynamicResource BrushSurfaceAlt}"
+                                    BorderBrush="{DynamicResource BrushBorder}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <StackPanel Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="YÊU CẦU ĐỊNH DẠNG FILE IMPORT" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                                    <TextBlock Text="Chỉ chấp nhận tệp .dkhp-backup.zip / .zip được xuất (Export) trực tiếp từ chương trình (có chữ ký QuanLyDKHP-Backup-v1 &amp; kiểm tra toàn vẹn SHA-256)."
+                                               TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11.5"/>
+                                </StackPanel>
+                            </Border>
 
                             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <Button Content="Nhập file Backup &amp; Ghi đè..."
@@ -331,7 +346,8 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <TextBlock Text="{Binding}"
-                                                                           FontFamily="Consolas, monospace"
+                                                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                                                           FontFamily="Consolas, Monospace"
                                                                            FontSize="11.5"
                                                                            TextWrapping="Wrap"
                                                                            Margin="0,2"/>
