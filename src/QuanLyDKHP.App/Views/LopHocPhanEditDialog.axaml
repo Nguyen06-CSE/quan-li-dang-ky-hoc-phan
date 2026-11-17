@@ -4,34 +4,75 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:QuanLyDKHP.App.ViewModels"
         xmlns:entities="using:QuanLyDKHP.Core.Entities"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="560"
+        xmlns:materialIcons="using:Material.Icons.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="640"
         x:Class="QuanLyDKHP.App.Views.LopHocPhanEditDialog"
         x:DataType="vm:LopHocPhanEditDialogViewModel"
-        Title="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='Chỉnh sửa Lớp học phần', FallbackValue='Thêm Lớp học phần'}"
-        Width="500" Height="560"
+        Title="Thông tin Lớp Học Phần"
+        Width="640"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
-        CanResize="False">
+        CanResize="False"
+        Background="{DynamicResource BrushBackground}">
 
-    <Grid RowDefinitions="*,Auto" Margin="20">
-        <StackPanel Grid.Row="0" Spacing="15">
-            <TextBlock Text="{Binding IsEditMode, Converter={x:Static ObjectConverters.IsNotNull}, ConverterParameter='SỬA LỚP HỌC PHẦN', FallbackValue='THÊM LỚP HỌC PHẦN MỚI'}"
-                       Classes="h2" HorizontalAlignment="Center"/>
+    <Grid Margin="24">
+        <StackPanel Spacing="20">
 
-            <!-- Error message display -->
-            <Border Background="{DynamicResource BrushDangerBackground}" 
-                    BorderBrush="{DynamicResource BrushDanger}" 
-                    BorderThickness="1" CornerRadius="4" Padding="10"
-                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"/>
-            </Border>
+            <!-- Tiêu đề Form & Thông báo lỗi -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="THÔNG TIN LỚP HỌC PHẦN"
+                           Classes="h2"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           HorizontalAlignment="Center"/>
 
-            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã LHP:" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaLHP}" IsReadOnly="{Binding IsEditMode}"/>
+                <Border Background="{DynamicResource BrushDangerBackground}"
+                        BorderBrush="{DynamicResource BrushDanger}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12"
+                        IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <materialIcons:MaterialIcon Kind="AlertCircleOutline"
+                                                    Foreground="{DynamicResource BrushDanger}"
+                                                    Width="18" Height="18"
+                                                    VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource BrushDanger}"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Môn học:" VerticalAlignment="Center"/>
-                <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
-                          ItemsSource="{Binding DanhSachMonHoc}" 
+            <!-- KHỐI 1: THÔNG TIN CƠ BẢN -->
+            <Grid ColumnDefinitions="140,*"
+                  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                  RowSpacing="12">
+
+                <!-- Mã LHP -->
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Mã LHP:"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1"
+                         Text="{Binding MaLHP}"
+                         IsReadOnly="{Binding IsEditMode}"
+                         Height="36"
+                         CornerRadius="8"
+                         VerticalContentAlignment="Center"/>
+
+                <!-- Môn học -->
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Môn học:"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="1" Grid.Column="1"
+                          HorizontalAlignment="Stretch"
+                          Height="36"
+                          CornerRadius="8"
+                          ItemsSource="{Binding DanhSachMonHoc}"
                           SelectedItem="{Binding SelectedMonHoc}"
                           IsEnabled="{Binding CanEditMonHoc}"
                           ToolTip.Tip="{Binding MonHocToolTip}">
@@ -49,8 +90,16 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Giảng viên:" VerticalAlignment="Center"/>
-                <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                <!-- Giảng viên -->
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="Giảng viên:"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="2" Grid.Column="1"
+                          HorizontalAlignment="Stretch"
+                          Height="36"
+                          CornerRadius="8"
                           ItemsSource="{Binding DanhSachGiangVien}"
                           SelectedItem="{Binding SelectedGiangVien}">
                     <ComboBox.ItemTemplate>
@@ -60,39 +109,137 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Loại hình ĐT:" VerticalAlignment="Center"/>
-                <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch"
+                <!-- Loại hình ĐT -->
+                <TextBlock Grid.Row="3" Grid.Column="0"
+                           Text="Loại hình ĐT:"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="3" Grid.Column="1"
+                          HorizontalAlignment="Stretch"
+                          Height="36"
+                          CornerRadius="8"
                           ItemsSource="{Binding DanhSachLoaiHinhDT}"
                           SelectedItem="{Binding LoaiHinhDT}"/>
 
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Sĩ số tối đa:" VerticalAlignment="Center"/>
-                <NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding SiSoToiDa}" Minimum="1" Maximum="500" ParsingNumberStyle="Integer"/>
+                <!-- Sĩ số tối đa -->
+                <TextBlock Grid.Row="4" Grid.Column="0"
+                           Text="Sĩ số tối đa:"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource BrushTextPrimary}"
+                           VerticalAlignment="Center"/>
+                <TextBox Grid.Row="4" Grid.Column="1"
+                         Text="{Binding SiSoToiDa}"
+                         Height="36"
+                         CornerRadius="8"
+                         VerticalContentAlignment="Center"/>
 
-                <CheckBox Grid.Row="5" Grid.Column="1" Content="Giảng dạy Online" IsChecked="{Binding GiangDayOnline}"/>
-
-                <!-- Lịch học — nhập tay vì file Excel import thật không có cột lịch học
-                     (xem db/2026-10-01_them-lich-hoc-LopHocPhan.sql). Để trống = chưa xếp lịch. -->
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="Lịch học:" VerticalAlignment="Center"/>
-                <Grid Grid.Row="6" Grid.Column="1" ColumnDefinitions="*,Auto,70,Auto,70" ColumnSpacing="6">
-                    <ComboBox Grid.Column="0" HorizontalAlignment="Stretch"
-                              ItemsSource="{Binding DanhSachThu}"
-                              SelectedItem="{Binding SelectedThu}"/>
-                    <TextBlock Grid.Column="1" Text="Tiết:" VerticalAlignment="Center" Margin="4,0"/>
-                    <NumericUpDown Grid.Column="2" Value="{Binding TietBatDau}" Minimum="1" Maximum="16" ParsingNumberStyle="Integer"
-                                   PlaceholderText="BĐ"/>
-                    <TextBlock Grid.Column="3" Text="SL:" VerticalAlignment="Center" Margin="4,0"/>
-                    <NumericUpDown Grid.Column="4" Value="{Binding SoTiet}" Minimum="1" Maximum="10" ParsingNumberStyle="Integer"
-                                   PlaceholderText="Số"/>
-                </Grid>
-
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="Phòng học:" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Phong}" PlaceholderText="Ví dụ: A1.03"/>
+                <!-- Giảng dạy Online -->
+                <CheckBox Grid.Row="5" Grid.Column="1"
+                          Content="Giảng dạy Online"
+                          IsChecked="{Binding GiangDayOnline}"
+                          Foreground="{DynamicResource BrushTextPrimary}"
+                          HorizontalAlignment="Left"/>
             </Grid>
-        </StackPanel>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,15,0,0">
-            <Button Content="Hủy" Command="{Binding CancelCommand}" Classes="btn-secondary"/>
-            <Button Content="Lưu" Command="{Binding SaveCommand}" Classes="btn-primary"/>
+            <!-- KHỐI 2: LỊCH HỌC & PHÒNG HỌC -->
+            <Border Background="{DynamicResource BrushSurfaceAlt}"
+                    BorderBrush="{DynamicResource BrushBorder}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <Grid ColumnDefinitions="124,*"
+                      RowDefinitions="Auto,Auto"
+                      RowSpacing="12">
+
+                    <!-- Lịch học -->
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Lịch học:"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               VerticalAlignment="Center"/>
+
+                    <Grid Grid.Row="0" Grid.Column="1"
+                          ColumnDefinitions="*,Auto,105,Auto,105"
+                          ColumnSpacing="8">
+                        <ComboBox Grid.Column="0"
+                                  HorizontalAlignment="Stretch"
+                                  Height="36"
+                                  CornerRadius="8"
+                                  ItemsSource="{Binding DanhSachThu}"
+                                  SelectedItem="{Binding SelectedThu}"/>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="Tiết:"
+                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                   VerticalAlignment="Center"
+                                   Margin="2,0,0,0"/>
+                        <NumericUpDown Grid.Column="2"
+                                       Value="{Binding TietBatDau}"
+                                       Minimum="1"
+                                       Maximum="16"
+                                       ParsingNumberStyle="Integer"
+                                       PlaceholderText="BĐ"
+                                       Height="36"
+                                       CornerRadius="8"
+                                       HorizontalContentAlignment="Center"
+                                       VerticalContentAlignment="Center"/>
+
+                        <TextBlock Grid.Column="3"
+                                   Text="SL:"
+                                   Foreground="{DynamicResource BrushTextPrimary}"
+                                   VerticalAlignment="Center"
+                                   Margin="2,0,0,0"/>
+                        <NumericUpDown Grid.Column="4"
+                                       Value="{Binding SoTiet}"
+                                       Minimum="1"
+                                       Maximum="10"
+                                       ParsingNumberStyle="Integer"
+                                       PlaceholderText="Số"
+                                       Height="36"
+                                       CornerRadius="8"
+                                       HorizontalContentAlignment="Center"
+                                       VerticalContentAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Phòng học -->
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="Phòng học:"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrushTextPrimary}"
+                               VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="1" Grid.Column="1"
+                             Text="{Binding Phong}"
+                             PlaceholderText="Ví dụ: A1.03"
+                             Height="36"
+                             CornerRadius="8"
+                             VerticalContentAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- KHỐI 3: CHÂN TRANG (Footer) -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="12"
+                        Margin="0,10,0,0">
+                <Button Content="Hủy"
+                        Command="{Binding CancelCommand}"
+                        Classes="btn-secondary"
+                        Width="100"
+                        Height="38"
+                        CornerRadius="8"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"/>
+                <Button Content="Lưu"
+                        Command="{Binding SaveCommand}"
+                        Classes="btn-primary"
+                        Width="100"
+                        Height="38"
+                        CornerRadius="8"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"/>
+            </StackPanel>
+
         </StackPanel>
     </Grid>
 </Window>
