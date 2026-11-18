@@ -88,6 +88,40 @@ public partial class CauHinhViewModel : ObservableObject
 
     private byte[]? _pendingImportBytes;
 
+    // --- Cấu hình PostgreSQL Backup (tầng 2, không bắt buộc) ---
+    [ObservableProperty]
+    private string _backupConnectionString = string.Empty;
+
+    [ObservableProperty]
+    private string _backupConfigFilePath = string.Empty;
+
+    [ObservableProperty]
+    private bool _isTestingBackupConnection;
+
+    [ObservableProperty]
+    private bool _hasBackupConfig;
+
+    [ObservableProperty]
+    private RemoteBackupPreviewDto? _remotePreview;
+
+    [ObservableProperty]
+    private bool _hienThiXacNhanKhoiPhucRemote;
+
+    [ObservableProperty]
+    private string _thongBaoKhoiPhucRemote = string.Empty;
+
+    private static readonly (string Table, string Label)[] PreviewTableLabels =
+    [
+        ("NguoiDung", "Tài khoản người dùng"),
+        ("CauHinhHeThong", "Cấu hình hệ thống"),
+        ("HocKy", "Học kỳ"),
+        ("MonHoc", "Môn học"),
+        ("SinhVien", "Sinh viên"),
+        ("LopHocPhan", "Lớp học phần"),
+        ("DangKyHocPhan", "Đăng ký học phần"),
+        ("HocPhiHocKy", "Học phí học kỳ")
+    ];
+
     public CauHinhViewModel(
         ICauHinhService cauHinhService,
         IHocPhiService hocPhiService,
@@ -103,6 +137,7 @@ public partial class CauHinhViewModel : ObservableObject
         _backupService = backupService;
         _memoryCacheStore = memoryCacheStore;
 
+        LoadBackupConfig();
         _ = LoadCauHinhAsync();
         _ = LoadBackupInfoAsync();
     }
@@ -339,18 +374,168 @@ public partial class CauHinhViewModel : ObservableObject
         try
         {
             IsBackingUp = true;
-            var (count, msg) = await _backupService.PushDeltaToRemoteHostAsync();
+            var (_, msg) = await _backupService.PushToRemoteHostAsync();
             await LoadBackupInfoAsync();
             ShowMessage(msg, false);
         }
         catch (Exception ex)
         {
-            ShowMessage($"Lỗi đồng bộ lên DB Host: {ex.Message}", true);
+            ShowMessage($"Lỗi đẩy dữ liệu lên PostgreSQL backup: {ex.Message}", true);
         }
         finally
         {
             IsBackingUp = false;
         }
+    }
+
+    [RelayCommand]
+    public async Task KiemTraKetNoiBackupAsync()
+    {
+        if (_backupService == null) return;
+        try
+        {
+            IsTestingBackupConnection = true;
+            var (success, message) = await _backupService.TestRemoteConnectionAsync(BackupConnectionString);
+            ShowMessage(message, !success);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi kiểm tra kết nối: {ex.Message}", true);
+        }
+        finally
+        {
+            IsTestingBackupConnection = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LuuCauHinhBackupAsync()
+    {
+        if (_backupService == null) return;
+
+        if (string.IsNullOrWhiteSpace(BackupConnectionString))
+        {
+            // Cho phép để trống: xóa cấu hình đã lưu (nếu có) và tiếp tục chạy offline.
+            await XoaCauHinhBackupAsync();
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            await _backupService.SaveBackupConnectionStringAsync(BackupConnectionString);
+            LoadBackupConfig();
+            await LoadBackupInfoAsync();
+            ShowMessage("Đã lưu cấu hình PostgreSQL backup trên máy này.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi lưu cấu hình backup: {ex.Message}", true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task XoaCauHinhBackupAsync()
+    {
+        if (_backupService == null) return;
+        try
+        {
+            IsLoading = true;
+            await _backupService.ClearBackupConnectionStringAsync();
+            LoadBackupConfig();
+            await LoadBackupInfoAsync();
+            ShowMessage("Đã xóa cấu hình PostgreSQL backup trên máy này.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi xóa cấu hình backup: {ex.Message}", true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task MoXacNhanKhoiPhucRemoteAsync()
+    {
+        if (_backupService == null) return;
+        try
+        {
+            IsBackingUp = true;
+            var preview = await _backupService.GetRemoteBackupPreviewAsync();
+            RemotePreview = preview;
+
+            var details = string.Join("\n", PreviewTableLabels.Select(t =>
+                $"   • {t.Label}: {preview.TableRecordCounts.GetValueOrDefault(t.Table):N0}"));
+
+            ThongBaoKhoiPhucRemote =
+                "Bạn có chắc chắn muốn GHI ĐÈ toàn bộ CSDL SQLite local bằng dữ liệu từ PostgreSQL backup?\n\n" +
+                $"• Máy chủ: {preview.Host}\n" +
+                $"• CSDL: {preview.Database}\n" +
+                $"• Thời điểm đọc: {preview.CapturedAtLocal:dd/MM/yyyy HH:mm}\n" +
+                $"• Tổng bản ghi: {preview.TotalRecords:N0}\n{details}\n\n" +
+                "Hệ thống sẽ tạo điểm lưu Git [Pre-Restore] trước khi ghi đè. " +
+                "Thao tác này chỉ đọc từ PostgreSQL, không tự đẩy ngược dữ liệu lên máy chủ.";
+
+            HienThiXacNhanKhoiPhucRemote = true;
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Không thể đọc dữ liệu backup: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+        }
+    }
+
+    [RelayCommand]
+    public void HuyKhoiPhucRemote()
+    {
+        HienThiXacNhanKhoiPhucRemote = false;
+        RemotePreview = null;
+    }
+
+    [RelayCommand]
+    public async Task XacNhanKhoiPhucRemoteAsync()
+    {
+        if (_backupService == null || RemotePreview == null) return;
+        HienThiXacNhanKhoiPhucRemote = false;
+
+        try
+        {
+            IsBackingUp = true;
+            var progress = new Progress<(double Percent, string Status)>(p =>
+                ShowMessage($"{p.Percent:0}% - {p.Status}", false));
+
+            await _backupService.RestoreFromRemoteHostAsync(progress);
+            await _memoryCacheStore.InitializeAsync(forceReload: true);
+            await LoadCauHinhAsync();
+            await LoadBackupInfoAsync();
+            ShowMessage($"Đã khôi phục CSDL từ PostgreSQL backup ({RemotePreview.TotalRecords:N0} bản ghi).", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Lỗi khi khôi phục từ PostgreSQL backup: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBackingUp = false;
+            RemotePreview = null;
+        }
+    }
+
+    private void LoadBackupConfig()
+    {
+        if (_backupService == null) return;
+        BackupConfigFilePath = _backupService.BackupConfigFilePath;
+        BackupConnectionString = _backupService.GetBackupConnectionString() ?? string.Empty;
+        HasBackupConfig = !string.IsNullOrWhiteSpace(BackupConnectionString);
     }
 
     [RelayCommand]

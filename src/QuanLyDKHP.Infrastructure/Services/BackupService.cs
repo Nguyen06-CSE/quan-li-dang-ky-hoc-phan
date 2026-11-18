@@ -32,18 +32,18 @@ public class BackupService : IBackupService
     };
 
     private readonly IDbContextFactory<AppDbContext> _localFactory;
-    private readonly IDbContextFactory<RemoteBackupDbContext>? _remoteFactory;
+    private readonly IBackupConfigStore? _configStore;
     private readonly string _gitDir;
     private readonly string _tablesDir;
     private readonly string _snapshotPath;
 
     public BackupService(
         IDbContextFactory<AppDbContext> localFactory,
-        IDbContextFactory<RemoteBackupDbContext>? remoteFactory = null,
+        IBackupConfigStore? configStore = null,
         string? customBackupDir = null)
     {
         _localFactory = localFactory;
-        _remoteFactory = remoteFactory;
+        _configStore = configStore;
 
         var baseBackupDir = customBackupDir ?? Path.Combine(
             Path.GetDirectoryName(AppDbContext.GetPrimarySqlitePath()) ?? AppContext.BaseDirectory,
@@ -80,7 +80,9 @@ public class BackupService : IBackupService
             await using var local = await _localFactory.CreateDbContextAsync();
             if (await local.Database.CanConnectAsync())
             {
-                var meta = await local.SyncMetadatas.OrderByDescending(s => s.LastSyncUtc).FirstOrDefaultAsync();
+                var meta = await local.SyncMetadatas
+                    .Where(s => s.TableName == "RemotePush")
+                    .FirstOrDefaultAsync();
                 if (meta != null && meta.LastSyncUtc > DateTime.MinValue)
                 {
                     lastRemoteSync = meta.LastSyncUtc.ToLocalTime();
@@ -100,8 +102,70 @@ public class BackupService : IBackupService
             TotalCommits = totalCommits,
             LastLocalBackupAt = lastBackup,
             LastRemoteSyncAt = lastRemoteSync,
-            IsRemoteHostConfigured = _remoteFactory != null
+            IsRemoteHostConfigured = !string.IsNullOrWhiteSpace(_configStore?.GetConnectionString())
         };
+    }
+
+    public string BackupConfigFilePath => _configStore?.ConfigFilePath ?? string.Empty;
+
+    public string? GetBackupConnectionString() => _configStore?.GetConnectionString();
+
+    public Task SaveBackupConnectionStringAsync(string connectionString)
+    {
+        if (_configStore == null)
+            throw new InvalidOperationException("Không có nơi lưu cấu hình backup trên máy này.");
+
+        return _configStore.SaveConnectionStringAsync(connectionString);
+    }
+
+    public Task ClearBackupConnectionStringAsync()
+    {
+        return _configStore?.ClearAsync() ?? Task.CompletedTask;
+    }
+
+    public async Task<(bool Success, string Message)> TestRemoteConnectionAsync(string? connectionString = null)
+    {
+        try
+        {
+            await using var remote = CreateRemoteDbContext(connectionString);
+            if (remote == null)
+                return (false, "Chưa có chuỗi kết nối PostgreSQL. Hãy nhập và lưu cấu hình trước.");
+
+            return await remote.Database.CanConnectAsync()
+                ? (true, "Kết nối PostgreSQL thành công.")
+                : (false, "Không thể kết nối tới PostgreSQL. Vui lòng kiểm tra mạng và thông tin kết nối.");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Không thể kết nối tới PostgreSQL: {ex.Message}");
+        }
+    }
+
+    public async Task<RemoteBackupPreviewDto> GetRemoteBackupPreviewAsync()
+    {
+        await using var remote = CreateRemoteDbContext(null)
+            ?? throw new InvalidOperationException("Chưa cấu hình chuỗi kết nối PostgreSQL backup.");
+
+        if (!await remote.Database.CanConnectAsync())
+            throw new InvalidOperationException("Không thể kết nối tới PostgreSQL. Vui lòng kiểm tra mạng và thông tin kết nối.");
+
+        var preview = new RemoteBackupPreviewDto
+        {
+            Host = remote.Database.GetDbConnection().DataSource ?? string.Empty,
+            Database = remote.Database.GetDbConnection().Database ?? string.Empty,
+            CapturedAtLocal = DateTime.Now
+        };
+
+        preview.TableRecordCounts[nameof(NguoiDung)] = await remote.NguoiDungs.CountAsync();
+        preview.TableRecordCounts[nameof(CauHinhHeThong)] = await remote.CauHinhHeThongs.CountAsync();
+        preview.TableRecordCounts[nameof(HocKy)] = await remote.HocKys.CountAsync();
+        preview.TableRecordCounts[nameof(MonHoc)] = await remote.MonHocs.CountAsync();
+        preview.TableRecordCounts[nameof(SinhVien)] = await remote.SinhViens.CountAsync();
+        preview.TableRecordCounts[nameof(LopHocPhan)] = await remote.LopHocPhans.CountAsync();
+        preview.TableRecordCounts[nameof(DangKyHocPhan)] = await remote.DangKyHocPhans.CountAsync();
+        preview.TableRecordCounts[nameof(HocPhiHocKy)] = await remote.HocPhiHocKys.CountAsync();
+
+        return preview;
     }
 
     public Task<IReadOnlyList<BackupCommitInfoDto>> GetCommitHistoryAsync(int maxCount = 50)
@@ -369,85 +433,46 @@ public class BackupService : IBackupService
         progress?.Report((100, $"Phục hồi thành công về phiên bản {commitSha[..7]}!"));
     }
 
-    public async Task<(int PushedRecords, string Message)> PushDeltaToRemoteHostAsync(
+    public async Task<(int PushedRecords, string Message)> PushToRemoteHostAsync(
         IProgress<(double Percent, string Status)>? progress = null)
     {
-        if (_remoteFactory == null)
+        await using var remote = CreateRemoteDbContext(null);
+        if (remote == null)
         {
-            return (0, "Chưa cấu hình máy chủ DB Host từ xa (RemoteBackupConnection).");
+            return (0, "Chưa cấu hình chuỗi kết nối PostgreSQL backup. Hãy lưu cấu hình ở tab 'DB Backup (PostgreSQL)'.");
         }
 
-        progress?.Report((10, "Kết nối tới máy chủ DB Host..."));
-        await using var remote = await _remoteFactory.CreateDbContextAsync();
+        progress?.Report((5, "Kết nối tới PostgreSQL backup..."));
         if (!await remote.Database.CanConnectAsync())
         {
-            return (0, "Không thể kết nối tới máy chủ DB Host. Vui lòng kiểm tra mạng nội bộ.");
+            return (0, "Không thể kết nối tới PostgreSQL backup. Vui lòng kiểm tra mạng và thông tin kết nối.");
         }
 
         await using var local = await _localFactory.CreateDbContextAsync();
         var syncStartedAt = DateTime.UtcNow;
 
-        var lastSyncUtc = await local.SyncMetadatas
-            .Where(m => m.TableName == "RemotePush")
-            .Select(m => m.LastSyncUtc)
-            .FirstOrDefaultAsync();
-
-        progress?.Report((30, "Lọc các bản ghi thay đổi từ CSDL Local..."));
-
+        progress?.Report((20, "Đẩy tài khoản, cấu hình, học kỳ, môn học..."));
         int pushed = 0;
+        pushed += await PushTableAsync(local.NguoiDungs, remote.NguoiDungs, e => e.Id);
+        pushed += await PushTableAsync(local.CauHinhHeThongs, remote.CauHinhHeThongs, e => e.Key);
+        pushed += await PushTableAsync(local.HocKys, remote.HocKys, e => e.MaHocKy);
+        pushed += await PushTableAsync(local.MonHocs, remote.MonHocs, e => e.MaMon);
 
-        // Sinh viên mới hoặc sửa
-        var newSv = await local.SinhViens.AsNoTracking()
-            .Where(s => s.NgayTao > lastSyncUtc || (s.NgayCapNhat != null && s.NgayCapNhat > lastSyncUtc))
-            .ToListAsync();
-        foreach (var s in newSv)
-        {
-            var ex = await remote.SinhViens.FindAsync(s.MaSV);
-            if (ex == null) await remote.SinhViens.AddAsync(s);
-            else remote.Entry(ex).CurrentValues.SetValues(s);
-            pushed++;
-        }
+        progress?.Report((45, "Đẩy sinh viên..."));
+        pushed += await PushTableAsync(local.SinhViens, remote.SinhViens, e => e.MaSV);
 
-        // Môn học
-        var newMh = await local.MonHocs.AsNoTracking()
-            .Where(m => m.NgayTao > lastSyncUtc || (m.NgayCapNhat != null && m.NgayCapNhat > lastSyncUtc))
-            .ToListAsync();
-        foreach (var m in newMh)
-        {
-            var ex = await remote.MonHocs.FindAsync(m.MaMon);
-            if (ex == null) await remote.MonHocs.AddAsync(m);
-            else remote.Entry(ex).CurrentValues.SetValues(m);
-            pushed++;
-        }
+        progress?.Report((60, "Đẩy lớp học phần..."));
+        pushed += await PushTableAsync(local.LopHocPhans, remote.LopHocPhans, e => e.MaLHP);
 
-        // Lớp học phần
-        var newLhp = await local.LopHocPhans.AsNoTracking()
-            .Where(l => l.NgayTao > lastSyncUtc || (l.NgayCapNhat != null && l.NgayCapNhat > lastSyncUtc))
-            .ToListAsync();
-        foreach (var l in newLhp)
-        {
-            var ex = await remote.LopHocPhans.FindAsync(l.MaLHP);
-            if (ex == null) await remote.LopHocPhans.AddAsync(l);
-            else remote.Entry(ex).CurrentValues.SetValues(l);
-            pushed++;
-        }
+        progress?.Report((75, "Đẩy đăng ký học phần..."));
+        pushed += await PushTableAsync(local.DangKyHocPhans, remote.DangKyHocPhans, e => e.Id);
 
-        // Đăng ký học phần
-        var newDk = await local.DangKyHocPhans.AsNoTracking()
-            .Where(d => d.NgayTao > lastSyncUtc || (d.NgayCapNhat != null && d.NgayCapNhat > lastSyncUtc))
-            .ToListAsync();
-        foreach (var d in newDk)
-        {
-            var ex = await remote.DangKyHocPhans.FindAsync(d.Id);
-            if (ex == null) await remote.DangKyHocPhans.AddAsync(d);
-            else remote.Entry(ex).CurrentValues.SetValues(d);
-            pushed++;
-        }
+        progress?.Report((85, "Đẩy học phí học kỳ..."));
+        pushed += await PushTableAsync(local.HocPhiHocKys, remote.HocPhiHocKys, e => e.Id);
 
-        progress?.Report((75, "Lưu dữ liệu lên DB Host..."));
+        progress?.Report((92, "Lưu dữ liệu lên PostgreSQL backup..."));
         await remote.SaveChangesAsync();
 
-        // Cập nhật mốc LastSyncUtc
         var meta = await local.SyncMetadatas.FindAsync("RemotePush");
         if (meta == null)
         {
@@ -455,14 +480,103 @@ public class BackupService : IBackupService
             await local.SyncMetadatas.AddAsync(meta);
         }
         meta.LastSyncUtc = syncStartedAt;
-        meta.RecordCount += pushed;
+        meta.RecordCount = pushed;
         await local.SaveChangesAsync();
 
-        progress?.Report((100, $"Đồng bộ hoàn tất: đã đẩy {pushed} bản ghi lên DB Host."));
-        return (pushed, $"Đồng bộ thành công {pushed} bản ghi lên máy chủ DB Host.");
+        progress?.Report((100, $"Đồng bộ hoàn tất: đã đẩy {pushed} bản ghi lên PostgreSQL backup."));
+        return (pushed, $"Đồng bộ thành công {pushed} bản ghi lên PostgreSQL backup.");
+    }
+
+    public async Task RestoreFromRemoteHostAsync(IProgress<(double Percent, string Status)>? progress = null)
+    {
+        await using var remote = CreateRemoteDbContext(null)
+            ?? throw new InvalidOperationException("Chưa cấu hình chuỗi kết nối PostgreSQL backup.");
+
+        progress?.Report((10, "Kết nối tới PostgreSQL backup..."));
+        if (!await remote.Database.CanConnectAsync())
+            throw new InvalidOperationException("Không thể kết nối tới PostgreSQL backup. Dữ liệu cục bộ không bị thay đổi.");
+
+        // Đọc và xác thực đầy đủ trước khi chạm vào SQLite local.
+        progress?.Report((25, "Đọc toàn bộ dữ liệu backup từ PostgreSQL..."));
+        var nguoiDungs = await remote.NguoiDungs.AsNoTracking().ToListAsync();
+        var cauHinhs = await remote.CauHinhHeThongs.AsNoTracking().ToListAsync();
+        var hocKys = await remote.HocKys.AsNoTracking().ToListAsync();
+        var monHocs = await remote.MonHocs.AsNoTracking().ToListAsync();
+        var sinhViens = await remote.SinhViens.AsNoTracking().ToListAsync();
+        var lopHocPhans = await remote.LopHocPhans.AsNoTracking().ToListAsync();
+        var dangKyHocPhans = await remote.DangKyHocPhans.AsNoTracking().ToListAsync();
+        var hocPhiHocKys = await remote.HocPhiHocKys.AsNoTracking().ToListAsync();
+
+        // Chốt an toàn: bản backup rỗng tài khoản sẽ khiến không thể đăng nhập sau khi ghi đè.
+        if (nguoiDungs.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Bản backup PostgreSQL không có tài khoản người dùng nào. Đã hủy khôi phục để tránh mất khả năng đăng nhập; dữ liệu local không bị thay đổi.");
+        }
+
+        progress?.Report((40, "Tạo điểm lưu Git [Pre-Restore] cho dữ liệu local hiện có..."));
+        await CreateLocalGitBackupAsync(
+            "Pre-Restore",
+            "Lưu tự động trước khi khôi phục từ PostgreSQL backup",
+            skipIfNoChanges: true);
+
+        progress?.Report((60, "Ghi đè dữ liệu vào SQLite local..."));
+        await OverwriteLocalDatabaseAsync(nguoiDungs, cauHinhs, hocKys, monHocs, sinhViens, lopHocPhans, dangKyHocPhans, hocPhiHocKys);
+
+        progress?.Report((90, "Lưu mốc lịch sử [Imported] vào kho Git local..."));
+        await CreateLocalGitBackupAsync(
+            "Imported",
+            "Khôi phục từ PostgreSQL backup",
+            skipIfNoChanges: false);
+
+        progress?.Report((100, "Khôi phục từ PostgreSQL backup thành công!"));
     }
 
     // ------------------- Hỗ trợ nội bộ -------------------
+
+    private RemoteBackupDbContext? CreateRemoteDbContext(string? overrideConnectionString)
+    {
+        var connectionString = string.IsNullOrWhiteSpace(overrideConnectionString)
+            ? _configStore?.GetConnectionString()
+            : overrideConnectionString.Trim();
+
+        if (string.IsNullOrWhiteSpace(connectionString)) return null;
+
+        var options = new DbContextOptionsBuilder<RemoteBackupDbContext>()
+            .UseNpgsql(connectionString)
+            .Options;
+        return new RemoteBackupDbContext(options);
+    }
+
+    /// <summary>
+    /// Upsert một bảng: đọc khóa hiện có của bảng remote trong MỘT truy vấn,
+    /// sau đó thêm/cập nhật trong bộ nhớ để tránh N+1 round-trip khi đẩy toàn bộ dữ liệu.
+    /// </summary>
+    private static async Task<int> PushTableAsync<TEntity, TKey>(
+        IQueryable<TEntity> source,
+        DbSet<TEntity> remoteSet,
+        Func<TEntity, TKey> keySelector) where TEntity : class where TKey : notnull
+    {
+        var items = await source.AsNoTracking().ToListAsync();
+        if (items.Count == 0) return 0;
+
+        var existingByKey = (await remoteSet.ToListAsync()).ToDictionary(keySelector);
+        foreach (var item in items)
+        {
+            var key = keySelector(item);
+            if (existingByKey.TryGetValue(key, out var existing))
+            {
+                remoteSet.Entry(existing).CurrentValues.SetValues(item);
+            }
+            else
+            {
+                await remoteSet.AddAsync(item);
+                existingByKey[key] = item;
+            }
+        }
+
+        return items.Count;
+    }
 
     private void EnsureGitRepoInitialized()
     {

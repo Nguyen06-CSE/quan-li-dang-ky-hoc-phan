@@ -189,7 +189,7 @@ private async Task InitDataAsync()
             await _cacheStore.InitializeAsync();
         }
 
-        // ĐỌC THẲNG TỪ RAM (0ms - Không tốn 1 request nào lên Neon)
+        // ĐỌC THẲNG TỪ RAM (0ms - Không tốn request nào)
         DsHocKy.Clear();
         foreach (var hk in _cacheStore.DanhSachHocKy)
         {

@@ -401,7 +401,6 @@ public partial class HocKyLopHocPhanViewModel : ObservableObject, IRecipient<Dat
         try
         {
             await _hocKyService.DatHocKyHienHanhAsync(hk.MaHocKy);
-            await _syncService.SyncDeltaAsync();
             ShowMessage($"Đã đặt học kỳ {hk.TenHocKy} làm học kỳ hiện hành.", false);
             await LoadDanhSachHocKyAsync();
         }

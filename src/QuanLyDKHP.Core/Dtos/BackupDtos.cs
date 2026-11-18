@@ -47,6 +47,24 @@ public class BackupArchiveManifestDto
     public Dictionary<string, string> TableSha256Checksums { get; set; } = new();
 }
 
+public class RemoteBackupPreviewDto
+{
+    public string Host { get; set; } = string.Empty;
+    public string Database { get; set; } = string.Empty;
+    public DateTime CapturedAtLocal { get; set; }
+    public Dictionary<string, int> TableRecordCounts { get; set; } = new();
+
+    public int TotalRecords
+    {
+        get
+        {
+            int total = 0;
+            foreach (var count in TableRecordCounts.Values) total += count;
+            return total;
+        }
+    }
+}
+
 public class BackupDatabaseStatusDto
 {
     public string SqliteFilePath { get; set; } = string.Empty;

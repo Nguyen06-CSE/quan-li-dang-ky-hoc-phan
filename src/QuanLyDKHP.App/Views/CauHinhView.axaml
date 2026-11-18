@@ -151,11 +151,6 @@
                                         IsEnabled="{Binding !IsBackingUp}"
                                         Classes="btn-secondary"
                                         ToolTip.Tip="Chọn tệp .dkhp-backup.zip đã xuất từ chương trình để khôi phục đè lên CSDL hiện tại"/>
-                                <Button Content="Đồng bộ DB Host"
-                                        Command="{Binding DongBoLenDbHostCommand}"
-                                        IsEnabled="{Binding !IsBackingUp}"
-                                        Classes="btn-secondary"
-                                        ToolTip.Tip="Đẩy các bản ghi thay đổi lên máy chủ PostgreSQL dự phòng (nếu có cấu hình)"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -364,6 +359,98 @@
                     </Grid>
                 </Grid>
             </TabItem>
+
+            <!-- ==================== TAB 3: DB BACKUP (POSTGRESQL) ==================== -->
+            <TabItem Header="DB Backup (PostgreSQL)" FontSize="14" FontWeight="SemiBold">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="12" Margin="0,4,0,0" MaxWidth="980" HorizontalAlignment="Left">
+
+                        <Border Background="{DynamicResource BrushSurfaceAlt}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" CornerRadius="10" Padding="16">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="SQLITE LOCAL LÀ CSDL LÀM VIỆC DUY NHẤT"
+                                           FontWeight="Bold" FontSize="13" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource BrushTextSecondary}" FontSize="12.5"
+                                           Text="PostgreSQL chỉ là bản sao lưu tầng 2, không bắt buộc. Ứng dụng chạy bình thường khi không có mạng hoặc chưa cấu hình. Dữ liệu chỉ được đẩy lên khi bạn bấm nút; chỉ được đọc về khi bạn chủ động khôi phục."/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{DynamicResource BrushBackground}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" CornerRadius="10" Padding="16">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0" Spacing="3">
+                                        <TextBlock Text="CHUỖI KẾT NỐI POSTGRESQL BACKUP" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                                        <TextBlock Text="Định dạng: Host=...;Database=...;Username=...;Password=...;SSL Mode=Require"
+                                                   FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="{DynamicResource BrushSurfaceAlt}"
+                                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                                            CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                                        <Panel>
+                                            <TextBlock Text="Đã cấu hình" FontWeight="SemiBold" FontSize="12"
+                                                       Foreground="{DynamicResource BrushSuccess}"
+                                                       IsVisible="{Binding HasBackupConfig}"/>
+                                            <TextBlock Text="Chưa cấu hình" FontWeight="SemiBold" FontSize="12"
+                                                       Foreground="{DynamicResource BrushTextSecondary}"
+                                                       IsVisible="{Binding !HasBackupConfig}"/>
+                                        </Panel>
+                                    </Border>
+                                </Grid>
+
+                                <TextBox Text="{Binding BackupConnectionString, Mode=TwoWay}"
+                                         PlaceholderText="Host=...;Database=...;Username=...;Password=...;SSL Mode=Require"
+                                         FontFamily="Consolas, monospace" AcceptsReturn="False"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Kiểm tra kết nối"
+                                            Command="{Binding KiemTraKetNoiBackupCommand}"
+                                            IsEnabled="{Binding !IsBackingUp}"
+                                            Classes="btn-secondary"/>
+                                    <Button Content="Lưu cấu hình"
+                                            Command="{Binding LuuCauHinhBackupCommand}"
+                                            IsEnabled="{Binding !IsBackingUp}"
+                                            Classes="btn-primary"/>
+                                    <Button Content="Xóa cấu hình"
+                                            Command="{Binding XoaCauHinhBackupCommand}"
+                                            IsEnabled="{Binding !IsBackingUp}"
+                                            Classes="btn-secondary"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding BackupConfigFilePath, StringFormat='File cấu hình: {0}'}"
+                                           FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"/>
+                                <TextBlock FontSize="11.5" Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap"
+                                           Text="Trên Windows, chuỗi kết nối được mã hóa bằng DPAPI (CurrentUser). Trên macOS/Linux, file cấu hình có quyền 0600. Chuỗi không được ghi vào appsettings hay log."/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{DynamicResource BrushBackground}"
+                                BorderBrush="{DynamicResource BrushBorder}"
+                                BorderThickness="1" CornerRadius="10" Padding="16">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="THAO TÁC CHỦ ĐỘNG" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"
+                                           Text="Đẩy dữ liệu: chỉ chạy khi bấm nút. Khôi phục: đọc và kiểm tra đủ dữ liệu trước, tạo Git snapshot [Pre-Restore] cho trạng thái local hiện có, rồi mới ghi đè SQLite local. Không tự đẩy ngược lên PostgreSQL."/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Đẩy dữ liệu lên PostgreSQL Backup"
+                                            Command="{Binding DongBoLenDbHostCommand}"
+                                            IsEnabled="{Binding !IsBackingUp}"
+                                            Classes="btn-primary"/>
+                                    <Button Content="Khôi phục từ PostgreSQL Backup..."
+                                            Command="{Binding MoXacNhanKhoiPhucRemoteCommand}"
+                                            IsEnabled="{Binding !IsBackingUp}"
+                                            Classes="btn-danger"/>
+                                </StackPanel>
+                                <Rectangle Height="1" Fill="{DynamicResource BrushBorder}" Margin="0,4"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}"
+                                           Text="Lần chạy đầu tiên: CSDL local chỉ có tài khoản admin để đăng nhập. Hãy nhập dữ liệu từ Excel, hoặc cấu hình PostgreSQL backup rồi dùng nút Khôi phục nếu đã có bản backup."/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
 
         <!-- Overlay Dialog 1: Hỏi tính lại học phí -->
@@ -415,6 +502,26 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
                         <Button Content="Hủy bỏ" Command="{Binding HuyImportGhiDeCommand}" Classes="btn-secondary"/>
                         <Button Content="Xác nhận Ghi đè CSDL" Command="{Binding XacNhanImportGhiDeCommand}" Classes="btn-danger"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- Overlay Dialog 4: Xác nhận khôi phục từ PostgreSQL Backup -->
+        <Border Grid.RowSpan="2" Background="#50000000" IsVisible="{Binding HienThiXacNhanKhoiPhucRemote}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ZIndex="100">
+            <Border Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                    CornerRadius="8" Padding="24" MaxWidth="600" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BoxShadow="0 8 24 0 #30000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Xác nhận khôi phục từ PostgreSQL Backup" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource BrushPrimaryDark}"/>
+                    <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto">
+                        <TextBlock Text="{Binding ThongBaoKhoiPhucRemote}"
+                                   TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+                    </ScrollViewer>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
+                        <Button Content="Hủy bỏ" Command="{Binding HuyKhoiPhucRemoteCommand}" Classes="btn-secondary"/>
+                        <Button Content="Ghi đè CSDL Local" Command="{Binding XacNhanKhoiPhucRemoteCommand}" Classes="btn-danger"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

@@ -8,6 +8,14 @@ namespace QuanLyDKHP.Core.Interfaces;
 
 public interface IBackupService
 {
+    string BackupConfigFilePath { get; }
+    string? GetBackupConnectionString();
+    Task SaveBackupConnectionStringAsync(string connectionString);
+    Task ClearBackupConnectionStringAsync();
+    Task<(bool Success, string Message)> TestRemoteConnectionAsync(string? connectionString = null);
+    Task<RemoteBackupPreviewDto> GetRemoteBackupPreviewAsync();
+    Task RestoreFromRemoteHostAsync(IProgress<(double Percent, string Status)>? progress = null);
+
     Task<BackupDatabaseStatusDto> GetStatusAsync();
     Task<IReadOnlyList<BackupCommitInfoDto>> GetCommitHistoryAsync(int maxCount = 50);
     Task<BackupCommitDetailDto> GetCommitDetailAsync(string commitSha);
@@ -17,5 +25,5 @@ public interface IBackupService
     Task<byte[]> ExportCommitToArchiveBytesAsync(string commitSha);
     Task<BackupArchiveManifestDto> InspectAndValidateBackupArchiveAsync(Stream archiveStream);
     Task ImportFromBackupArchiveAsync(Stream archiveStream, IProgress<(double Percent, string Status)>? progress = null);
-    Task<(int PushedRecords, string Message)> PushDeltaToRemoteHostAsync(IProgress<(double Percent, string Status)>? progress = null);
+    Task<(int PushedRecords, string Message)> PushToRemoteHostAsync(IProgress<(double Percent, string Status)>? progress = null);
 }

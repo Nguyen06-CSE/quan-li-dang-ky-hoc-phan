@@ -302,7 +302,7 @@ public partial class SinhVienViewModel : ObservableObject, IRecipient<DataImport
                 await _cacheStore.InitializeAsync();
             }
 
-            // Đọc 0ms từ SQLite Local DB thay vì remote Neon PostgreSQL
+            // Đọc 0ms từ SQLite Local thay vì truy vấn CSDL qua mạng
             var items = await _localReadService.GetSinhViensLocalAsync();
             _masterList = items;
             TotalMasterItems = items.Count;

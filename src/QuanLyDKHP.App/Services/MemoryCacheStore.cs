@@ -49,42 +49,10 @@ public class MemoryCacheStore : IMemoryCacheStore
             if (IsInitialized && !forceReload) return;
 
             using var scope = _serviceProvider.CreateScope();
-            var syncService = scope.ServiceProvider.GetRequiredService<ISyncService>();
             var localFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<LocalAppDbContext>>();
-
-            if (forceReload)
-            {
-                await syncService.ForceFullRefreshAsync(new Progress<(double Percent, string Status)>(p =>
-                    ReportProgress(p.Percent, p.Status)));
-            }
-            else if (!await syncService.HasLocalDataAsync())
-            {
-                await syncService.InitialSeedAsync(new Progress<(double Percent, string Status)>(p =>
-                    ReportProgress(p.Percent, p.Status)));
-            }
 
             await LoadFromLocalCacheAsync(localFactory);
             IsInitialized = true;
-
-            if (!forceReload)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        using var backgroundScope = _serviceProvider.CreateScope();
-                        var backgroundSyncService = backgroundScope.ServiceProvider.GetRequiredService<ISyncService>();
-                        var backgroundLocalFactory = backgroundScope.ServiceProvider.GetRequiredService<IDbContextFactory<LocalAppDbContext>>();
-
-                        await backgroundSyncService.SyncDeltaAsync();
-                        await LoadFromLocalCacheAsync(backgroundLocalFactory);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Cache Refresh Error]: {ex.Message}");
-                    }
-                });
-            }
         }
         catch
         {

@@ -53,9 +53,9 @@ Cung cấp toàn bộ bằng chứng xác thực về quá trình làm việc đ
 | **[Hệ thống Giao diện UI/UX](01-dac-ta-ung-dung/05-design-system-ui-ux.md)** | Avalonia UI, App Shell, Liquid Glass Theme, Material Icons | Trải nghiệm và thẩm mỹ Desktop |
 | **[Đặc tả 11 Chức năng](01-dac-ta-ung-dung/chuc-nang/F01-xac-thuc-dang-nhap.md)** | Chi tiết luồng nghiệp vụ F01 đến F11 (bao gồm CSDL SQLite Local & Git Backup) | Độ sâu nghiệp vụ đào tạo đại học |
 | **[Tổng kết & Đối chiếu Tính năng](02-ket-qua-dat-duoc/01-tong-ket-chuc-nang.md)** | Ma trận hoàn thành 9 yêu cầu cốt lõi + 4 yêu cầu mở rộng | Đạt chuẩn nghiệm thu đề tài |
-| **[Báo cáo Kiểm thử Unit Test](02-ket-qua-dat-duoc/02-kiem-thu-unit-test.md)** | Kết quả 42/42 Unit Tests đạt 100% Passed | Chất lượng và độ tin cậy của mã nguồn |
+| **[Báo cáo Kiểm thử Unit Test](02-ket-qua-dat-duoc/02-kiem-thu-unit-test.md)** | Kết quả Unit Tests đạt 100% Passed | Chất lượng và độ tin cậy của mã nguồn |
 | **[Tối ưu Hiệu năng](02-ket-qua-dat-duoc/03-toi-uu-hieu-nang.md)** | Debounce, UI Virtualization, In-Memory Caching 0ms | Tối ưu hóa ứng dụng Desktop |
-| **[Hướng dẫn Cài đặt & Khởi chạy](02-ket-qua-dat-duoc/05-huong-dan-cai-dat-khoi-chay.md)** | Cài đặt môi trường .NET 8, cấu hình DB Neon/Local | Tính khả thi và tái lập sản phẩm |
+| **[Hướng dẫn Cài đặt & Khởi chạy](02-ket-qua-dat-duoc/05-huong-dan-cai-dat-khoi-chay.md)** | Cài đặt .NET 8, chạy SQLite local-first, cấu hình PostgreSQL backup tùy chọn | Tính khả thi và tái lập sản phẩm |
 | **[Lịch sử Git Commits](03-nhat-ky-va-minh-chung/01-lich-su-commit-github.md)** | Bảng tổng hợp toàn bộ commits từ kho lưu trữ GitHub | Minh chứng lịch sử phát triển |
 | **[Nhật ký Công việc Daily](03-nhat-ky-va-minh-chung/02-nhat-ky-cong-viec-daily.md)** | Báo cáo tiến độ theo ngày của từng thành viên | Minh chứng thái độ và tiến trình làm việc |
 | **[Nhật ký Quyết định Kỹ thuật](03-nhat-ky-va-minh-chung/03-nhat-ky-quyet-dinh-ky-thuat.md)** | Các quyết định kiến trúc (ADR) và đánh đổi kỹ thuật | Năng lực giải quyết vấn đề kỹ thuật |

@@ -23,7 +23,7 @@ sidebar_position: 2
 ## 2. Các Kỹ Thuật Tối Ưu Hiệu Năng Vượt Trội
 
 ### 2.1. Lọc Cục Bộ Trên Bộ Nhớ Đệm (Client-Side In-Memory Filtering)
-Thay vì thực hiện một câu truy vấn `SELECT ... WHERE` gửi lên Neon Cloud Database mỗi khi người dùng gõ một ký tự vào ô tìm kiếm:
+Thay vì thực hiện một câu truy vấn `SELECT ... WHERE` gửi lên CSDL SQLite local mỗi khi người dùng gõ một ký tự vào ô tìm kiếm:
 * Dữ liệu danh sách sinh viên được nạp vào bộ nhớ RAM (`_masterList`) 1 lần duy nhất khi mở màn hình.
 * Toàn bộ thao tác lọc và tìm kiếm được thực thi trên RAM thông qua `Task.Run` chạy nền với độ trễ phản hồi **0ms**.
 

@@ -8,6 +8,10 @@ sidebar_position: 12
 
 Tài liệu này là phần mở rộng chuyên sâu của **[F11 - CSDL SQLite Cục Bộ Chính & Sao Lưu Phiên Bản Kiểu Git](./F11-local-sqlite-git-backup.md)**, giải thích tường tận cách hệ thống biến cơ sở dữ liệu quan hệ SQLite thành một kho lưu trữ được quản lý phiên bản bởi **Git**, kèm theo các **ví dụ dữ liệu thực tế** và **kịch bản kiểm thử tự động (`BackupServiceTests.cs`)**.
 
+:::info[Phạm vi tài liệu & hành vi hiện hành]
+F11b chỉ mô tả **Tầng 1 - Git backup cục bộ**. PostgreSQL là **Tầng 2 tùy chọn**, chỉ được đẩy lên hoặc khôi phục về khi người dùng bấm nút trong tab **"DB Backup (PostgreSQL)"**. Không có auto-seed, pull delta, full refresh hay push tự động giữa máy local và DB host. Chuỗi kết nối backup được lưu ngoài `appsettings.json` (DPAPI CurrentUser trên Windows, file quyền `0600` trên macOS/Linux) và không được ghi ra log.
+:::
+
 ---
 
 ## 1. Tại Sao Không Đưa Trực Tiếp File `.db` Vào Git Mà Phải Dùng Canonical JSONL?
@@ -282,6 +286,8 @@ Nhằm cung cấp bằng chứng thực nghiệm chính xác tuyệt đối thay
 ---
 
 ### 5.2. Thống kê quy mô bản ghi nghiệp vụ thực tế
+
+> Số liệu dưới đây đo trên **CSDL mẫu đang vận hành**, không phải trạng thái first-run. First-run trên máy mới chỉ có tài khoản bootstrap `admin` và không có dữ liệu nghiệp vụ.
 
 | Bảng dữ liệu | Số lượng bản ghi thực tế | Vai trò trong hệ thống |
 |---|---|---|

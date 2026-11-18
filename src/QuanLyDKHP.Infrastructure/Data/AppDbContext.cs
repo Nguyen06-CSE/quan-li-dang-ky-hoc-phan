@@ -302,14 +302,8 @@ public class AppDbContext : DbContext
             }
         }
 
-        // Seed data
-        modelBuilder.Entity<CauHinhHeThong>().HasData(
-            new CauHinhHeThong { Key = "SoTinChiToiThieu", Value = "10", MoTa = "Số TC tối thiểu/học kỳ", NgayTao = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new CauHinhHeThong { Key = "SoTinChiToiDa", Value = "25", MoTa = "Số TC tối đa/học kỳ", NgayTao = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new CauHinhHeThong { Key = "DonGiaTinChiLT", Value = "500000", MoTa = "Đơn giá 1 TC lý thuyết (VNĐ)", NgayTao = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new CauHinhHeThong { Key = "DonGiaTinChiTH", Value = "700000", MoTa = "Đơn giá 1 TC thực hành (VNĐ)", NgayTao = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
-        );
-
+        // Seed data: chỉ tài khoản bootstrap để đăng nhập lần đầu.
+        // Thông số tín chỉ/học phí dùng giá trị mặc định trong CauHinhService cho tới khi người dùng lưu.
         modelBuilder.Entity<NguoiDung>().HasData(
             new NguoiDung
             {

@@ -62,7 +62,7 @@ Khi văn phòng có nhu cầu nâng cấp lên mức **mã hóa cứng toàn b�
 
 Để giải quyết triệt để bài toán an toàn dữ liệu trên máy cố định, hệ thống triển khai **chiến lược sao lưu kép (Hybrid 2-Tier Backup)** kết hợp cả 2 phương án:
 * **Tầng Backup 1 (Cốt lõi - Chạy tự động mỗi ngày trên máy Local):** Sao lưu quản lý phiên bản tối ưu kiểu Git (`Git-Style Versioned Local Backup`) sử dụng `LibGit2Sharp`.
-* **Tầng Backup 2 (Dự phòng ngoài máy trạm - DB Host Replica):** Đồng bộ đẩy vi sai một chiều (`One-Way Push Delta Sync`) từ SQLite Local lên một PostgreSQL DB Host (Server nội bộ văn phòng hoặc dịch vụ Cloud Host).
+* **Tầng Backup 2 (Tùy chọn - DB Host Replica):** Khi người dùng chủ động bấm nút, hệ thống đẩy toàn bộ 8 bảng từ SQLite Local lên một PostgreSQL DB Host (Server nội bộ văn phòng hoặc dịch vụ Cloud Host). Không có seed, pull hay đồng bộ tự động từ DB Host về máy local.
 
 ```mermaid
 flowchart TD
@@ -92,7 +92,7 @@ flowchart TD
     GitEngine -->|4. Nén vi sai (Chỉ lưu dòng thay đổi)| Packfiles
     Packfiles -.->|Khôi phục theo mốc thời gian\n(Time-Travel Restore)| PrimaryDB
     PrimaryDB -->|SqliteConnection.BackupDatabase| HotSnap
-    PrimaryDB -.->|5. Đẩy bản ghi mới/sửa\n(NgayCapNhat > LastBackupUtc)| PostgresHost
+    PrimaryDB -.->|5. Chỉ khi bấm nút: đẩy toàn bộ 8 bảng| PostgresHost
 ```
 
 ---
@@ -137,14 +137,32 @@ Tệp SQLite (`.db`) là tệp nhị phân có cấu trúc B-Tree theo trang (4K
 
 ---
 
-### 3.2. Tầng Sao Lưu 2: Đồng Bộ Đẩy Vi Sai Lên DB Host (`One-Way Push Replica`)
+### 3.2. Tầng Sao Lưu 2 (Tùy Chọn): PostgreSQL Backup & Khôi Phục Chủ Động
 
-Để phòng ngừa rủi ro vật lý tại văn phòng (ổ cứng máy tính cố định bị hỏng phần cứng, sự cố cháy nổ), hệ thống hỗ trợ kết nối tới một **DB Host PostgreSQL** (có thể là máy chủ nội bộ trong mạng LAN của văn phòng hoặc dịch vụ Cloud Database):
-* **Đảo chiều luồng đồng bộ (`Local SQLite` $\rightarrow$ `Remote DB Host`):**
-  * Khác với [F10](./F10-hybrid-cache-delta-sync.md) trước đây, máy chủ PostgreSQL nay đóng vai trò là **Backup Replica**.
-  * Khi cán bộ bấm **"Đồng bộ lên DB Host"** (hoặc khi hoàn tất chu trình sao lưu cuối ngày), `BackupService` truy vấn các bản ghi trên SQLite Local có `NgayTao > LastRemoteBackupUtc` hoặc `NgayCapNhat > LastRemoteBackupUtc` và thực hiện `Upsert` một chiều lên DB Host.
-* **Tự động di trú dữ liệu ban đầu (`One-Time Initial Seed Migration`):**
-  * Trong lần khởi chạy đầu tiên sau khi nâng cấp kiến trúc, nếu tệp `quanlydkhp.db` mới tạo chưa có dữ liệu nhưng phát hiện dữ liệu hiện hữu trên DB Host hoặc tệp `local_cache.db` cũ, hệ thống tự động di trú toàn bộ dữ liệu (bao gồm cả tài khoản `NguoiDung`) về SQLite Local và tạo bản Git Commit khởi tạo (`Initial Baseline Commit`).
+PostgreSQL chỉ là **bản sao lưu tầng 2, không bắt buộc**. Ứng dụng chạy bình thường khi không có mạng hoặc chưa cấu hình DB Host. Mọi thao tác với PostgreSQL đều do người dùng chủ động thực hiện:
+
+1. **Cấu hình chuỗi kết nối trên máy:**
+   * Nhập/sửa tại tab **"DB Backup (PostgreSQL)"** trong màn hình Cấu hình hệ thống. Có thể để trống.
+   * Chuỗi kết nối **không** nằm trong `appsettings.json` đã commit và **không** được ghi ra log/diagnostic.
+   * Lưu tại `%LocalAppData%/QuanLyDKHP/backup-config.json`:
+     * **Windows:** secret được mã hóa bằng **DPAPI (CurrentUser)**; máy/tài khoản khác không đọc được.
+     * **macOS/Linux:** file có quyền `0600` (chỉ chủ sở hữu đọc/ghi).
+     * File cấu hình cũ dạng plaintext vẫn đọc được và được nâng cấp khi lưu lại.
+2. **Đẩy dữ liệu lên PostgreSQL (Local → Host):**
+   * Chỉ chạy khi người dùng bấm **"Đẩy dữ liệu lên PostgreSQL Backup"**. Không có push tự động lúc khởi động, đăng nhập, import hay đóng ứng dụng.
+   * Hệ thống upsert **đủ 8 bảng** (`NguoiDung`, `CauHinhHeThong`, `HocKy`, `MonHoc`, `SinhVien`, `LopHocPhan`, `DangKyHocPhan`, `HocPhiHocKy`) để bản backup không bị thiếu dữ liệu.
+   * Không tự tạo database hay bảng trên Host ngoài thao tác người dùng; nếu kết nối lỗi, dữ liệu local không bị ảnh hưởng.
+3. **Khôi phục từ PostgreSQL (Host → Local) — thao tác riêng, có xác nhận:**
+   * Nút **"Khôi phục từ PostgreSQL Backup..."** đọc trước số dòng từng bảng để hiển thị **preview** và yêu cầu xác nhận.
+   * Khi xác nhận, hệ thống **fetch và kiểm tra đầy đủ 8 bảng trước**, sau đó tạo Git snapshot `[Pre-Restore]` cho trạng thái local hiện có, rồi mới ghi đè SQLite trong một transaction. Nếu bất kỳ bước đọc nào lỗi, dữ liệu local giữ nguyên.
+   * Nếu bản backup không có tài khoản người dùng nào, hệ thống **hủy khôi phục** và giữ nguyên dữ liệu local để tránh mất khả năng đăng nhập.
+   * Không đẩy ngược dữ liệu lên PostgreSQL sau khi restore.
+4. **Kiểm tra kết nối tách biệt với khôi phục:**
+   * Nút **"Kiểm tra kết nối"** chỉ mở kết nối thử, không đọc/ghi dữ liệu và không thay đổi SQLite local.
+
+:::warning[First run trên máy mới]
+Lần chạy đầu tiên tạo `quanlydkhp.db` **trống** (chỉ có tài khoản bootstrap `admin` để đăng nhập). Hệ thống **không** tự seed từ PostgreSQL, không pull delta, không full refresh và không đọc bất kỳ DB host nào. Người dùng nhập dữ liệu từ Excel, hoặc cấu hình PostgreSQL backup rồi chủ động khôi phục nếu đã có bản backup.
+:::
 
 ---
 
@@ -156,18 +174,24 @@ Tính năng quản lý sao lưu được tích hợp trực tiếp vào màn hì
    * Hiển thị đường dẫn tệp SQLite chính (`quanlydkhp.db`), dung lượng tệp hiện tại, trạng thái chế độ `WAL Mode`, tổng số bản lưu Git (`Commits`) và mốc thời gian sao lưu gần nhất.
 2. **Các thao tác điều khiển nhanh:**
    * **Sao lưu ngay (Git Commit):** Cho phép nhập ghi chú (ví dụ: *"Lưu trước khi khóa sổ học phí HK1"*) và tạo một điểm khôi phục tức thì.
-   * **Đồng bộ lên DB Host:** Đẩy các thay đổi vi sai từ máy Local lên máy chủ PostgreSQL dự phòng.
-3. **Danh sách Lịch sử Phiên bản (`Git Commit Log`):**
-   * Hiển thị danh sách các bản lưu theo trình tự thời gian giảm dần với: Mã phiên bản rút gọn (`Short SHA`), Thời điểm lưu, Loại bản lưu (`Auto-Daily`, `Manual`, `Pre-Restore`), Tóm tắt biến động dữ liệu từng bảng và nút **"Khôi phục về bản này"**.
+   * **Nhập file Backup & Ghi đè:** Chọn tệp `.dkhp-backup.zip` do chương trình xuất ra; preview và xác nhận trước khi ghi đè.
+3. **Tab "DB Backup (PostgreSQL)" — tùy chọn:**
+   * Nhập/sửa chuỗi kết nối, **Kiểm tra kết nối**, **Lưu cấu hình**, **Xóa cấu hình**. Có thể để trống.
+   * **Đẩy dữ liệu lên PostgreSQL Backup:** chỉ chạy khi bấm nút, upsert đủ 8 bảng.
+   * **Khôi phục từ PostgreSQL Backup...:** hiển thị preview số dòng từng bảng, yêu cầu xác nhận, tạo Git snapshot `[Pre-Restore]`, fetch đủ dữ liệu rồi mới ghi đè local.
+   * Nút **"Làm mới"** trên giao diện chỉ reload từ SQLite local; không kéo dữ liệu từ PostgreSQL.
+4. **Danh sách Lịch sử Phiên bản (`Git Commit Log`):**
+   * Hiển thị danh sách các bản lưu theo trình tự thời gian giảm dần với: Mã phiên bản rút gọn (`Short SHA`), Thời điểm lưu, Loại bản lưu (`Auto-Daily`, `Manual`, `Pre-Restore`, `Imported`), Tóm tắt biến động dữ liệu từng bảng và nút **"Khôi phục về bản này"**.
 
 ---
 
 ## 5. Tối Ưu Hóa Hạ Tầng Dữ Liệu & Bảo Toàn Toàn Vẹn Cục Bộ (Nhóm 5, ADR-22)
 
 Nhằm nâng cao tính bền vững của tầng lưu trữ SQLite và ngăn ngừa mọi rủi ro mất mát dữ liệu ngoài ý muốn:
-1. **Loại bỏ hoàn toàn lệnh `EnsureDeletedAsync()` khỏi chu trình đồng bộ:** Không bao giờ xóa tệp CSDL vật lý (`quanlydkhp.db`) hay hủy cấu trúc schema SQLite đang chạy ở chế độ WAL. Thay vào đó, khi thực hiện làm mới toàn phần (`Full Refresh`), hệ thống thực hiện dọn sạch các bảng nghiệp vụ cũ bên trong một giao dịch CSDL (`BeginTransactionAsync`), bảo đảm nếu máy chủ từ xa gặp sự cố thì dữ liệu cục bộ được rollback nguyên vẹn 100%.
-2. **Bảo tồn tài khoản người dùng (`NguoiDung`) khi đồng bộ:** Bổ sung bảng `NguoiDung` vào danh sách bảng chủ lực (`MasterTables`) và chu trình nạp dữ liệu. Tuyệt đối không xóa tài khoản người dùng khi làm mới CSDL cục bộ, ngăn chặn tình trạng bị mất tài khoản quản trị viên và giảng viên khi chạy chế độ offline.
-3. **Chuẩn hóa mốc thời gian Delta Sync (`DateTimeKind.Utc`):** Thiết lập giá trị mốc thời gian khởi điểm an toàn (`new DateTime(2000, 1, 1, DateTimeKind.Utc)`), loại trừ triệt để lỗi ngoại lệ `DateTimeKind.Unspecified` và lỗi tràn số năm khi PostgreSQL Npgsql so sánh mốc thời gian với SQLite.
+1. **Không bao giờ xóa tệp CSDL vật lý:** Loại bỏ hoàn toàn lệnh `EnsureDeletedAsync()` khỏi mọi chu trình. Không xóa `quanlydkhp.db` hay hủy schema SQLite đang chạy ở chế độ WAL.
+2. **Reload giao diện chỉ đọc SQLite local:** `forceReload` trong `MemoryCacheStore` chỉ nạp lại danh mục từ SQLite, không xóa bảng và không gọi DB host. Nhờ đó thao tác "Làm mới" không thể làm mất dữ liệu local khi mất mạng.
+3. **Ghi đè local chỉ trong transaction có kiểm soát:** Restore từ Git, Import file backup và Restore từ PostgreSQL đều tạo điểm lưu `[Pre-Restore]`/`[Pre-Import]` trước, fetch/validate đầy đủ, rồi ghi đè trong transaction; lỗi sẽ rollback.
+4. **Không tự seed/pull từ DB host:** First run chỉ tạo schema + tài khoản bootstrap `admin`. Không có `InitialSeedAsync`, `SyncDeltaAsync` hay full refresh từ PostgreSQL trong startup, đăng nhập, CRUD, import hoặc restore.
 
 ---
 
@@ -175,13 +199,15 @@ Nhằm nâng cao tính bền vững của tầng lưu trữ SQLite và ngăn ng�
 
 * **Hợp đồng & DTOs Sao lưu:**
   * `src/QuanLyDKHP.Core/Interfaces/IBackupService.cs`
+  * `src/QuanLyDKHP.Core/Interfaces/IBackupConfigStore.cs`
   * `src/QuanLyDKHP.Core/Dtos/BackupDtos.cs`
 * **Ngữ cảnh CSDL Local chính & Remote Replica:**
-  * `src/QuanLyDKHP.Infrastructure/Data/AppDbContext.cs` (Hỗ trợ SQLite WAL Primary & Provider-agnostic mapping)
-  * `src/QuanLyDKHP.Infrastructure/Data/RemoteBackupDbContext.cs` (Kết nối PostgreSQL DB Host dự phòng)
-* **Động cơ Sao lưu Git (`LibGit2Sharp`) & Đồng bộ DB Host:**
+  * `src/QuanLyDKHP.Infrastructure/Data/AppDbContext.cs` (SQLite WAL Primary & Provider-agnostic mapping)
+  * `src/QuanLyDKHP.Infrastructure/Data/RemoteBackupDbContext.cs` (kết nối PostgreSQL backup, tạo theo cấu hình người dùng)
+* **Động cơ Sao lưu Git (`LibGit2Sharp`), cấu hình & đồng bộ DB Host:**
   * `src/QuanLyDKHP.Infrastructure/Services/BackupService.cs`
+  * `src/QuanLyDKHP.Infrastructure/Services/BackupConfigStore.cs`
 * **Giao diện & ViewModel Quản lý Sao lưu:**
   * `src/QuanLyDKHP.App/ViewModels/CauHinhViewModel.cs`
   * `src/QuanLyDKHP.App/Views/CauHinhView.axaml`
-  * `src/QuanLyDKHP.App/App.axaml.cs` (Khởi tạo SQLite WAL & Lịch trình Auto-Backup hằng ngày)
+  * `src/QuanLyDKHP.App/App.axaml.cs` (Khởi tạo SQLite WAL, log first-run & lịch Auto-Backup Git hằng ngày)

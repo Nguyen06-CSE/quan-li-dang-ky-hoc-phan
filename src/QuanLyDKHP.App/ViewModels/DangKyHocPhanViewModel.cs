@@ -74,7 +74,6 @@ public partial class DangKyHocPhanViewModel : ObservableRecipient,
     private readonly ICurrentUserService _currentUserService;
     private readonly IBaoCaoService? _baoCaoService;
     private readonly ILocalReadService _localReadService;
-    private readonly ISyncService _syncService;
 
     // Timer debounce 300ms và CancellationTokenSource cho tìm kiếm in-memory
     private readonly System.Timers.Timer _debounceTimer;
@@ -258,7 +257,6 @@ public DangKyHocPhanViewModel(
         IMemoryCacheStore cacheStore,
         ICurrentUserService currentUserService,
         ILocalReadService localReadService,
-        ISyncService syncService,
         IBaoCaoService? baoCaoService = null)
     {
         _dangKyService = dangKyService;
@@ -269,7 +267,6 @@ public DangKyHocPhanViewModel(
         _cauHinhService = cauHinhService;
         _nguoiDungRepository = nguoiDungRepository;
         _localReadService = localReadService;
-        _syncService = syncService;
         
         // GÁN THAM SỐ VÀO BIẾN TRƯỜNG TRƯỚC TIÊN
         _cacheStore = cacheStore;
@@ -323,7 +320,6 @@ public DangKyHocPhanViewModel(
         _cacheStore = null!;
         _currentUserService = null!;
         _localReadService = null!;
-        _syncService = null!;
         _debounceTimer = new System.Timers.Timer(300);
     }
 
@@ -1142,7 +1138,6 @@ public DangKyHocPhanViewModel(
             }
 
             ShowMessage("Đăng ký thành công.", false);
-            await _syncService.SyncDeltaAsync();
             await LoadDangKyCuaSinhVienAsync(SinhVienDangChon.MaSV);
             await LoadLHPTheoMonAsync(MonDangChon);
         }
@@ -1167,7 +1162,6 @@ public DangKyHocPhanViewModel(
         {
             await _dangKyService.HuyDangKyAsync(SinhVienDangChon.MaSV, dto.MaLHP);
             ShowMessage($"Đã hủy đăng ký lớp học phần {dto.MaLHP} thành công.", false);
-            await _syncService.SyncDeltaAsync();
             await LoadDangKyCuaSinhVienAsync(SinhVienDangChon.MaSV);
             await LoadLHPTheoMonAsync(MonDangChon);
         }

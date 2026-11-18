@@ -1,11 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuanLyDKHP.App.ViewModels;
 using QuanLyDKHP.App.Views;
@@ -34,6 +34,9 @@ public partial class App : Application
         ServiceProvider = services.BuildServiceProvider();
 
         // 1. Khởi tạo CSDL SQLite Local, đảm bảo đầy đủ các bảng và bật chế độ WAL
+        var sqlitePath = AppDbContext.GetPrimarySqlitePath();
+        bool isNewDatabase = !File.Exists(sqlitePath) || new FileInfo(sqlitePath).Length == 0;
+
         using (var initScope = ServiceProvider.CreateScope())
         {
             var appDbFactory = initScope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
@@ -49,22 +52,15 @@ public partial class App : Application
             }
         }
 
-        // 2. CHẠY NỀN: Tự động nạp dữ liệu từ Neon nếu SQLite trống & nạp In-Memory Cache Store & Sao lưu hàng ngày (Git)
+        LogSqliteStartup(sqlitePath, isNewDatabase);
+
+        // 2. CHẠY NỀN: nạp In-Memory Cache Store từ SQLite local & sao lưu Git hằng ngày.
+        // Không seed/pull dữ liệu từ bất kỳ DB host nào.
         var cacheStore = ServiceProvider.GetRequiredService<IMemoryCacheStore>();
         _ = Task.Run(async () =>
         {
             try
             {
-                using (var syncScope = ServiceProvider.CreateScope())
-                {
-                    var syncService = syncScope.ServiceProvider.GetRequiredService<ISyncService>();
-                    if (!await syncService.HasLocalDataAsync())
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Startup]: SQLite trống, đang tự động đồng bộ dữ liệu ban đầu từ DB Host (Neon)...");
-                        await syncService.InitialSeedAsync();
-                    }
-                }
-
                 await cacheStore.InitializeAsync();
 
                 using var backupScope = ServiceProvider.CreateScope();
@@ -102,15 +98,7 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // 1. Khởi tạo Configuration
-        IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-            .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        // 2. Đăng ký CSDL chính: SQLite Local (chạy độc lập tại máy tính văn phòng)
+        // 1. CSDL chính duy nhất: SQLite Local (chạy độc lập tại máy tính văn phòng).
         string sqlitePath = AppDbContext.GetPrimarySqlitePath();
         string sqliteConnStr = $"Data Source={sqlitePath}";
 
@@ -120,15 +108,8 @@ public partial class App : Application
         services.AddDbContextFactory<LocalAppDbContext>(options =>
             options.UseSqlite(sqliteConnStr));
 
-        // 3. Đăng ký DB Host từ xa nếu cấu hình có chuỗi kết nối PostgreSQL (Backup tầng 2)
-        string? remoteConn = configuration.GetConnectionString("RemoteBackupConnection") 
-            ?? configuration.GetConnectionString("DefaultConnection");
-
-        if (!string.IsNullOrWhiteSpace(remoteConn) && remoteConn.Contains("Host=", StringComparison.OrdinalIgnoreCase))
-        {
-            services.AddDbContextFactory<RemoteBackupDbContext>(options =>
-                options.UseNpgsql(remoteConn));
-        }
+        // 2. Cấu hình PostgreSQL backup: đọc/ghi file local, không nằm trong appsettings.
+        services.AddSingleton<IBackupConfigStore, BackupConfigStore>();
 
         // Repositories
         services.AddScoped<INguoiDungRepository, NguoiDungRepository>();
@@ -201,6 +182,27 @@ public partial class App : Application
         services.AddTransient<ImportExcelView>();
 
         services.AddSingleton<IMemoryCacheStore, MemoryCacheStore>();
+    }
+
+    private static void LogSqliteStartup(string sqlitePath, bool isNewDatabase)
+    {
+        var fileName = Path.GetFileName(sqlitePath);
+        var message = isNewDatabase
+            ? $"Đã tạo CSDL SQLite local mới: {fileName} | Đường dẫn đầy đủ: {sqlitePath}"
+            : $"Đang sử dụng CSDL SQLite local: {fileName} | Đường dẫn đầy đủ: {sqlitePath}";
+
+        Console.WriteLine($"[SQLite] {message}");
+        Debug.WriteLine($"[SQLite] {message}");
+
+        try
+        {
+            var logPath = Path.Combine(Path.GetDirectoryName(sqlitePath) ?? AppContext.BaseDirectory, "sqlite-startup.log");
+            File.AppendAllText(logPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Log file không bắt buộc; không làm hỏng khởi động.
+        }
     }
 
     private static void ShowLoginWindow(IClassicDesktopStyleApplicationLifetime desktop)

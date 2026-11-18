@@ -1,7 +1,13 @@
+import os
+import sys
 import psycopg2
 import bcrypt
 
-conn_str = "postgresql://neondb_owner:npg_VPln5gFhfEw4@ep-hidden-math-awrpifwn-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require"
+conn_str = os.environ.get("NEON_DATABASE_URL")
+if not conn_str:
+    print("Thiếu biến môi trường NEON_DATABASE_URL. Ví dụ:")
+    print('  export NEON_DATABASE_URL="postgresql://user:password@host/db?sslmode=require"')
+    sys.exit(1)
 
 try:
     conn = psycopg2.connect(conn_str)
@@ -34,13 +40,13 @@ try:
                 SET "MatKhauHash" = %s, "Role" = %s, "HoTen" = %s, "TrangThai" = 'HoatDong', "IsDeleted" = false
                 WHERE "Id" = %s
             ''', (hashed, role, fullname, existing[0]))
-            print(f"Updated user {username} with password '{password}'")
+            print(f"Updated user {username} ({role})")
         else:
             cur.execute('''
                 INSERT INTO "NguoiDung" ("TenDangNhap", "MatKhauHash", "HoTen", "Role", "TrangThai", "IsDeleted", "NgayTao")
                 VALUES (%s, %s, %s, %s, 'HoatDong', false, NOW())
             ''', (username, hashed, fullname, role))
-            print(f"Inserted user {username} with password '{password}'")
+            print(f"Inserted user {username} ({role})")
             
     conn.commit()
     print("All accounts seeded/updated successfully!")

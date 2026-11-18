@@ -60,7 +60,7 @@ Ngoài 9 yêu cầu cốt lõi trên, dự án đã triển khai thêm các tín
 * **Chuẩn hóa Biểu tượng Vector:** Tích hợp bộ biểu tượng vector tối giản `Material.Icons.Avalonia`, loại bỏ hoàn toàn việc sử dụng biểu tượng ký tự gõ phím rời rạc.
 * **Nhập Dữ liệu Quy mô Lớn từ Excel (ClosedXML):** Hỗ trợ import hàng nghìn dòng dữ liệu đào tạo (sinh viên, môn học, lớp học phần, đăng ký) trong một lượt với thuật toán xử lý theo lô (batch processing), phòng chống lỗi lan truyền và tự động đồng bộ học phí.
 * **Xuất Báo cáo & Phiếu Thu PDF Chuẩn In ấn (QuestPDF):** Thiết kế mẫu phiếu học phí, phiếu đăng ký và danh sách thi đạt tiêu chuẩn xuất bản khổ A4.
-* **Kiến trúc Bộ nhớ Đệm Cục bộ & Hybrid Database (F05 & F06):**
+* **Kiến trúc Local-First & Sao lưu Đa tầng (F11):**
   * Tầng 1: In-Memory Cache Store phản hồi tức thì với độ trễ 0ms cho các danh mục dùng chung.
-  * Tầng 2: Cơ sở dữ liệu SQLite cục bộ chạy song song với Cloud PostgreSQL (Neon), hỗ trợ cơ chế Delta Sync để giảm tải băng thông và tăng tốc độ xử lý khi mạng yếu.
+  * Tầng 2: SQLite Local là CSDL chính duy nhất cho đọc/ghi nghiệp vụ. PostgreSQL chỉ là backup tùy chọn, đẩy/khôi phục khi người dùng chủ động bấm nút; không có seed, pull delta hay full refresh tự động.
 * **Xem Thời khóa biểu Đồ họa & Chống Trùng Lịch (M3 & M4):** Hiển thị trực quan thời khóa biểu tuần của sinh viên dạng lưới 7 cột (Thứ 2 đến Chủ nhật) và thuật toán tự động ngăn chặn đăng ký các lớp có khoảng tiết trùng nhau.

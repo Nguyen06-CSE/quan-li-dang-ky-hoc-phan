@@ -32,7 +32,7 @@ graph TD
    * Chứa các hợp đồng giao tiếp (Interfaces cho Repositories và Services), DTOs phục vụ truyền nhận dữ liệu, Enums định danh và ma trận quyền hạn (`PermissionMatrix`).
 2. **`QuanLyDKHP.Infrastructure` (Tầng hạ tầng & Dữ liệu):**
    * Triển khai chi tiết các Interface từ tầng Core.
-   * Quản lý ngữ cảnh cơ sở dữ liệu EF Core (`AppDbContext`), cấu hình Fluent API, Database Migrations cho PostgreSQL (Neon Cloud / Local) và SQLite.
+   * Quản lý ngữ cảnh cơ sở dữ liệu EF Core (`AppDbContext`), cấu hình Fluent API cho SQLite Local (CSDL chính) và PostgreSQL (chỉ dùng cho backup tùy chọn).
    * Triển khai xuất nhập dữ liệu: ClosedXML (Excel) và QuestPDF (PDF chuẩn A4).
 3. **`QuanLyDKHP.Services` (Tầng Nghiệp vụ - Business Logic):**
    * Hiện thực hóa các quy trình nghiệp vụ: Xác thực đăng ký học phần 5 bước, công thức tính học phí, kiểm soát sĩ số, lập báo cáo thống kê, băm mật khẩu bảo mật (BCrypt).
@@ -83,7 +83,7 @@ graph LR
     UI["Giao Diện Người Dùng (ViewModel)"] -->|Danh mục tĩnh: 0ms| L1["Tầng 1: In-Memory Cache (RAM)"]
     UI <-->|Đọc/Ghi nghiệp vụ: 0.1ms - 2ms| L2["CSDL Chính: SQLite Local (WAL Mode)"]
     L2 -->|Sao lưu vi sai mỗi ngày| GitBackup["Backup Tầng 1: Local Git Repo (LibGit2Sharp + JSONL)"]
-    L2 -.->|Đồng bộ đẩy một chiều| HostBackup["Backup Tầng 2: DB Host (PostgreSQL Replica)"]
+    L2 -.->|Chỉ khi người dùng bấm nút: đẩy toàn bộ 8 bảng| HostBackup["Backup Tầng 2 (tùy chọn): PostgreSQL"]
 ```
 
 1. **Tầng 1 - In-Memory Cache Store (Singleton - 0ms):**
@@ -92,6 +92,6 @@ graph LR
 2. **CSDL Chính - SQLite Local Database (`WAL Mode` - 0.1ms đến 2ms):**
    * Toàn bộ thao tác đọc và ghi nghiệp vụ diễn ra trực tiếp trên tệp SQLite cục bộ (`quanlydkhp.db`) tại máy tính cố định ở văn phòng với chế độ `PRAGMA journal_mode = WAL;` và `PRAGMA foreign_keys = ON;`.
    * Thiết kế tương thích sẵn sàng với **SQLCipher (mã hóa AES-256 cấp độ tệp)** khi cần nâng cấp bảo mật vật lý.
-3. **Hệ thống Sao lưu Đa tầng (Git-Style Local Backup & Remote DB Host):**
+3. **Hệ thống Sao lưu Đa tầng (Git-Style Local Backup & PostgreSQL tùy chọn):**
    * **Sao lưu cục bộ kiểu Git (`LibGit2Sharp`):** Cuối mỗi ngày làm việc (hoặc theo thao tác thủ công), hệ thống xuất 8 bảng ra định dạng văn bản chuẩn hóa theo dòng (`Canonical Sorted JSONL`) và thực hiện `git commit` tự động. Nhờ thuật toán nén vi sai của Git, mỗi bản lưu hằng ngày chỉ ghi nhận đúng những dòng dữ liệu thay đổi (tốn vài KB) và cho phép khôi phục (`Time-Travel Restore`) về bất kỳ ngày nào trong quá khứ.
-   * **Sao lưu lên DB Host (`One-Way Push Replica`):** Tùy chọn đẩy các bản ghi mới/chỉnh sửa (`NgayCapNhat > LastBackupUtc`) từ máy Local lên máy chủ PostgreSQL văn phòng hoặc dịch vụ Host để phòng ngừa sự cố phần cứng máy trạm.
+   * **Backup PostgreSQL (tùy chọn, chủ động):** Chỉ đẩy toàn bộ 8 bảng khi người dùng bấm nút. Khôi phục từ PostgreSQL cũng là thao tác riêng, có preview/xác nhận, fetch đủ dữ liệu và tạo Git snapshot `[Pre-Restore]` trước khi ghi đè local. Không có seed, pull delta hay full refresh tự động từ DB host.

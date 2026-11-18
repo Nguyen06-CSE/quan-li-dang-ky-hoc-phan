@@ -12,56 +12,48 @@ Trước khi tiến hành biên dịch và chạy ứng dụng, môi trường m
 
 * **Hệ điều hành:** Hỗ trợ Windows 10/11, macOS (Apple Silicon hoặc Intel), Ubuntu Linux 22.04 LTS trở lên.
 * **Bộ phát triển phần mềm:** [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (phiên bản 8.0.100 trở lên).
-* **Cơ sở dữ liệu:** PostgreSQL phiên bản 14 trở lên (Cài đặt cục bộ, chạy qua Docker, hoặc tài khoản Cloud Neon PostgreSQL).
+* **Cơ sở dữ liệu:** Không bắt buộc cài PostgreSQL. Ứng dụng dùng SQLite local làm CSDL chính và chạy hoàn toàn offline.
 
 ---
 
-## 2. Cấu Hình Cơ Sở Dữ Liệu
+## 2. Cấu Hình Cơ Sở Dữ Liệu & Backup
 
-Tạo hoặc cập nhật tệp `src/QuanLyDKHP.App/appsettings.Local.json` (hoặc `appsettings.json`):
+### 2.1. SQLite Local (mặc định)
+Lần chạy đầu tiên tự tạo `quanlydkhp.db` **trống**, chỉ có tài khoản bootstrap `admin`. Không cần migration, không tự seed và không kết nối DB host.
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=quanlydkhp;Username=postgres;Password=your_password;SSL Mode=Prefer;"
-  }
-}
-```
+Đường dẫn mặc định:
+* **Windows:** `%LocalAppData%\QuanLyDKHP\quanlydkhp.db`
+* **macOS:** `~/Library/Application Support/QuanLyDKHP/quanlydkhp.db`
+* **Linux:** `~/.local/share/QuanLyDKHP/quanlydkhp.db`
 
-:::note[Tùy chọn khởi chạy nhanh bằng Docker]
-Nếu chưa có sẵn PostgreSQL trên máy trạm, có thể khởi động nhanh một container PostgreSQL cục bộ bằng lệnh sau:
-```bash
-docker run --name postgres-quanlydkhp \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=quanlydkhp \
-  -p 5432:5432 \
-  -d postgres:16-alpine
-```
-:::
+Log khởi động ghi rõ tên file và đường dẫn đầy đủ (`sqlite-startup.log` trong cùng thư mục).
+
+### 2.2. PostgreSQL Backup (tùy chọn)
+Không cấu hình trong `appsettings.json`. Sau khi đăng nhập, vào **Cấu hình hệ thống → DB Backup (PostgreSQL)**:
+1. Nhập chuỗi kết nối dạng `Host=...;Database=...;Username=...;Password=...;SSL Mode=Require`.
+2. Bấm **Kiểm tra kết nối** (không đọc/ghi dữ liệu).
+3. Bấm **Lưu cấu hình**. Có thể để trống hoặc bấm **Xóa cấu hình**.
+
+Cấu hình lưu tại `%LocalAppData%/QuanLyDKHP/backup-config.json`:
+* **Windows:** secret mã hóa bằng DPAPI (CurrentUser).
+* **macOS/Linux:** file quyền `0600`.
+* Không ghi connection string ra log/diagnostic.
+
+Các thao tác **Đẩy dữ liệu lên PostgreSQL Backup** và **Khôi phục từ PostgreSQL Backup** chỉ chạy khi người dùng bấm nút. Khôi phục sẽ fetch/validate đủ 8 bảng, tạo Git snapshot `[Pre-Restore]`, rồi mới ghi đè SQLite trong transaction.
 
 ---
 
-## 3. Cập Nhật CSDL & Nạp Dữ Liệu Khởi Tạo (Migrations & Seeding)
+## 3. Dữ Liệu Khởi Tạo & Tài Khoản Đăng Nhập
 
-Từ thư mục gốc của dự án, mở cửa sổ dòng lệnh (Terminal / PowerShell) và thực hiện lệnh Entity Framework Core:
-
-```bash
-dotnet ef database update --project src/QuanLyDKHP.Infrastructure --startup-project src/QuanLyDKHP.App
-```
-
-Lệnh này sẽ tự động:
-1. Tạo đầy đủ các bảng dữ liệu, chỉ mục (Indexes) và ràng buộc khóa ngoại theo cấu trúc schema mới nhất.
-2. Nạp dữ liệu cấu hình hệ thống mặc định (`CauHinhHeThong`).
-3. Khởi tạo tài khoản quản trị viên và các tài khoản mẫu cho từng vai trò.
+Không cần chạy `dotnet ef database update`. Ứng dụng tự tạo schema SQLite khi khởi động. Dữ liệu nghiệp vụ nhập từ Excel hoặc khôi phục từ backup đã có.
 
 ### Danh Sách Tài Khoản Đăng Nhập Mặc Định
 
 | Tên Đăng Nhập | Mật Khẩu Khởi Tạo | Vai Trò (Role) | Thẩm Quyền |
 |---|---|---|---|
 | `admin` | `admin` | `Admin` | Toàn quyền hệ thống, cấu hình tham số, quản lý người dùng |
-| `trolygiaovu` | `123456` | `TroLyGiaoVu` | Quản lý SV, môn học, đăng ký học phần, tính học phí, báo cáo |
-| `giaovubomon` | `123456` | `GiaoVuBoMon` | Quản lý kế hoạch bộ môn, xem học phí, lập danh sách thi |
-| `giangvien` | `123456` | `GiangVien` | Xem lịch dạy, danh sách sinh viên các lớp mình phụ trách |
+
+> Đổi mật khẩu `admin` ngay sau lần đăng nhập đầu tiên. Các tài khoản khác do Admin tạo tại màn hình Quản lý người dùng.
 
 ---
 
@@ -79,7 +71,7 @@ Cửa sổ đăng nhập sẽ hiển thị. Người dùng nhập tài khoản q
 
 ## 5. Lệnh Chạy Kiểm Thử Tự Động (Unit Tests)
 
-Để kiểm tra độ toàn vẹn của mã nguồn và xác nhận tất cả 42 unit test đều vượt qua:
+Để kiểm tra độ toàn vẹn của mã nguồn và xác nhận toàn bộ unit test đều vượt qua:
 
 ```bash
 dotnet test tests/QuanLyDKHP.Tests/QuanLyDKHP.Tests.csproj

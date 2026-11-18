@@ -7,8 +7,8 @@
 ## 1. Công nghệ sử dụng
 - **Ngôn ngữ & Nền tảng**: C# 12, .NET 8.0
 - **Giao diện người dùng (UI)**: Avalonia UI 11.x, Kiến trúc MVVM (`CommunityToolkit.Mvvm`)
-- **Cơ sở dữ liệu**: PostgreSQL (hỗ trợ Neon Cloud Serverless / Local PostgreSQL)
-- **ORM**: Entity Framework Core 8.0, Npgsql
+- **Cơ sở dữ liệu**: SQLite Local (nguồn dữ liệu nghiệp vụ duy nhất). PostgreSQL chỉ là backup tầng 2 tùy chọn.
+- **ORM**: Entity Framework Core 8.0, Npgsql (chỉ cho backup PostgreSQL tùy chọn)
 - **Báo cáo & Export/Import**:
   - **ClosedXML**: Xử lý đọc/ghi và Import file Excel dữ liệu lớn.
   - **QuestPDF**: Thiết kế và xuất phiếu PDF chuẩn khổ A4 (Phiếu học phí, Danh sách thi, Phiếu kết quả ĐKHP).
@@ -50,33 +50,30 @@
 
 ### 3.1. Yêu cầu môi trường
 - [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- PostgreSQL Database (hoặc tài khoản Neon PostgreSQL)
+- Không bắt buộc cài PostgreSQL. Ứng dụng chạy hoàn toàn offline với SQLite local.
 
-### 3.2. Cấu hình chuỗi kết nối Database
----
-# LƯU Í HIỆN TẠI CHƯƠNG TRÌNH MẶC ĐỊNH DÙNG DB HOST TRÊN NEON NÊN TỐC ĐỘ RẤT THẤP BẠN HÃY TỰ TẠO DB THEO HƯỚNG DẪN TẠI ĐƯỜNG LINK DƯỚI ĐÂY [hướng dẫn cài đặt DB](docs/00-architecture/database-setup.md)
----
-Tạo hoặc cập nhật file `src/QuanLyDKHP.App/appsettings.Local.json` (hoặc `appsettings.json`):
+### 3.2. Cơ sở dữ liệu & Cấu hình backup
+**SQLite Local là CSDL làm việc duy nhất.** Lần chạy đầu tiên trên máy mới:
+- Tự tạo file `quanlydkhp.db` **trống**, chỉ có tài khoản bootstrap `admin` để đăng nhập.
+- Không tự seed, không pull delta, không full refresh và không đọc dữ liệu từ bất kỳ DB host nào.
+- Đường dẫn mặc định: `%LocalAppData%/QuanLyDKHP/quanlydkhp.db` (Windows) hoặc `~/Library/Application Support/QuanLyDKHP/quanlydkhp.db` (macOS). Log khởi động ghi rõ tên file và đường dẫn đầy đủ.
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=your-postgres-host;Port=5432;Database=quanlydkhp;Username=your-username;Password=your-password;SSL Mode=Require;Trust Server Certificate=true"
-  }
-}
-```
+Sau khi đăng nhập, nhập dữ liệu từ Excel hoặc vào **Cấu hình hệ thống → DB Backup (PostgreSQL)** nếu muốn dùng backup PostgreSQL:
+- Nhập chuỗi kết nối dạng `Host=...;Database=...;Username=...;Password=...;SSL Mode=Require`.
+- Bấm **Kiểm tra kết nối**, sau đó **Lưu cấu hình**. Có thể để trống.
+- Chuỗi kết nối **không** nằm trong `appsettings.json` và **không** được ghi log.
+- Trên Windows, secret được mã hóa bằng **DPAPI (CurrentUser)**; trên macOS/Linux file cấu hình có quyền `0600`.
+- **Đẩy dữ liệu lên PostgreSQL Backup** và **Khôi phục từ PostgreSQL Backup** chỉ chạy khi người dùng bấm nút. Khôi phục sẽ tạo Git snapshot `[Pre-Restore]` trước khi ghi đè local.
 
-### 3.3. Cập nhật Cơ sở dữ liệu (Migration & Seeding)
-Chạy lệnh sau từ thư mục gốc của dự án:
-```powershell
-dotnet ef database update --project src/QuanLyDKHP.Infrastructure --startup-project src/QuanLyDKHP.App
-```
+### 3.3. Khởi tạo dữ liệu
+Không cần chạy migration/seeding thủ công. Ứng dụng tự tạo schema SQLite khi khởi động lần đầu. Dữ liệu nghiệp vụ được nhập từ Excel hoặc khôi phục từ bản backup đã có.
 
 ### 3.4. Tài khoản đăng nhập mặc định
-Sau khi migration và seed hoàn tất, hệ thống có sẵn tài khoản quản trị:
 * **Tài khoản**: `admin`
 * **Mật khẩu**: `admin`
 * **Vai trò**: `Admin`
+
+> Đổi mật khẩu ngay sau lần đăng nhập đầu tiên tại màn hình Quản lý người dùng.
 
 ---
 
@@ -92,7 +89,7 @@ dotnet run
 ```powershell
 dotnet test tests/QuanLyDKHP.Tests/QuanLyDKHP.Tests.csproj
 ```
-*(Hiện tại toàn bộ 42/42 unit tests kiểm tra dịch vụ nghiệp vụ, tính toán học phí, xác thực đăng ký học phần, phân quyền và export Excel/PDF đều đạt 100% Passed).*
+*(Toàn bộ unit tests kiểm tra dịch vụ nghiệp vụ, tính toán học phí, xác thực đăng ký học phần, phân quyền, export Excel/PDF, first-run SQLite rỗng, cấu hình backup và an toàn restore đều đạt 100% Passed).*
 
 ---
 
@@ -101,11 +98,11 @@ dotnet test tests/QuanLyDKHP.Tests/QuanLyDKHP.Tests.csproj
 quan-li-dang-ky-hoc-phan/
 ├── src/
 │   ├── QuanLyDKHP.Core/            # Entities, DTOs, Enums, Interfaces, Authorization Rules
-│   ├── QuanLyDKHP.Infrastructure/  # AppDbContext, Repositories, Migrations, Export ClosedXML & QuestPDF
+│   ├── QuanLyDKHP.Infrastructure/  # AppDbContext, Repositories, Backup (Git/PostgreSQL), Export ClosedXML & QuestPDF
 │   ├── QuanLyDKHP.Services/        # Business Logic Services (SinhVien, MonHoc, DangKy, HocPhi...)
 │   └── QuanLyDKHP.App/             # Avalonia UI, Views, ViewModels, Styles, Dialogs
 ├── tests/
 │   └── QuanLyDKHP.Tests/           # Unit Tests (xUnit, Moq)
-├── scripts/                        # Script tạo dữ liệu mẫu & seeding
+├── scripts/                        # Script tiện ích (không auto-seed khi chạy app)
 └── docs/                           # Tài liệu kiến trúc, đặc tả chức năng & nhật ký lỗi
 ```
