@@ -14,6 +14,8 @@ using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Entities;
 using QuanLyDKHP.Core.Interfaces;
 using QuanLyDKHP.Infrastructure.Data;
+using System.Diagnostics;
+using Npgsql;
 
 namespace QuanLyDKHP.Infrastructure.Services;
 
@@ -36,6 +38,7 @@ public class BackupService : IBackupService
     private readonly string _gitDir;
     private readonly string _tablesDir;
     private readonly string _snapshotPath;
+    private readonly string _snapshotsDir;
 
     public BackupService(
         IDbContextFactory<AppDbContext> localFactory,
@@ -51,6 +54,7 @@ public class BackupService : IBackupService
         _gitDir = Path.Combine(baseBackupDir, "GitRepo");
         _tablesDir = Path.Combine(_gitDir, "tables");
         _snapshotPath = Path.Combine(baseBackupDir, "latest_snapshot.db");
+        _snapshotsDir = Path.Combine(baseBackupDir, "Snapshots");
 
         Directory.CreateDirectory(_tablesDir);
     }
@@ -123,23 +127,43 @@ public class BackupService : IBackupService
         return _configStore?.ClearAsync() ?? Task.CompletedTask;
     }
 
-    public async Task<(bool Success, string Message)> TestRemoteConnectionAsync(string? connectionString = null)
+    public async Task<(bool Success, string Message)> TestRemoteConnectionAsync(
+    string? connectionString = null)
+{
+    try
     {
-        try
-        {
-            await using var remote = CreateRemoteDbContext(connectionString);
-            if (remote == null)
-                return (false, "Chưa có chuỗi kết nối PostgreSQL. Hãy nhập và lưu cấu hình trước.");
+        var remote = CreateRemoteDbContext(connectionString);
+        if (remote == null)
+            return (false, "Chưa có chuỗi kết nối PostgreSQL.");
 
-            return await remote.Database.CanConnectAsync()
-                ? (true, "Kết nối PostgreSQL thành công.")
-                : (false, "Không thể kết nối tới PostgreSQL. Vui lòng kiểm tra mạng và thông tin kết nối.");
-        }
-        catch (Exception ex)
+        await using (remote)
         {
-            return (false, $"Không thể kết nối tới PostgreSQL: {ex.Message}");
+            var connected = await remote.Database.CanConnectAsync();
+
+            Console.Error.WriteLine(
+                $"[Backup DB] CanConnectAsync={connected}; " +
+                $"Provider={remote.Database.ProviderName}");
+
+            return connected
+                ? (true, "Kết nối PostgreSQL thành công.")
+                : (false, "Không thể kết nối tới PostgreSQL. Xem log [Backup DB] để biết chi tiết.");
         }
     }
+    catch (Exception ex)
+    {
+        var sqlState = ex is PostgresException pg ? pg.SqlState : "n/a";
+        var innerType = ex.InnerException?.GetType().Name ?? "none";
+
+        // Không ghi ex.ToString() hoặc connection string để tránh lộ thông tin kết nối.
+        Console.Error.WriteLine(
+            $"[Backup DB] Kết nối thất bại; " +
+            $"Exception={ex.GetType().Name}; SqlState={sqlState}; " +
+            $"InnerException={innerType}; Message={ex.Message}");
+
+        return (false,
+            $"Không thể kết nối tới PostgreSQL ({ex.GetType().Name}, SQLSTATE {sqlState}). Xem Output log.");
+    }
+}
 
     public async Task<RemoteBackupPreviewDto> GetRemoteBackupPreviewAsync()
     {
@@ -401,24 +425,29 @@ public class BackupService : IBackupService
         await CreateLocalGitBackupAsync("Auto-Daily", "Tự động sao lưu đầu ngày", skipIfNoChanges: true);
     }
 
-    public async Task RestoreFromGitCommitAsync(string commitSha, IProgress<(double Percent, string Status)>? progress = null)
+    public async Task<RestoreResultDto> RestoreFromGitCommitAsync(string commitSha, IProgress<(double Percent, string Status)>? progress = null)
     {
+        if (string.IsNullOrWhiteSpace(commitSha))
+            throw new ArgumentException("Mã SHA của bản sao lưu không hợp lệ.", nameof(commitSha));
+
         if (!Repository.IsValid(_gitDir))
             throw new InvalidOperationException("Kho lưu trữ sao lưu Git chưa được khởi tạo.");
 
-        progress?.Report((10, "Kiểm tra phiên bản sao lưu..."));
+        var shortSha = commitSha.Length >= 7 ? commitSha[..7] : commitSha;
+        CrashLogger.Info($"Restore[{shortSha}]: bắt đầu");
+
+        progress?.Report((5, "Kiểm tra phiên bản sao lưu..."));
         using var repo = new Repository(_gitDir);
         var commit = repo.Lookup<Commit>(commitSha)
             ?? throw new ArgumentException($"Không tìm thấy bản sao lưu với mã SHA: {commitSha}");
 
-        // Tạo bản lưu an toàn trước khi khôi phục
-        progress?.Report((20, "Tạo điểm lưu an toàn trước khi phục hồi..."));
-        await CreateLocalGitBackupAsync("Pre-Restore", $"Lưu tự động trước khi khôi phục về {commitSha[..7]}", skipIfNoChanges: true);
-
-        progress?.Report((40, "Đang trích xuất dữ liệu từ kho Git..."));
         var tablesTree = commit["tables"]?.Target as Tree
             ?? throw new InvalidOperationException("Bản sao lưu không chứa thư mục tables.");
 
+        // Chỉ đọc và kiểm tra dữ liệu target trước khi chạm vào SQLite local.
+        ValidateRestoreTree(tablesTree);
+
+        progress?.Report((15, "Đang đọc và kiểm tra dữ liệu từ kho Git..."));
         var nguoiDungs = ReadEntitiesFromTree<NguoiDung>(tablesTree, "NguoiDung.jsonl");
         var cauHinhs = ReadEntitiesFromTree<CauHinhHeThong>(tablesTree, "CauHinhHeThong.jsonl");
         var hocKys = ReadEntitiesFromTree<HocKy>(tablesTree, "HocKy.jsonl");
@@ -428,9 +457,94 @@ public class BackupService : IBackupService
         var dangKyHocPhans = ReadEntitiesFromTree<DangKyHocPhan>(tablesTree, "DangKyHocPhan.jsonl");
         var hocPhiHocKys = ReadEntitiesFromTree<HocPhiHocKy>(tablesTree, "HocPhiHocKy.jsonl");
 
-        progress?.Report((60, "Đang nạp lại dữ liệu vào CSDL SQLite Local..."));
+        // Bản restore rỗng tài khoản sẽ khiến không thể đăng nhập sau khi ghi đè.
+        if (nguoiDungs.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Bản sao lưu không có tài khoản người dùng nào. Đã hủy khôi phục để tránh mất khả năng đăng nhập; CSDL local không bị thay đổi.");
+        }
+
+        CrashLogger.Info(
+            $"Restore[{shortSha}]: dữ liệu hợp lệ (NguoiDung={nguoiDungs.Count}, HocKy={hocKys.Count}, " +
+            $"MonHoc={monHocs.Count}, SinhVien={sinhViens.Count}, LopHocPhan={lopHocPhans.Count}, " +
+            $"DangKy={dangKyHocPhans.Count}, HocPhi={hocPhiHocKys.Count})");
+
+        // Snapshot file là bảo đảm cuối cùng, kể cả khi working tree sạch (Git không có gì để commit).
+        progress?.Report((25, "Tạo snapshot SQLite an toàn trước khi ghi đè..."));
+        var snapshotPath = await CreateVersionedSnapshotAsync(shortSha);
+        CrashLogger.Info($"Restore[{shortSha}]: snapshot={snapshotPath}");
+
+        // Pre-Restore Git là lớp bảo hiểm thứ hai; lỗi Git không được chặn restore khi đã có snapshot.
+        progress?.Report((35, "Tạo điểm lưu Git [Pre-Restore]..."));
+        try
+        {
+            await CreateLocalGitBackupAsync(
+                "Pre-Restore",
+                $"Lưu tự động trước khi khôi phục về {shortSha}",
+                skipIfNoChanges: true);
+            CrashLogger.Info($"Restore[{shortSha}]: Pre-Restore Git hoàn tất");
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Error($"Restore[{shortSha}]: Git Pre-Restore lỗi, tiếp tục với snapshot {snapshotPath}", ex);
+        }
+
+        progress?.Report((55, "Đang ghi đè dữ liệu vào CSDL SQLite local..."));
         await OverwriteLocalDatabaseAsync(nguoiDungs, cauHinhs, hocKys, monHocs, sinhViens, lopHocPhans, dangKyHocPhans, hocPhiHocKys);
-        progress?.Report((100, $"Phục hồi thành công về phiên bản {commitSha[..7]}!"));
+        CrashLogger.Info($"Restore[{shortSha}]: ghi đè SQLite hoàn tất");
+
+        progress?.Report((75, "Kiểm tra số dòng và toàn vẹn dữ liệu sau khôi phục..."));
+        await ValidateRestoredDatabaseAsync(
+            new (string Table, int Expected)[]
+            {
+                ("NguoiDung", nguoiDungs.Count),
+                ("CauHinhHeThong", cauHinhs.Count),
+                ("HocKy", hocKys.Count),
+                ("MonHoc", monHocs.Count),
+                ("SinhVien", sinhViens.Count),
+                ("LopHocPhan", lopHocPhans.Count),
+                ("DangKyHocPhan", dangKyHocPhans.Count),
+                ("HocPhiHocKy", hocPhiHocKys.Count)
+            },
+            snapshotPath);
+        CrashLogger.Info($"Restore[{shortSha}]: kiểm tra sau khôi phục đạt");
+
+        progress?.Report((90, "Tạo commit [Post-Restore] từ CSDL vừa khôi phục..."));
+        var message = $"Phục hồi thành công về phiên bản {shortSha}.";
+        string? warning = null;
+        try
+        {
+            var postCommit = await CreateLocalGitBackupAsync(
+                "Post-Restore",
+                $"Khôi phục về {shortSha}",
+                skipIfNoChanges: true);
+
+            if (postCommit != null)
+            {
+                message += $" Đã lưu commit [{postCommit.ShortSha}].";
+                CrashLogger.Info($"Restore[{shortSha}]: Post-Restore commit {postCommit.ShortSha}");
+            }
+            else
+            {
+                message += " Dữ liệu trùng với bản hiện tại nên không tạo commit mới.";
+                CrashLogger.Info($"Restore[{shortSha}]: dữ liệu trùng, bỏ qua Post-Restore commit");
+            }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Error($"Restore[{shortSha}]: Post-Restore Git lỗi", ex);
+            warning =
+                $"Đã khôi phục xong CSDL về {shortSha}, nhưng không tạo được commit Git [Post-Restore]: {ex.Message}. " +
+                $"Snapshot an toàn vẫn được giữ tại: {snapshotPath}";
+        }
+
+        progress?.Report((100, message));
+        return new RestoreResultDto
+        {
+            Message = message,
+            Warning = warning,
+            SnapshotPath = snapshotPath
+        };
     }
 
     public async Task<(int PushedRecords, string Message)> PushToRemoteHostAsync(
@@ -653,6 +767,157 @@ public class BackupService : IBackupService
         }
     }
 
+    /// <summary>
+    /// Snapshot có phiên bản (không ghi đè) trước khi restore, dùng SQLite Online Backup API.
+    /// Đây là lớp bảo đảm cuối cùng: nếu tạo snapshot thất bại thì hủy restore.
+    /// </summary>
+    private async Task<string> CreateVersionedSnapshotAsync(string commitSha)
+    {
+        await using var local = await _localFactory.CreateDbContextAsync();
+
+        var localConnectionString = local.Database.GetConnectionString();
+        if (string.IsNullOrWhiteSpace(localConnectionString))
+            throw new InvalidOperationException("Không xác định được chuỗi kết nối SQLite local để tạo snapshot an toàn.");
+
+        var localPath = new SqliteConnectionStringBuilder(localConnectionString).DataSource;
+        if (string.IsNullOrWhiteSpace(localPath) || localPath == ":memory:" || !File.Exists(localPath))
+            throw new FileNotFoundException("Không tìm thấy CSDL SQLite local để tạo snapshot an toàn.", localPath);
+
+        Directory.CreateDirectory(_snapshotsDir);
+        var snapshotPath = Path.Combine(
+            _snapshotsDir,
+            $"pre-restore-{commitSha}-{DateTime.Now:yyyyMMdd-HHmmssfff}.db");
+
+        try
+        {
+            var sourceConnectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = localPath,
+                Pooling = false
+            }.ToString();
+            var snapshotConnectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = snapshotPath,
+                Pooling = false
+            }.ToString();
+
+            using var source = new SqliteConnection(sourceConnectionString);
+            using var destination = new SqliteConnection(snapshotConnectionString);
+            source.Open();
+            destination.Open();
+            source.BackupDatabase(destination);
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Error($"Không thể tạo snapshot SQLite trước khôi phục: {snapshotPath}", ex);
+            try { if (File.Exists(snapshotPath)) File.Delete(snapshotPath); } catch { }
+
+            throw new InvalidOperationException(
+                $"Không thể tạo snapshot SQLite an toàn trước khi khôi phục nên thao tác đã bị hủy; CSDL local không bị thay đổi. Chi tiết: {ex.Message}",
+                ex);
+        }
+
+        PruneSnapshots(5);
+        return snapshotPath;
+    }
+
+    private void PruneSnapshots(int keepCount)
+    {
+        try
+        {
+            if (!Directory.Exists(_snapshotsDir)) return;
+
+            var staleSnapshots = Directory.GetFiles(_snapshotsDir, "pre-restore-*.db")
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .Skip(keepCount);
+
+            foreach (var file in staleSnapshots)
+            {
+                try { file.Delete(); }
+                catch (Exception ex) { CrashLogger.Error($"Không xóa được snapshot cũ: {file.FullName}", ex); }
+            }
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Error("Không dọn được snapshot cũ", ex);
+        }
+    }
+
+    private static void ValidateRestoreTree(Tree tablesTree)
+    {
+        foreach (var (tableName, displayName) in ManagedTables)
+        {
+            // Commit cũ có thể chưa có bảng học phí; danh sách rỗng vẫn hợp lệ.
+            if (tableName == "HocPhiHocKy") continue;
+
+            if (tablesTree[$"{tableName}.jsonl"]?.Target is not Blob)
+            {
+                throw new InvalidOperationException(
+                    $"Bản sao lưu thiếu dữ liệu bảng bắt buộc: {displayName} ({tableName}.jsonl). Đã hủy khôi phục, CSDL local không bị thay đổi.");
+            }
+        }
+    }
+
+    private async Task ValidateRestoredDatabaseAsync(
+        (string Table, int Expected)[] expectedCounts,
+        string snapshotPath)
+    {
+        await using var local = await _localFactory.CreateDbContextAsync();
+
+        var actualCounts = new Dictionary<string, int>
+        {
+            ["NguoiDung"] = await local.NguoiDungs.CountAsync(),
+            ["CauHinhHeThong"] = await local.CauHinhHeThongs.CountAsync(),
+            ["HocKy"] = await local.HocKys.CountAsync(),
+            ["MonHoc"] = await local.MonHocs.CountAsync(),
+            ["SinhVien"] = await local.SinhViens.CountAsync(),
+            ["LopHocPhan"] = await local.LopHocPhans.CountAsync(),
+            ["DangKyHocPhan"] = await local.DangKyHocPhans.CountAsync(),
+            ["HocPhiHocKy"] = await local.HocPhiHocKys.CountAsync()
+        };
+
+        foreach (var (table, expected) in expectedCounts)
+        {
+            var actual = actualCounts[table];
+            if (actual != expected)
+            {
+                throw new InvalidOperationException(
+                    $"CSDL đã được ghi đè nhưng số dòng bảng {table} không khớp (mong đợi {expected}, thực tế {actual}). " +
+                    $"Snapshot an toàn để phục hồi: {snapshotPath}");
+            }
+        }
+
+        var connection = local.Database.GetDbConnection();
+        await local.Database.OpenConnectionAsync();
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA integrity_check;";
+            var integrityResult = Convert.ToString(await command.ExecuteScalarAsync());
+            if (!string.Equals(integrityResult, "ok", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"CSDL đã được ghi đè nhưng kiểm tra toàn vẹn integrity_check thất bại ('{integrityResult}'). " +
+                    $"Snapshot an toàn để phục hồi: {snapshotPath}");
+            }
+
+            command.CommandText = "PRAGMA foreign_key_check;";
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var table = reader.IsDBNull(0) ? "?" : reader.GetString(0);
+                throw new InvalidOperationException(
+                    $"CSDL đã được ghi đè nhưng kiểm tra khóa ngoại phát hiện bản ghi mồ côi ở bảng {table}. " +
+                    $"Snapshot an toàn để phục hồi: {snapshotPath}");
+            }
+        }
+        finally
+        {
+            await local.Database.CloseConnectionAsync();
+        }
+    }
+
     private string BuildDiffSummary(Repository repo)
     {
         var patch = repo.Diff.Compare<Patch>(repo.Head.Tip?.Tree, DiffTargets.Index);
@@ -700,6 +965,11 @@ public class BackupService : IBackupService
         await using var local = await _localFactory.CreateDbContextAsync();
         local.ChangeTracker.AutoDetectChangesEnabled = false;
 
+        CrashLogger.Info(
+            $"Overwrite DB: bắt đầu (NguoiDung={nguoiDungs.Count}, CauHinh={cauHinhs.Count}, HocKy={hocKys.Count}, " +
+            $"MonHoc={monHocs.Count}, SinhVien={sinhViens.Count}, LopHocPhan={lopHocPhans.Count}, " +
+            $"DangKy={dangKyHocPhans.Count}, HocPhi={hocPhiHocKys.Count})");
+
         await using var tx = await local.Database.BeginTransactionAsync();
         try
         {
@@ -713,6 +983,10 @@ public class BackupService : IBackupService
             local.NguoiDungs.RemoveRange(local.NguoiDungs);
             await local.SaveChangesAsync();
 
+            // Xóa các entity đã tracked khỏi change tracker trước khi thêm dữ liệu mới,
+            // tránh xung đột khóa/identity khi restore đè lên chính các Id cũ.
+            local.ChangeTracker.Clear();
+
             if (nguoiDungs.Count > 0) await local.NguoiDungs.AddRangeAsync(nguoiDungs);
             if (cauHinhs.Count > 0) await local.CauHinhHeThongs.AddRangeAsync(cauHinhs);
             if (hocKys.Count > 0) await local.HocKys.AddRangeAsync(hocKys);
@@ -724,10 +998,13 @@ public class BackupService : IBackupService
 
             await local.SaveChangesAsync();
             await tx.CommitAsync();
+            CrashLogger.Info("Overwrite DB: commit transaction thành công");
         }
-        catch
+        catch (Exception ex)
         {
-            await tx.RollbackAsync();
+            CrashLogger.Error("Overwrite DB: lỗi, đang rollback transaction", ex);
+            try { await tx.RollbackAsync(); }
+            catch (Exception rollbackEx) { CrashLogger.Error("Overwrite DB: rollback thất bại", rollbackEx); }
             throw;
         }
     }
@@ -739,6 +1016,7 @@ public class BackupService : IBackupService
         if (msg.StartsWith("[Pre-Import")) return "Pre-Import";
         if (msg.StartsWith("[Imported")) return "Imported";
         if (msg.StartsWith("[Post-Import")) return "Post-Import";
+        if (msg.StartsWith("[Post-Restore")) return "Post-Restore";
         return "Manual";
     }
 

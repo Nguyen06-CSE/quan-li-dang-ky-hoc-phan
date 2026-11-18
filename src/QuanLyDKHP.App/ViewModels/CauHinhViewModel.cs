@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyDKHP.Core.Dtos;
 using QuanLyDKHP.Core.Interfaces;
+using QuanLyDKHP.Infrastructure.Services;
 
 namespace QuanLyDKHP.App.ViewModels;
 
@@ -72,6 +73,12 @@ public partial class CauHinhViewModel : ObservableObject
 
     [ObservableProperty]
     private string _thongBaoKhoiPhuc = string.Empty;
+
+    /// <summary>Các thao tác backup/export được phép khi không có thao tác dài nào đang chạy.</summary>
+    public bool CoTheThaoTacBackup => !IsBackingUp;
+
+    /// <summary>Chỉ cho khôi phục khi đã chọn đúng một commit và không có thao tác khác đang chạy.</summary>
+    public bool CoTheKhoiPhuc => !IsBackingUp && SelectedBackupCommit != null;
 
     // --- Thuộc tính Import file Backup ---
     [ObservableProperty]
@@ -206,10 +213,25 @@ public partial class CauHinhViewModel : ObservableObject
 
     partial void OnSelectedBackupCommitChanged(BackupCommitInfoDto? value)
     {
-        if (value != null && _backupService != null)
+        OnPropertyChanged(nameof(CoTheKhoiPhuc));
+
+        if (value == null)
+        {
+            // Không để inspector còn nút "Khôi phục bản này" với CommandParameter null.
+            SelectedCommitDetail = null;
+            return;
+        }
+
+        if (_backupService != null)
         {
             _ = LoadCommitDetailInternalAsync(value.CommitSha);
         }
+    }
+
+    partial void OnIsBackingUpChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CoTheThaoTacBackup));
+        OnPropertyChanged(nameof(CoTheKhoiPhuc));
     }
 
     [RelayCommand]
@@ -225,7 +247,13 @@ public partial class CauHinhViewModel : ObservableObject
         if (_backupService == null) return;
         try
         {
-            SelectedCommitDetail = await _backupService.GetCommitDetailAsync(commitSha);
+            var detail = await _backupService.GetCommitDetailAsync(commitSha);
+
+            // Bỏ qua kết quả của commit đã bị bỏ chọn trong lúc chờ đọc (tránh inspector "ma").
+            if (SelectedBackupCommit?.CommitSha == commitSha)
+            {
+                SelectedCommitDetail = detail;
+            }
         }
         catch (Exception ex)
         {
@@ -237,7 +265,7 @@ public partial class CauHinhViewModel : ObservableObject
     public async Task XuatFileBackupAsync(BackupCommitInfoDto? commit)
     {
         var target = commit ?? SelectedBackupCommit;
-        if (_backupService == null || target == null) return;
+        if (_backupService == null || target == null || IsBackingUp) return;
 
         if (SaveFileDialogFunc == null)
         {
@@ -539,11 +567,31 @@ public partial class CauHinhViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void MoXacNhanKhoiPhuc(BackupCommitInfoDto commit)
+    public void MoXacNhanKhoiPhuc(BackupCommitInfoDto? commit)
     {
-        SelectedBackupCommit = commit;
-        ThongBaoKhoiPhuc = $"Bạn có chắc chắn muốn khôi phục toàn bộ dữ liệu CSDL về phiên bản ngày {commit.CommittedAtLocal:dd/MM/yyyy HH:mm} (Mã: {commit.ShortSha}) không?\n\nHệ thống sẽ tự động tạo một điểm lưu an toàn trước khi khôi phục.";
-        HienThiXacNhanKhoiPhuc = true;
+        if (IsBackingUp) return;
+
+        var target = commit ?? SelectedBackupCommit;
+        if (target == null)
+        {
+            HienThiXacNhanKhoiPhuc = false;
+            ShowMessage("Vui lòng chọn một phiên bản sao lưu trước khi khôi phục.", true);
+            return;
+        }
+
+        try
+        {
+            SelectedBackupCommit = target;
+            ThongBaoKhoiPhuc =
+                $"Bạn có chắc chắn muốn khôi phục toàn bộ dữ liệu CSDL về phiên bản ngày {target.CommittedAtLocal:dd/MM/yyyy HH:mm} (Mã: {target.ShortSha}) không?\n\n" +
+                "Hệ thống sẽ tạo snapshot SQLite an toàn và một điểm lưu Git trước khi khôi phục.";
+            HienThiXacNhanKhoiPhuc = true;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.Error($"Restore UI: không mở được xác nhận cho commit {target.ShortSha}", ex);
+            ShowMessage($"Không thể mở hộp thoại khôi phục: {ex.Message}", true);
+        }
     }
 
     [RelayCommand]
@@ -551,31 +599,69 @@ public partial class CauHinhViewModel : ObservableObject
     {
         HienThiXacNhanKhoiPhuc = false;
         SelectedBackupCommit = null;
+        SelectedCommitDetail = null;
     }
 
-    [RelayCommand]
+    [RelayCommand(AllowConcurrentExecutions = false)]
     public async Task XacNhanKhoiPhucAsync()
     {
-        if (_backupService == null || SelectedBackupCommit == null) return;
+        // Chụp target trước mọi await/refresh: selection có thể đổi trong lúc restore chạy.
+        var target = SelectedBackupCommit;
+        if (_backupService == null || target == null)
+        {
+            HienThiXacNhanKhoiPhuc = false;
+            return;
+        }
+
+        if (IsBackingUp) return;
         HienThiXacNhanKhoiPhuc = false;
 
         try
         {
             IsBackingUp = true;
-            await _backupService.RestoreFromGitCommitAsync(SelectedBackupCommit.CommitSha);
-            await _memoryCacheStore.InitializeAsync(forceReload: true);
-            await LoadCauHinhAsync();
-            await LoadBackupInfoAsync();
-            ShowMessage($"Đã khôi phục thành công CSDL về phiên bản {SelectedBackupCommit.ShortSha}!", false);
-        }
-        catch (Exception ex)
-        {
-            ShowMessage($"Lỗi khi khôi phục dữ liệu: {ex.Message}", true);
+
+            RestoreResultDto result;
+            try
+            {
+                CrashLogger.Info($"Restore UI: bắt đầu {target.ShortSha}");
+                result = await _backupService.RestoreFromGitCommitAsync(target.CommitSha);
+                CrashLogger.Info($"Restore UI: DB đã khôi phục xong {target.ShortSha}");
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Error($"Restore UI: thất bại khi khôi phục {target.ShortSha}", ex);
+                ShowMessage($"Lỗi khi khôi phục dữ liệu: {ex.Message}", true);
+                return;
+            }
+
+            // DB đã restore xong; lỗi làm mới UI/cache không được báo thành "restore thất bại".
+            try
+            {
+                await _memoryCacheStore.InitializeAsync(forceReload: true);
+                await LoadCauHinhAsync();
+                await LoadBackupInfoAsync();
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Error($"Restore UI: làm mới giao diện sau khôi phục {target.ShortSha} lỗi", ex);
+                ShowMessage($"{result.Message} Nhưng làm mới giao diện thất bại: {ex.Message}", true);
+                return;
+            }
+
+            CrashLogger.Info($"Restore UI: làm mới giao diện xong {target.ShortSha}");
+
+            if (!string.IsNullOrWhiteSpace(result.Warning))
+            {
+                ShowMessage(result.Warning, true);
+            }
+            else
+            {
+                ShowMessage(result.Message, false);
+            }
         }
         finally
         {
             IsBackingUp = false;
-            SelectedBackupCommit = null;
         }
     }
 

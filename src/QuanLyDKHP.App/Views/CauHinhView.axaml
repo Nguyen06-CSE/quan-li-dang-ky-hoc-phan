@@ -229,11 +229,13 @@
                                                     <Button Content="Xuất file"
                                                             Command="{Binding $parent[UserControl].((vm:CauHinhViewModel)DataContext).XuatFileBackupCommand}"
                                                             CommandParameter="{Binding}"
+                                                            IsEnabled="{Binding $parent[UserControl].((vm:CauHinhViewModel)DataContext).CoTheThaoTacBackup}"
                                                             Classes="btn-secondary" FontSize="11" Padding="8,4"
                                                             ToolTip.Tip="Xuất phiên bản này thành tệp .dkhp-backup.zip"/>
                                                     <Button Content="Khôi phục"
                                                             Command="{Binding $parent[UserControl].((vm:CauHinhViewModel)DataContext).MoXacNhanKhoiPhucCommand}"
                                                             CommandParameter="{Binding}"
+                                                            IsEnabled="{Binding $parent[UserControl].((vm:CauHinhViewModel)DataContext).CoTheThaoTacBackup}"
                                                             Classes="btn-secondary" FontSize="11" Padding="8,4"
                                                             ToolTip.Tip="Khôi phục CSDL về phiên bản này"/>
                                                 </StackPanel>
@@ -284,10 +286,12 @@
                                                 <Button Content="Xuất ra file (.zip)"
                                                         Command="{Binding XuatFileBackupCommand}"
                                                         CommandParameter="{Binding SelectedBackupCommit}"
+                                                        IsEnabled="{Binding CoTheKhoiPhuc}"
                                                         Classes="btn-secondary" Padding="10,6" FontSize="12"/>
                                                 <Button Content="Khôi phục bản này"
                                                         Command="{Binding MoXacNhanKhoiPhucCommand}"
                                                         CommandParameter="{Binding SelectedBackupCommit}"
+                                                        IsEnabled="{Binding CoTheKhoiPhuc}"
                                                         Classes="btn-secondary" Padding="10,6" FontSize="12"/>
                                             </StackPanel>
                                         </Grid>
@@ -483,7 +487,8 @@
                                TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
                         <Button Content="Hủy bỏ" Command="{Binding HuyKhoiPhucCommand}" Classes="btn-secondary"/>
-                        <Button Content="Khôi phục ngay" Command="{Binding XacNhanKhoiPhucCommand}" Classes="btn-danger"/>
+                        <Button Content="Khôi phục ngay" Command="{Binding XacNhanKhoiPhucCommand}"
+                                IsEnabled="{Binding CoTheKhoiPhuc}" Classes="btn-danger"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

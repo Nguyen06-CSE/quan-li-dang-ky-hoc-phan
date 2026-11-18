@@ -65,6 +65,13 @@ public class RemoteBackupPreviewDto
     }
 }
 
+public class RestoreResultDto
+{
+    public string Message { get; set; } = string.Empty;
+    public string? Warning { get; set; }
+    public string SnapshotPath { get; set; } = string.Empty;
+}
+
 public class BackupDatabaseStatusDto
 {
     public string SqliteFilePath { get; set; } = string.Empty;

@@ -21,7 +21,7 @@ public interface IBackupService
     Task<BackupCommitDetailDto> GetCommitDetailAsync(string commitSha);
     Task<BackupCommitInfoDto?> CreateLocalGitBackupAsync(string backupType = "Manual", string? customNote = null, bool skipIfNoChanges = false);
     Task EnsureDailyBackupAsync();
-    Task RestoreFromGitCommitAsync(string commitSha, IProgress<(double Percent, string Status)>? progress = null);
+    Task<RestoreResultDto> RestoreFromGitCommitAsync(string commitSha, IProgress<(double Percent, string Status)>? progress = null);
     Task<byte[]> ExportCommitToArchiveBytesAsync(string commitSha);
     Task<BackupArchiveManifestDto> InspectAndValidateBackupArchiveAsync(Stream archiveStream);
     Task ImportFromBackupArchiveAsync(Stream archiveStream, IProgress<(double Percent, string Status)>? progress = null);

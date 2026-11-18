@@ -43,6 +43,18 @@ public class BackupServiceTests : IDisposable
         // Khởi tạo bảng
         using var db = _dbContextFactory.CreateDbContext();
         db.Database.EnsureCreated();
+
+        // Bản restore hợp lệ phải có ít nhất một tài khoản để còn đăng nhập sau khi ghi đè.
+        db.NguoiDungs.Add(new NguoiDung
+        {
+            TenDangNhap = "admin",
+            MatKhauHash = "test-hash",
+            HoTen = "Quản trị viên",
+            Role = "Admin",
+            TrangThai = "HoatDong",
+            NgayTao = DateTime.UtcNow
+        });
+        db.SaveChanges();
     }
 
     public void Dispose()

@@ -24,6 +24,10 @@ public partial class App : Application
 
     public override void Initialize()
     {
+        // Chỉ ghi log lỗi UI không được xử lý cụ thể; không đặt Handled để lỗi vẫn nổi lên như mặc định.
+        Avalonia.Threading.Dispatcher.UIThread.UnhandledException += (_, e) =>
+            CrashLogger.Error("Avalonia Dispatcher.UnhandledException", e.Exception);
+
         AvaloniaXamlLoader.Load(this);
     }
 
@@ -69,6 +73,7 @@ public partial class App : Application
             }
             catch (Exception ex)
             {
+                CrashLogger.Error("Nạp cache/sao lưu nền lúc khởi động thất bại", ex);
                 System.Diagnostics.Debug.WriteLine($"[Startup Background Error]: {ex.Message}");
             }
         });
@@ -213,7 +218,17 @@ public partial class App : Application
         loginViewModel.LoginSuccess += (sender, args) =>
         {
             var cacheStore = ServiceProvider!.GetRequiredService<IMemoryCacheStore>();
-            _ = Task.Run(() => cacheStore.InitializeAsync());
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await cacheStore.InitializeAsync();
+                }
+                catch (Exception ex)
+                {
+                    CrashLogger.Error("Nạp cache sau đăng nhập thất bại", ex);
+                }
+            });
 
             var mainViewModel = ServiceProvider!.GetRequiredService<MainWindowViewModel>();
             mainViewModel.RefreshMenuForCurrentUser();
