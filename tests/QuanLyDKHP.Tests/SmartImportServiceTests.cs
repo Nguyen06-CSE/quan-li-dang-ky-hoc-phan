@@ -316,4 +316,160 @@ public class SmartImportServiceTests : IDisposable
         Assert.Equal(1, result.Loi);
         Assert.Contains("đã đóng cổng", result.ThongBao);
     }
+
+    [Fact]
+    public async Task EnrollStudentsAsync_DuplicateMaSvAndCaseDifferences_DeduplicatesAndEnrollsSuccessfully()
+    {
+        using (var ctx = new AppDbContext(_options))
+        {
+            var hk = new HocKy { MaHocKy = "HK261", TenHocKy = "Học kỳ 1 2026", DangMo = true };
+            var mon = new MonHoc { MaMon = "CS101", TenMon = "Lập trình Web" };
+            var lhp = new LopHocPhan { MaLHP = "261CS10101", MaMon = "CS101", MaHocKy = "HK261", SiSoToiDa = 50 };
+            var existingSv = new SinhVien { MaSV = "SV2025001", HoTen = "Nguyễn Văn An", LopSinhHoat = "21CNTT1", KhoaHoc = "K21" };
+
+            ctx.HocKys.Add(hk);
+            ctx.MonHocs.Add(mon);
+            ctx.LopHocPhans.Add(lhp);
+            ctx.SinhViens.Add(existingSv);
+            await ctx.SaveChangesAsync();
+        }
+
+        // Cùng 1 SV lặp nhiều dòng + khác hoa/thường + khoảng trắng (tình huống file tổng hợp ĐKHP)
+        var items = new List<SinhVienImportPreviewDto>
+        {
+            new SinhVienImportPreviewDto { MaSV = "sv2025001 ", HoTen = "Nguyễn Văn An", LopSinhHoat = "21CNTT1", TrangThaiXacThuc = "HopLe", IsSelected = true },
+            new SinhVienImportPreviewDto { MaSV = "SV2025001", HoTen = "Nguyễn Văn An", LopSinhHoat = "21CNTT1", TrangThaiXacThuc = "HopLe", IsSelected = true },
+            new SinhVienImportPreviewDto { MaSV = "2212999", HoTen = "Trần Thị Mới", LopSinhHoat = "CTK46A", KhoaHoc = "K46", TrangThaiXacThuc = "HopLe", IsSelected = true },
+            new SinhVienImportPreviewDto { MaSV = "2212999", HoTen = "Trần Thị Mới", LopSinhHoat = "CTK46A", KhoaHoc = "K46", TrangThaiXacThuc = "HopLe", IsSelected = true }
+        };
+
+        var result = await _service.EnrollStudentsAsync("HK261", "261CS10101", items, tuDongTaoSv: true);
+
+        Assert.Equal(2, result.ThanhCong);
+        Assert.Equal(2, result.BoQua);
+        Assert.Equal(1, result.SoSinhVienMoiTao);
+        Assert.Equal(0, result.Loi);
+
+        using (var ctx = new AppDbContext(_options))
+        {
+            var countDk = await ctx.DangKyHocPhans.CountAsync(dk => dk.MaLHP == "261CS10101" && dk.TrangThai == "DangHoc");
+            Assert.Equal(2, countDk);
+        }
+    }
+
+    [Fact]
+    public async Task EnrollStudentsAsync_DisallowDuplicateCourse_SkipsStudentInSameSubject()
+    {
+        using (var ctx = new AppDbContext(_options))
+        {
+            var hk = new HocKy { MaHocKy = "HK261", TenHocKy = "Học kỳ 1 2026", DangMo = true };
+            var mon = new MonHoc { MaMon = "CS101", TenMon = "Lập trình Web" };
+            var lhp1 = new LopHocPhan { MaLHP = "261CS10101", MaMon = "CS101", MaHocKy = "HK261" };
+            var lhp2 = new LopHocPhan { MaLHP = "261CS10102", MaMon = "CS101", MaHocKy = "HK261" };
+            var sv = new SinhVien { MaSV = "2100001", HoTen = "Nguyễn Văn A" };
+            var dk = new DangKyHocPhan { MaSV = "2100001", MaLHP = "261CS10101", TrangThai = "DangHoc", HinhThucDK = "KH" };
+
+            ctx.HocKys.Add(hk);
+            ctx.MonHocs.Add(mon);
+            ctx.LopHocPhans.AddRange(lhp1, lhp2);
+            ctx.SinhViens.Add(sv);
+            ctx.DangKyHocPhans.Add(dk);
+            await ctx.SaveChangesAsync();
+        }
+
+        var items = new List<SinhVienImportPreviewDto>
+        {
+            new SinhVienImportPreviewDto { MaSV = "2100001", HoTen = "Nguyễn Văn A", TrangThaiXacThuc = "HopLe", IsSelected = true }
+        };
+
+        var result = await _service.EnrollStudentsAsync("HK261", "261CS10102", items, tuDongTaoSv: true, boQuaTrungMon: false);
+
+        Assert.Equal(0, result.ThanhCong);
+        Assert.Equal(1, result.BoQua);
+        Assert.Contains("Đã đăng ký cùng môn CS101", result.ThongBao);
+    }
+
+    [Fact]
+    public async Task ParseExcelStreamAsync_ManyToManyStudentAndCourses_ReadsAndEnrollsAllCoursesForSameStudent()
+    {
+        using var wb = new ClosedXML.Excel.XLWorkbook();
+        var ws = wb.Worksheets.Add("CT");
+        ws.Cell(1, 1).Value = "Mã SV";
+        ws.Cell(1, 2).Value = "Tên SV";
+        ws.Cell(1, 3).Value = "Lớp sinh hoạt";
+        ws.Cell(1, 4).Value = "Khóa Học";
+        ws.Cell(1, 5).Value = "Mã môn";
+        ws.Cell(1, 6).Value = "Tên môn";
+        ws.Cell(1, 7).Value = "Mã LHP";
+        ws.Cell(1, 8).Value = "Số TC";
+
+        // Cùng 1 sinh viên đăng ký 3 học phần khác nhau (quan hệ nhiều-nhiều)
+        ws.Cell(2, 1).Value = "SV2025001";
+        ws.Cell(2, 2).Value = "Nguyễn Văn An";
+        ws.Cell(2, 3).Value = "21CNTT1";
+        ws.Cell(2, 4).Value = "K2021";
+        ws.Cell(2, 5).Value = "INT101";
+        ws.Cell(2, 6).Value = "Lập trình C/C++";
+        ws.Cell(2, 7).Value = "LHP_INT101_01";
+        ws.Cell(2, 8).Value = 3;
+
+        ws.Cell(3, 1).Value = "SV2025001";
+        ws.Cell(3, 2).Value = "Nguyễn Văn An";
+        ws.Cell(3, 3).Value = "21CNTT1";
+        ws.Cell(3, 4).Value = "K2021";
+        ws.Cell(3, 5).Value = "INT102";
+        ws.Cell(3, 6).Value = "Cấu trúc dữ liệu";
+        ws.Cell(3, 7).Value = "LHP_INT102_01";
+        ws.Cell(3, 8).Value = 4;
+
+        ws.Cell(4, 1).Value = "SV2025001";
+        ws.Cell(4, 2).Value = "Nguyễn Văn An";
+        ws.Cell(4, 3).Value = "21CNTT1";
+        ws.Cell(4, 4).Value = "K2021";
+        ws.Cell(4, 5).Value = "INT103";
+        ws.Cell(4, 6).Value = "Cơ sở dữ liệu";
+        ws.Cell(4, 7).Value = "LHP_INT103_01";
+        ws.Cell(4, 8).Value = 3;
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        ms.Position = 0;
+
+        var parsed = await _service.ParseExcelStreamAsync(ms);
+        Assert.Equal(3, parsed.Count);
+        Assert.Equal("SV2025001", parsed[0].MaSV);
+        Assert.Equal("Nguyễn Văn An", parsed[0].HoTen);
+        Assert.Equal("INT101", parsed[0].MaMon);
+        Assert.Equal("LHP_INT101_01", parsed[0].MaLHP);
+        Assert.Equal("INT102", parsed[1].MaMon);
+        Assert.Equal("LHP_INT102_01", parsed[1].MaLHP);
+        Assert.Equal("INT103", parsed[2].MaMon);
+        Assert.Equal("LHP_INT103_01", parsed[2].MaLHP);
+
+        using (var ctx = new AppDbContext(_options))
+        {
+            ctx.HocKys.Add(new HocKy { MaHocKy = "HK261", TenHocKy = "HK 261", DangMo = true });
+            await ctx.SaveChangesAsync();
+        }
+
+        // Kiểm chứng: cả 3 dòng của cùng 1 SV cho 3 môn khác nhau đều phải Hợp Lệ (0 lỗi trùng)
+        var insights = await _service.AnalyzeAndValidateAsync("HK261", "", parsed, tuDongTaoSv: true);
+        Assert.Equal(3, insights.SoLuongHopLe);
+        Assert.Equal(0, insights.SoLuongLoi);
+        Assert.All(parsed, item => Assert.True(item.IsHopLe && item.IsSelected));
+
+        // Thực thi nạp: tạo 1 SinhVien, 3 MonHoc, 3 LopHocPhan và 3 DangKyHocPhan
+        var enrollResult = await _service.EnrollStudentsAsync("HK261", "", parsed, tuDongTaoSv: true);
+        Assert.Equal(3, enrollResult.ThanhCong);
+        Assert.Equal(1, enrollResult.SoSinhVienMoiTao);
+        Assert.Equal(3, enrollResult.SoMonHocMoiTao);
+        Assert.Equal(3, enrollResult.SoLopHocPhanMoiTao);
+        Assert.Equal(0, enrollResult.Loi);
+
+        using (var ctx = new AppDbContext(_options))
+        {
+            Assert.Equal(1, await ctx.SinhViens.CountAsync(s => s.MaSV == "SV2025001"));
+            Assert.Equal(3, await ctx.DangKyHocPhans.CountAsync(d => d.MaSV == "SV2025001" && d.TrangThai == "DangHoc"));
+        }
+    }
 }

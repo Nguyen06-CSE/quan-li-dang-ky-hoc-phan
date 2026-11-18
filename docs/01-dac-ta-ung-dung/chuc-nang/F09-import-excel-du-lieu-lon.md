@@ -41,32 +41,36 @@ flowchart TD
     Recalc --> Notify["Phát sóng DataImportedNotificationMessage làm tươi các màn hình"]
 ```
 
-### 2.1. Dán Trực Tiếp Từ Bộ Nhớ Tạm (Clipboard Paste `Ctrl + V`)
-* Giảng viên chỉ cần bôi đen danh sách MSSV và Họ tên trên Excel, Google Sheets, danh sách điểm danh Zalo rồi nhấn `Ctrl + C`.
-* Chuyển vào ứng dụng, bấm nút **"Dán từ Clipboard (Ctrl + V)"**. Hệ thống tự động bóc tách các dòng và các ô dựa trên ký tự ngăn cách: Tab (`\t`), Phẩy (`,`), Chấm phẩy (`;`), hoặc dấu xuống dòng.
-* Tự động nhận diện dòng tiêu đề hoặc suy luận thông minh khi người dùng dán dữ liệu thô không có header:
+### 2.1. Dán Trực Tiếp Từ Bộ Nhớ Tạm & Đọc Đa Định Dạng Quan Hệ Nhiều-Nhiều (`SinhVien` - `MonHoc` - `LopHocPhan`)
+* Giảng viên chỉ cần bôi đen danh sách MSSV và Họ tên trên Excel, Google Sheets, danh sách điểm danh Zalo rồi nhấn `Ctrl + C`, hoặc chọn trực tiếp tệp `.xlsx`, `.xls`, `.csv`.
+* Chuyển vào ứng dụng, bấm nút **"Dán từ Clipboard (Ctrl + V)"** hoặc **"Chọn File Excel / CSV..."**. Hệ thống tự động bóc tách các dòng và các ô dựa trên ký tự ngăn cách: Tab (`\t`), Phẩy (`,`), Chấm phẩy (`;`), hoặc dấu xuống dòng.
+* **Hỗ trợ đầy đủ mối quan hệ Nhiều - Nhiều (Many-to-Many):**
+  - Một sinh viên (`MaSV`, `HoTen`, `LopSinhHoat`, `KhoaHoc`) có thể xuất hiện lặp lại trên nhiều dòng trong cùng một tệp với các môn học (`MaMon`, `TenMon`, `SoTC`) và lớp học phần (`MaLHP`) khác nhau mà **không bị báo lỗi trùng MSSV**.
+  - Bộ phân tích chỉ kiểm tra trùng lặp theo cặp khóa kết hợp `(MaSV, MaLHP)`: chỉ khi cùng một sinh viên đăng ký trùng đúng một mã lớp học phần trên 2 dòng mới được đánh dấu là dòng trùng.
+* Tự động nhận diện dòng tiêu đề (quét thông minh tối đa 10 dòng đầu) hoặc suy luận khi người dùng dán dữ liệu thô không có header:
+  - Nhận diện linh hoạt các biến thể tên cột: *"Mã SV"*, *"MSSV"*, *"Tên SV"*, *"Họ và tên"*, *"Lớp sinh hoạt"*, *"Khóa học"*, *"Mã môn"*, *"Tên môn"*, *"Mã LHP"*, *"Số TC"*, *"Mã GV"*, *"Tên GV"*, *"Điểm số"*, *"Điểm chữ"*, *"Đã đóng"*, *"Phải đóng"*.
   - Nếu có cột "Họ đệm" và "Tên", hệ thống tự động ghép lại thành "Họ và tên" đầy đủ chuẩn tiếng Việt.
   - Tự động suy luận Khóa học (`K45`, `K46`, `K47`...) từ 2 chữ số đầu của MSSV (VD: `2100011` $\rightarrow$ `K21` hoặc `K45`).
 
 ### 2.2. Trợ Lý Trực Quan Class Insights & Phát Hiện Xung Đột (Đề Xuất 3)
-Ngay khi danh sách được nạp vào, giao diện hiển thị 4 bảng thẻ trực quan:
+Ngay khi danh sách được nạp vào, giao diện hiển thị 4 bảng thẻ trực quan kèm dải thông báo trạng thái toàn chiều rộng (`Smart Status Banner`):
 1. **Sĩ số & Sức chứa:** Hiển thị sĩ số hiện tại, sĩ số dự kiến sau khi nạp, tỷ lệ lấp đầy lớp (ProgressBar) và cảnh báo đỏ nếu vượt quá `SiSoToiDa`.
-2. **Kiểm tra Hợp lệ:** Phân tách rõ ràng số lượng sinh viên hợp lệ sẵn sàng nạp, số sinh viên đã có trong lớp (tự động bỏ chọn tránh trùng lặp) và số dòng lỗi/thiếu thông tin.
+2. **Kiểm tra Hợp lệ:** Phân tách rõ ràng số lượng dòng đăng ký hợp lệ sẵn sàng nạp, số đăng ký đã tồn tại trong lớp (tự động bỏ chọn tránh trùng lặp) và số dòng lỗi/thiếu thông tin.
 3. **Cảnh báo Xung đột TKB & Trùng môn:**
    - **Xung đột lịch học:** Tự động đối chiếu với toàn bộ thời khóa biểu các lớp khác của sinh viên trong cùng học kỳ. Nếu trùng `Thu` và khoảng tiết `[TietBatDau, TietBatDau + SoTiet - 1]` giao nhau, hệ thống gắn huy hiệu màu vàng cam và thông báo chi tiết mã lớp học phần bị trùng.
    - **Trùng môn học:** Phát hiện sinh viên đã đăng ký một lớp học phần khác của cùng môn học này trong kỳ.
-4. **Cơ cấu Lớp & Khóa học:** Liệt kê tỷ lệ phân bổ sinh viên theo lớp sinh hoạt (VD: `CTK45A`, `CTK45B`) và khóa học để giảng viên nắm rõ đặc điểm người học trong lớp.
+4. **Cơ cấu Lớp & Khóa học:** Thống kê theo số lượng sinh viên duy nhất (`Distinct MaSV`) theo lớp sinh hoạt (VD: `CTK45A`, `CTK45B`) và khóa học để giảng viên nắm rõ đặc điểm người học trong lớp.
 
 ### 2.3. Chỉnh Sửa Trực Tiếp Trên Bảng Xem Trước (Inline Editing)
-* Bảng DataGrid cho phép giảng viên nhấp chuột trực tiếp vào các ô `Mã Sinh Viên`, `Họ và Tên`, `Lớp Sinh Hoạt`, `Khóa Học` để gõ sửa lỗi sai ngay tại chỗ mà không cần xuất/mở lại file Excel.
+* Bảng DataGrid hiển thị đầy đủ các cột `Mã Sinh Viên`, `Họ và Tên`, `Lớp Sinh Hoạt`, `Khóa`, `Mã Môn`, `Tên Môn Học`, `Mã Lớp HP`, `Số TC`, cho phép giảng viên nhấp chuột trực tiếp vào từng ô để sửa lỗi sai ngay tại chỗ mà không cần xuất/mở lại file Excel.
 * Nút **"🔄 Kiểm chứng lại"** cho phép tính toán lại các chỉ số ngay tức thì sau khi người dùng sửa lỗi.
 
-### 2.4. Nạp Sinh Viên Đồng Thời & Tính Lại Học Phí Tự Động
-* Thực thi trong 1 `Database Transaction` an toàn:
-  - Nếu tùy chọn *"Tự động tạo hồ sơ sinh viên"* được chọn, hệ thống tự động khởi tạo hồ sơ `SinhVien` trong danh mục toàn trường nếu mã SV chưa từng xuất hiện.
-  - Tự động phục hồi các bản ghi sinh viên hoặc đăng ký đã bị xóa mềm trước đó.
-  - Sau khi nạp đăng ký thành công, hệ thống tự động kích hoạt tính toán lại học phí qua `IHocPhiService.TinhLaiHocPhiAsync` cho toàn bộ sinh viên được nạp.
-  - Phát sóng thông báo `DataImportedNotificationMessage` qua MediatR/CommunityToolkit Messenger để làm tươi thời gian thực danh sách lớp ở tab *Học kỳ / LHP*, *Đăng ký học phần* và *Học phí*.
+### 2.4. Nạp Sinh Viên Đa Lớp Đồng Thời (Many-to-Many Upsert) & Tính Lại Học Phí Tự Động
+* Thực thi trong 1 `Database Transaction` an toàn trên SQLite Local:
+  - **Tự động khởi tạo / cập nhật danh mục:** Tự động tạo mới hoặc khôi phục xóa mềm (`IsDeleted = false`) cho `MonHoc`, `LopHocPhan` (theo từng `MaLHP` trên từng dòng hoặc lớp đích trên thanh công cụ) và hồ sơ `SinhVien` (gộp duy nhất 1 bản ghi cho mỗi `MaSV` dù xuất hiện ở nhiều dòng môn học).
+  - **Ghi nhận đăng ký học phần (`DangKyHocPhan`):** Tạo mới hoặc cập nhật trạng thái `DangHoc`, điểm số và học phí cho từng cặp `(MaSV, MaLHP)` hợp lệ, đồng thời cập nhật lại `SiSoHienTai` chuẩn xác cho mọi lớp học phần bị ảnh hưởng.
+  - Sau khi nạp đăng ký thành công, hệ thống tự động kích hoạt tính toán lại học phí hàng loạt qua `IHocPhiService.TinhLaiHocPhiHangLoatAsync` (hoặc `TinhLaiHocPhiAsync`) cho toàn bộ sinh viên được nạp.
+  - Phát sóng thông báo `DataImportedNotificationMessage` qua CommunityToolkit Messenger để làm tươi thời gian thực danh sách ở tab *Sinh viên*, *Học kỳ / LHP*, *Đăng ký học phần* và *Học phí*.
 
 ---
 
@@ -110,4 +114,4 @@ Dành cho phòng đào tạo hoặc giáo vụ xử lý tập tin lớn toàn tr
   - `src/QuanLyDKHP.Core/Interfaces/ISmartImportService.cs`
   - `src/QuanLyDKHP.Infrastructure/Services/SmartImportService.cs`
 * **Tầng hạ tầng 21 cột:** `src/QuanLyDKHP.Infrastructure/Repositories/ImportExcelRepository.cs`, `src/QuanLyDKHP.Services/ImportExcelService.cs`.
-* **Kiểm thử tự động (81 tests passed):** `tests/QuanLyDKHP.Tests/SmartImportServiceTests.cs`, `tests/QuanLyDKHP.Tests/ImportExcelServiceTests.cs`.
+* **Kiểm thử tự động (86 tests passed):** `tests/QuanLyDKHP.Tests/SmartImportServiceTests.cs`, `tests/QuanLyDKHP.Tests/ImportExcelServiceTests.cs`.

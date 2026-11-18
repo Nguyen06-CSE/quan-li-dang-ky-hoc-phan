@@ -11,6 +11,23 @@
         <Style Selector="DataGridColumnHeader TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
+        <Style Selector="Border.smart-status-banner">
+            <Setter Property="Background" Value="{DynamicResource BrushBadgeSuccessBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBadgeSuccessBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+        <Style Selector="Border.smart-status-banner.error">
+            <Setter Property="Background" Value="{DynamicResource BrushBadgeDangerBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBadgeDangerBorder}" />
+        </Style>
+        <Style Selector="TextBlock.smart-status-text">
+            <Setter Property="Foreground" Value="{DynamicResource BrushBadgeSuccessFg}" />
+        </Style>
+        <Style Selector="TextBlock.smart-status-text.error">
+            <Setter Property="Foreground" Value="{DynamicResource BrushBadgeDangerFg}" />
+        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*" Margin="24">
@@ -46,74 +63,92 @@
                         <TextBlock Text="Nạp sinh viên vào lớp (Smart Studio)" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
-                <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="0,14,0,0">
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,14,0,0">
 
-                    <!-- 1. Toolbar Chọn Học kỳ & Lớp Học Phần & Nút Nạp Dữ Liệu -->
+                    <!-- 1. Toolbar Chọn Học kỳ & Lớp Học Phần & Nút Nạp Dữ Liệu (2 hàng responsive chống tràn) -->
                     <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,12">
-                        <Grid ColumnDefinitions="Auto,265,16,Auto,280,*,Auto" VerticalAlignment="Center">
-                            <!-- Chọn học kỳ (Nới từ 200 lên 265 để không lấn badge ĐANG MỞ) -->
-                            <TextBlock Grid.Column="0" Text="Học kỳ:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding DsHocKy}"
-                                      SelectedItem="{Binding HocKyDangChon}"
-                                      HorizontalAlignment="Stretch" Height="38">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate DataType="entities:HocKy">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <TextBlock Text="{Binding TenHocKy}" VerticalAlignment="Center"/>
-                                            <Border Background="{DynamicResource BrushSuccess}" CornerRadius="3" Padding="5,1" IsVisible="{Binding DangMo}" VerticalAlignment="Center">
-                                                <TextBlock Text="ĐANG MỞ" FontSize="9" Foreground="White" FontWeight="Bold"/>
-                                            </Border>
+                            BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="0,0,0,10">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                            <!-- Hàng 1: Học kỳ & Lớp học phần đích -->
+                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,16,Auto,1.25*" VerticalAlignment="Center">
+                                <TextBlock Grid.Column="0" Text="Học kỳ:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding DsHocKy}"
+                                          SelectedItem="{Binding HocKyDangChon}"
+                                          HorizontalAlignment="Stretch" Height="38">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate DataType="entities:HocKy">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding TenHocKy}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                <Border Background="{DynamicResource BrushSuccess}" CornerRadius="3" Padding="5,1" IsVisible="{Binding DangMo}" VerticalAlignment="Center">
+                                                    <TextBlock Text="ĐANG MỞ" FontSize="9" Foreground="White" FontWeight="Bold"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource BrushDanger}" CornerRadius="3" Padding="5,1" IsVisible="{Binding !DangMo}" VerticalAlignment="Center">
+                                                    <TextBlock Text="ĐÃ ĐÓNG" FontSize="9" Foreground="White" FontWeight="Bold"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+
+                                <TextBlock Grid.Column="3" Text="Lớp HP đích:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <ComboBox Grid.Column="4" ItemsSource="{Binding DsLopHocPhan}"
+                                          SelectedItem="{Binding LhpDangChon}"
+                                          HorizontalAlignment="Stretch" Height="38"
+                                          PlaceholderText="Chọn lớp học phần muốn nạp...">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate DataType="entities:LopHocPhan">
+                                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding MaLHP}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <TextBlock Text="—" Foreground="{DynamicResource BrushTextSecondary}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding MonHoc.TenMon}" Foreground="{DynamicResource BrushTextSecondary}"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="220" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+
+                            <!-- Hàng 2: Nhóm nút hành động dùng WrapPanel để không bao giờ bị cắt ở mép phải -->
+                            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                <WrapPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Button Command="{Binding DanTuClipboardCommand}"
+                                            IsEnabled="{Binding !IsBusySmart}"
+                                            Classes="btn-primary" Height="36" Padding="14,0" CornerRadius="8" Margin="0,0,8,4"
+                                            ToolTip.Tip="Dán trực tiếp danh sách sinh viên copy từ Excel/Sheets/Zalo (Ctrl + V)">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <materialIcons:MaterialIcon Kind="ContentPaste" Width="16" Height="16" />
+                                            <TextBlock Text="Dán từ Clipboard (Ctrl + V)" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" />
                                         </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                                    </Button>
 
-                            <!-- Chọn Lớp học phần -->
-                            <TextBlock Grid.Column="3" Text="Lớp HP đích:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ComboBox Grid.Column="4" ItemsSource="{Binding DsLopHocPhan}"
-                                      SelectedItem="{Binding LhpDangChon}"
-                                      HorizontalAlignment="Stretch" Height="38"
-                                      PlaceholderText="Chọn lớp học phần muốn nạp...">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate DataType="entities:LopHocPhan">
-                                        <TextBlock Text="{Binding MaLHP}" VerticalAlignment="Center" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                                    <Button Command="{Binding ChonFileSmartImportCommand}"
+                                            IsEnabled="{Binding !IsBusySmart}"
+                                            Classes="btn-secondary" Height="36" Padding="14,0" CornerRadius="8" Margin="0,0,8,4"
+                                            ToolTip.Tip="Chọn file Excel (.xlsx) hoặc CSV (.csv) danh sách sinh viên để nạp">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <materialIcons:MaterialIcon Kind="FileExcelOutline" Width="16" Height="16" />
+                                            <TextBlock Text="Chọn File Excel / CSV..." FontSize="12.5" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </WrapPanel>
 
-                            <!-- Nhóm nút hành động: Dán Clipboard, Chọn File, Làm lại -->
-                            <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="8">
-                                <Button Command="{Binding DanTuClipboardCommand}"
-                                        Classes="btn-primary" Height="38" Padding="16,0" CornerRadius="8"
-                                        ToolTip.Tip="Dán trực tiếp danh sách sinh viên copy từ Excel/Sheets/Zalo (Ctrl + V)">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <materialIcons:MaterialIcon Kind="ContentPaste" Width="16" Height="16" />
-                                        <TextBlock Text="Dán từ Clipboard (Ctrl + V)" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Command="{Binding ChonFileSmartImportCommand}"
-                                        Classes="btn-secondary" Height="38" Padding="14,0" CornerRadius="8"
-                                        ToolTip.Tip="Chọn file Excel danh sách lớp để nạp">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <materialIcons:MaterialIcon Kind="FileExcelOutline" Width="16" Height="16" />
-                                        <TextBlock Text="Chọn File Excel..." FontSize="13" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Command="{Binding XoaDanhSachPreviewCommand}"
-                                        Classes="btn-secondary" Height="38" Padding="10,0" CornerRadius="8"
+                                <Button Grid.Column="1"
+                                        Command="{Binding XoaDanhSachPreviewCommand}"
+                                        IsEnabled="{Binding !IsBusySmart}"
+                                        Classes="btn-secondary" Height="36" Padding="12,0" CornerRadius="8" Margin="8,0,0,4"
                                         ToolTip.Tip="Xóa danh sách xem trước">
-                                    <materialIcons:MaterialIcon Kind="DeleteSweepOutline" Width="18" Height="18" Foreground="{DynamicResource BrushDanger}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <materialIcons:MaterialIcon Kind="DeleteSweepOutline" Width="17" Height="17" Foreground="{DynamicResource BrushDanger}" />
+                                        <TextBlock Text="Xóa bảng" FontSize="12.5" Foreground="{DynamicResource BrushDanger}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
                                 </Button>
-                            </StackPanel>
+                            </Grid>
                         </Grid>
                     </Border>
 
                     <!-- 2. Class Insights & Thống Kê Phân Tích -->
                     <Border Grid.Row="1" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,12"
+                            BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,0,0,10"
                             IsVisible="{Binding Insights, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <Grid ColumnDefinitions="*,*,*,*">
                             <!-- Thẻ 1: Sĩ số & Sức chứa lớp -->
@@ -153,7 +188,7 @@
                                         </StackPanel>
                                         <StackPanel>
                                             <TextBlock Text="{Binding Insights.SoLuongLoi, StringFormat='{}{0}'}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource BrushDanger}" />
-                                            <TextBlock Text="Lỗi/thiếu" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}" />
+                                            <TextBlock Text="Lỗi/trùng" FontSize="12" Foreground="{DynamicResource BrushTextSecondary}" />
                                         </StackPanel>
                                     </StackPanel>
                                     <TextBlock Text="Có thể sửa trực tiếp trên bảng" FontSize="11" Foreground="{DynamicResource BrushTextSecondary}" />
@@ -192,8 +227,11 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="coreDtos:ThongKeCoCauDto">
                                                 <Grid ColumnDefinitions="*,Auto" Margin="0,1">
-                                                    <TextBlock Grid.Column="0" Text="{Binding TenNhom}" FontSize="12" Foreground="{DynamicResource BrushTextPrimary}" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding SoLuong, StringFormat='{}{0} SV'}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource BrushTextSecondary}" />
+                                                    <TextBlock Grid.Column="0" Text="{Binding TenNhom}" FontSize="12"
+                                                               Foreground="{DynamicResource BrushTextPrimary}"
+                                                               TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding SoLuong, StringFormat='{}{0} SV'}" FontSize="12"
+                                                               FontWeight="SemiBold" Foreground="{DynamicResource BrushTextSecondary}" />
                                                 </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -203,35 +241,63 @@
                         </Grid>
                     </Border>
 
+                    <!-- 2.5. Thanh Thông Báo Kết Quả / Lỗi & Tiến Trình Rõ Ràng (Không bị bóp nghẹt) -->
+                    <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,0,10">
+                        <ProgressBar IsIndeterminate="True" Height="3" CornerRadius="2"
+                                     IsVisible="{Binding IsBusySmart}"
+                                     Foreground="{DynamicResource BrushPrimary}" Background="{DynamicResource BrushBorder}" />
+
+                        <Border Classes="smart-status-banner"
+                                Classes.error="{Binding IsStatusSmartError}"
+                                IsVisible="{Binding StatusSmartMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <StackPanel Spacing="6">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <materialIcons:MaterialIcon Grid.Column="0" Kind="CheckCircleOutline" Width="18" Height="18"
+                                                                Foreground="{DynamicResource BrushBadgeSuccessFg}"
+                                                                IsVisible="{Binding !IsStatusSmartError}"
+                                                                VerticalAlignment="Top" Margin="0,1,8,0" />
+                                    <materialIcons:MaterialIcon Grid.Column="0" Kind="AlertCircleOutline" Width="18" Height="18"
+                                                                Foreground="{DynamicResource BrushBadgeDangerFg}"
+                                                                IsVisible="{Binding IsStatusSmartError}"
+                                                                VerticalAlignment="Top" Margin="0,1,8,0" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding StatusSmartMessage}"
+                                               Classes="smart-status-text"
+                                               Classes.error="{Binding IsStatusSmartError}"
+                                               FontSize="13" FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding SmartResultDetailSummary}"
+                                           IsVisible="{Binding HasSmartResultErrors}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource BrushTextPrimary}"
+                                           TextWrapping="Wrap"
+                                           Margin="26,0,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
                     <!-- 3. Bảng Xem Trước Dữ Liệu & Chỉnh Sửa Trực Tiếp (Inline Editing DataGrid) -->
-                    <Border Grid.Row="2" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+                    <Border Grid.Row="3" Background="{DynamicResource BrushBackground}" BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" CornerRadius="10" ClipToBounds="True" MinHeight="200">
                         <Grid RowDefinitions="Auto,*">
                             <!-- Thanh tiêu đề bảng xem trước + chọn/bỏ chọn -->
                             <Border Grid.Row="0" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
                                     BorderThickness="0,0,0,1" Padding="14,10">
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                        <TextBlock Text="Danh Sách Xem Trước &amp; Chỉnh Sửa Nhanh" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                                        <Border Background="{DynamicResource BrushBorder}" CornerRadius="10" Padding="8,2">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Danh Sách Xem Trước &amp; Chỉnh Sửa Nhanh" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Margin="0,2,10,2"/>
+                                        <Border Background="{DynamicResource BrushBorder}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" Margin="0,2,10,2">
                                             <TextBlock Text="{Binding DanhSachPreview.Count, StringFormat='{}{0} dòng'}" FontSize="11" FontWeight="SemiBold" />
                                         </Border>
-                                        <Button Content="Chọn tất cả hợp lệ" Command="{Binding ChonTatCaCommand}" Classes="btn-secondary" Height="28" Padding="8,0" FontSize="11" />
-                                        <Button Content="Bỏ chọn tất cả" Command="{Binding BoChonTatCaCommand}" Classes="btn-secondary" Height="28" Padding="8,0" FontSize="11" />
-                                    </StackPanel>
+                                        <Button Content="Chọn tất cả hợp lệ" Command="{Binding ChonTatCaCommand}" Classes="btn-secondary" Height="28" Padding="10,0" FontSize="11.5" Margin="0,2,8,2" />
+                                        <Button Content="Bỏ chọn tất cả" Command="{Binding BoChonTatCaCommand}" Classes="btn-secondary" Height="28" Padding="10,0" FontSize="11.5" Margin="0,2,8,2" />
+                                    </WrapPanel>
 
-                                    <!-- Status Message Banner -->
-                                    <Border Grid.Column="1" Margin="16,0" VerticalAlignment="Center"
-                                            IsVisible="{Binding StatusSmartMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                            Background="{DynamicResource BrushCardBackground}" BorderBrush="{DynamicResource BrushBorder}"
-                                            BorderThickness="1" CornerRadius="6" Padding="10,4">
-                                        <TextBlock Text="{Binding StatusSmartMessage}" FontSize="12" FontWeight="Medium"
-                                                   Foreground="{DynamicResource BrushTextPrimary}" TextTrimming="CharacterEllipsis"/>
-                                    </Border>
-
-                                    <Button Grid.Column="2" Content="🔄 Kiểm chứng lại" Command="{Binding AnalyzeSmartListCommand}"
-                                            Classes="btn-secondary" Height="28" Padding="10,0" FontSize="11"
-                                            IsEnabled="{Binding !IsAnalyzing}" />
+                                    <Button Grid.Column="1" Content="🔄 Kiểm chứng lại" Command="{Binding AnalyzeSmartListCommand}"
+                                            Classes="btn-secondary" Height="28" Padding="12,0" FontSize="11.5"
+                                            IsEnabled="{Binding !IsBusySmart}" Margin="8,0,0,0" />
                                 </Grid>
                             </Border>
 
@@ -255,30 +321,58 @@
                                     </DataGridTextColumn>
 
                                     <!-- Mã SV (Editable) -->
-                                    <DataGridTextColumn Binding="{Binding MaSV}" Width="165" MinWidth="145">
+                                    <DataGridTextColumn Binding="{Binding MaSV}" Width="140" MinWidth="120">
                                         <DataGridTextColumn.Header>
                                             <TextBlock Text="Mã Sinh Viên" />
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
                                     <!-- Họ và Tên (Editable) -->
-                                    <DataGridTextColumn Binding="{Binding HoTen}" Width="240" MinWidth="190">
+                                    <DataGridTextColumn Binding="{Binding HoTen}" Width="210" MinWidth="170">
                                         <DataGridTextColumn.Header>
                                             <TextBlock Text="Họ và Tên" />
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
                                     <!-- Lớp Sinh Hoạt (Editable) -->
-                                    <DataGridTextColumn Binding="{Binding LopSinhHoat}" Width="165" MinWidth="145">
+                                    <DataGridTextColumn Binding="{Binding LopSinhHoat}" Width="135" MinWidth="115">
                                         <DataGridTextColumn.Header>
                                             <TextBlock Text="Lớp Sinh Hoạt" />
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
                                     <!-- Khóa Học (Editable) -->
-                                    <DataGridTextColumn Binding="{Binding KhoaHoc}" Width="135" MinWidth="120">
+                                    <DataGridTextColumn Binding="{Binding KhoaHoc}" Width="110" MinWidth="95">
                                         <DataGridTextColumn.Header>
                                             <TextBlock Text="Khóa Học" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <!-- Mã Môn (Editable) -->
+                                    <DataGridTextColumn Binding="{Binding MaMon}" Width="125" MinWidth="105">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Mã Môn" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <!-- Tên Môn Học (Editable) -->
+                                    <DataGridTextColumn Binding="{Binding TenMon}" Width="210" MinWidth="160">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Tên Môn Học" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <!-- Mã LHP (Editable) -->
+                                    <DataGridTextColumn Binding="{Binding MaLHP}" Width="155" MinWidth="130">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Mã Lớp HP" />
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <!-- Số TC -->
+                                    <DataGridTextColumn Binding="{Binding SoTC}" Width="85" MinWidth="75">
+                                        <DataGridTextColumn.Header>
+                                            <TextBlock Text="Số TC" />
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
@@ -331,29 +425,34 @@
                         </Grid>
                     </Border>
 
-                    <!-- 4. Khối Tùy Chọn & Nút Thực Thi Nạp Sinh Viên -->
-                    <Border Grid.Row="3" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
-                            BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="0,12,0,0">
+                    <!-- 4. Khối Tùy Chọn & Nút Thực Thi Nạp Sinh Viên (Xếp dọc CheckBox tránh tràn ngang) -->
+                    <Border Grid.Row="4" Background="{DynamicResource BrushSurfaceAlt}" BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="0,10,0,0">
                         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                            <!-- Tuỳ chọn nâng cao -->
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                                <CheckBox IsChecked="False"
+                            <!-- Tuỳ chọn nâng cao (đã bind TwoWay chuẩn xác) -->
+                            <StackPanel Grid.Column="0" Orientation="Vertical" Spacing="6" VerticalAlignment="Center" Margin="0,0,16,0">
+                                <CheckBox IsChecked="{Binding TuDongTaoSv, Mode=TwoWay}"
                                           Content="Tự động tạo hồ sơ sinh viên nếu chưa có trong danh mục trường"
-                                          FontWeight="Medium" FontSize="13" />
+                                          FontWeight="Medium" FontSize="12.5" />
 
-                                <CheckBox IsChecked="False"
+                                <CheckBox IsChecked="{Binding BoQuaTrungMon, Mode=TwoWay}"
                                           Content="Cho phép nạp dù đã đăng ký/học môn này (Học lại / Cải thiện)"
-                                          FontWeight="Medium" FontSize="13" />
+                                          FontWeight="Medium" FontSize="12.5" />
                             </StackPanel>
 
                             <!-- Nút Xác Nhận Nạp Sinh Viên -->
                             <Button Grid.Column="1"
                                     Command="{Binding XacNhanSmartEnrollCommand}"
-                                    IsEnabled="{Binding !IsEnrolling}"
-                                    Classes="btn-primary" Height="42" Padding="24,0" CornerRadius="8">
+                                    IsEnabled="{Binding !IsBusySmart}"
+                                    Classes="btn-primary" Height="42" Padding="22,0" CornerRadius="8" VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                     <materialIcons:MaterialIcon Kind="AccountMultiplePlus" Width="18" Height="18" />
-                                    <TextBlock Text="🚀 Xác Nhận Nạp Sinh Viên Vào Lớp" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
+                                    <TextBlock Text="🚀 Xác Nhận Nạp Sinh Viên Vào Lớp"
+                                               IsVisible="{Binding !IsEnrolling}"
+                                               FontWeight="Bold" FontSize="13.5" VerticalAlignment="Center" />
+                                    <TextBlock Text="Đang nạp vào CSDL..."
+                                               IsVisible="{Binding IsEnrolling}"
+                                               FontWeight="Bold" FontSize="13.5" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </Grid>

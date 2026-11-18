@@ -12,7 +12,7 @@ public class ExcelExportService : IExcelExportService
     public Task<byte[]> XuatExcelAsync<T>(string sheetName, IEnumerable<T> duLieu, List<(string TieuDe, Func<T, object?> LayGiaTri)> cotMap)
     {
         using var workbook = new XLWorkbook();
-        var worksheet = workbook.Worksheets.Add(string.IsNullOrWhiteSpace(sheetName) ? "Sheet1" : sheetName);
+        var worksheet = workbook.Worksheets.Add(SanitizeSheetName(sheetName));
 
         // 1. Header row
         for (int colIndex = 0; colIndex < cotMap.Count; colIndex++)
@@ -83,5 +83,21 @@ public class ExcelExportService : IExcelExportService
         using var ms = new MemoryStream();
         workbook.SaveAs(ms);
         return Task.FromResult(ms.ToArray());
+    }
+
+    private static string SanitizeSheetName(string? sheetName)
+    {
+        if (string.IsNullOrWhiteSpace(sheetName)) return "Sheet1";
+
+        char[] invalidChars = ['\\', '/', '?', '*', '[', ']', ':'];
+        var cleaned = new System.Text.StringBuilder(sheetName.Length);
+        foreach (char c in sheetName.Trim())
+        {
+            cleaned.Append(Array.IndexOf(invalidChars, c) >= 0 ? '_' : c);
+        }
+
+        string result = cleaned.ToString().Trim('\'', ' ');
+        if (string.IsNullOrEmpty(result)) return "Sheet1";
+        return result.Length <= 31 ? result : result[..31];
     }
 }

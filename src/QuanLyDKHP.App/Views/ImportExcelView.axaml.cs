@@ -73,6 +73,7 @@ public partial class ImportExcelView : UserControl
         if (file != null)
         {
             await using var stream = await file.OpenWriteAsync();
+            if (stream.CanSeek) stream.SetLength(0);
             await stream.WriteAsync(data);
             return file.Path.LocalPath;
         }

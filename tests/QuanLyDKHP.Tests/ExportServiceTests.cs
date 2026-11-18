@@ -204,4 +204,23 @@ public class ExportServiceTests
         Assert.Equal((byte)'D', pdfBytes[2]);
         Assert.Equal((byte)'F', pdfBytes[3]);
     }
+
+    [Fact]
+    public async Task XuatExcelAsync_SanitizesInvalidAndLongSheetNames()
+    {
+        var data = new List<SinhVienDto>
+        {
+            new SinhVienDto { MaSV = "21001", HoTen = "Nguyễn Văn A" }
+        };
+        var columns = new List<(string TieuDe, Func<SinhVienDto, object?> LayGiaTri)>
+        {
+            ("Mã SV", x => x.MaSV),
+            ("Họ và tên", x => x.HoTen)
+        };
+
+        byte[] bytes = await _excelExportService.XuatExcelAsync("DSSV/HK:2025-2026*[DaiHocDaLat]_Qua31KyTu", data, columns);
+
+        Assert.NotNull(bytes);
+        Assert.True(bytes.Length > 100);
+    }
 }

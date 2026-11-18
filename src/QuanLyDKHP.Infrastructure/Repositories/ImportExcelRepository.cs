@@ -181,7 +181,11 @@ public class ImportExcelRepository : IImportExcelRepository
             ketQua.TenHocKy = targetHocKy.TenHocKy;
         }
 
-        var phien = await TaiCacheAsync(ctx, maHocKy, cancellationToken);
+        var fileLhpUpper = dong.Select(d => d.MaLHP.Trim().ToUpperInvariant())
+            .Where(m => !string.IsNullOrEmpty(m))
+            .Distinct()
+            .ToList();
+        var phien = await TaiCacheAsync(ctx, maHocKy, fileLhpUpper, cancellationToken);
         var svCanTinh = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         int daXuLy = 0;
@@ -363,7 +367,7 @@ public class ImportExcelRepository : IImportExcelRepository
 
     // ------------------------------------------------------------------ cache (không theo dõi thay đổi)
 
-    private static async Task<PhienImport> TaiCacheAsync(AppDbContext ctx, string maHocKy, CancellationToken ct)
+    private static async Task<PhienImport> TaiCacheAsync(AppDbContext ctx, string maHocKy, List<string> fileLhpUpper, CancellationToken ct)
     {
         var p = new PhienImport { Ctx = ctx, MaHocKy = maHocKy };
 
@@ -387,14 +391,14 @@ public class ImportExcelRepository : IImportExcelRepository
                 p.GvByTen.TryAdd(gv.HoTen.Trim().ToUpperInvariant(), gv);
         }
 
-        // Tải các đăng ký của học kỳ hiện tại để hỗ trợ Upsert
+        // Tải các đăng ký của học kỳ hiện tại VÀ các LHP xuất hiện trong file để hỗ trợ Upsert chính xác
         var lhpKeys = await ctx.LopHocPhans.AsNoTracking()
             .Where(lhp => lhp.MaHocKy == maHocKy)
             .Select(lhp => lhp.MaLHP)
             .ToListAsync(ct);
 
         var cacDk = await ctx.DangKyHocPhans.AsNoTracking()
-            .Where(dk => lhpKeys.Contains(dk.MaLHP))
+            .Where(dk => lhpKeys.Contains(dk.MaLHP) || fileLhpUpper.Contains(dk.MaLHP.ToUpper()))
             .ToListAsync(ct);
         foreach (var dk in cacDk)
         {
@@ -551,9 +555,37 @@ public class ImportExcelRepository : IImportExcelRepository
             hoanTac.Add(() => p.SvCache.Remove(svKey));
             tk.SvMoi++;
         }
-        else if (!string.Equals(sv.HoTen, d.TenSV, StringComparison.OrdinalIgnoreCase))
+        else
         {
-            CanhBao(tk, d, $"Họ tên SV trong file ('{d.TenSV}') khác tên hiện tại trong hệ thống ('{sv.HoTen}'). Giữ nguyên dữ liệu hiện có.");
+            if (sv.IsDeleted)
+            {
+                sv.IsDeleted = false;
+                sv.NgayCapNhat = DateTime.UtcNow;
+                var trackedSv = ctx.ChangeTracker.Entries<SinhVien>().FirstOrDefault(e => e.Entity.MaSV == sv.MaSV);
+                if (trackedSv != null)
+                {
+                    trackedSv.Entity.IsDeleted = false;
+                    trackedSv.Entity.NgayCapNhat = sv.NgayCapNhat;
+                    if (trackedSv.State != EntityState.Added)
+                    {
+                        trackedSv.Property(x => x.IsDeleted).IsModified = true;
+                        trackedSv.Property(x => x.NgayCapNhat).IsModified = true;
+                    }
+                }
+                else
+                {
+                    var stub = new SinhVien { MaSV = sv.MaSV, HoTen = sv.HoTen, IsDeleted = false, NgayCapNhat = sv.NgayCapNhat };
+                    ctx.SinhViens.Attach(stub);
+                    ctx.Entry(stub).Property(x => x.IsDeleted).IsModified = true;
+                    ctx.Entry(stub).Property(x => x.NgayCapNhat).IsModified = true;
+                }
+                hoanTac.Add(() => sv.IsDeleted = true);
+            }
+
+            if (!string.Equals(sv.HoTen, d.TenSV, StringComparison.OrdinalIgnoreCase))
+            {
+                CanhBao(tk, d, $"Họ tên SV trong file ('{d.TenSV}') khác tên hiện tại trong hệ thống ('{sv.HoTen}'). Giữ nguyên dữ liệu hiện có.");
+            }
         }
 
         // ---- 5. Upsert MonHoc
@@ -577,6 +609,31 @@ public class ImportExcelRepository : IImportExcelRepository
         }
         else
         {
+            if (mon.IsDeleted)
+            {
+                mon.IsDeleted = false;
+                mon.NgayCapNhat = DateTime.UtcNow;
+                var trackedMon = ctx.ChangeTracker.Entries<MonHoc>().FirstOrDefault(e => e.Entity.MaMon == mon.MaMon);
+                if (trackedMon != null)
+                {
+                    trackedMon.Entity.IsDeleted = false;
+                    trackedMon.Entity.NgayCapNhat = mon.NgayCapNhat;
+                    if (trackedMon.State != EntityState.Added)
+                    {
+                        trackedMon.Property(x => x.IsDeleted).IsModified = true;
+                        trackedMon.Property(x => x.NgayCapNhat).IsModified = true;
+                    }
+                }
+                else
+                {
+                    var stub = new MonHoc { MaMon = mon.MaMon, TenMon = mon.TenMon, IsDeleted = false, NgayCapNhat = mon.NgayCapNhat };
+                    ctx.MonHocs.Attach(stub);
+                    ctx.Entry(stub).Property(x => x.IsDeleted).IsModified = true;
+                    ctx.Entry(stub).Property(x => x.NgayCapNhat).IsModified = true;
+                }
+                hoanTac.Add(() => mon.IsDeleted = true);
+            }
+
             int tongTcHeThong = mon.SoTinChiLT + mon.SoTinChiTH;
             if (tongTcHeThong != soTC)
                 CanhBao(tk, d, $"Môn [{d.MaMon}] — {d.TenMon}: tổng số TC trong file ({soTC}) khác tổng TC hệ thống ({tongTcHeThong}). Giữ nguyên cấu hình hệ thống.", maMon: d.MaMon);
@@ -603,6 +660,31 @@ public class ImportExcelRepository : IImportExcelRepository
         }
         else
         {
+            if (lhp.IsDeleted)
+            {
+                lhp.IsDeleted = false;
+                lhp.NgayCapNhat = DateTime.UtcNow;
+                var trackedDeletedLhp = ctx.ChangeTracker.Entries<LopHocPhan>().FirstOrDefault(e => e.Entity.MaLHP == lhp.MaLHP);
+                if (trackedDeletedLhp != null)
+                {
+                    trackedDeletedLhp.Entity.IsDeleted = false;
+                    trackedDeletedLhp.Entity.NgayCapNhat = lhp.NgayCapNhat;
+                    if (trackedDeletedLhp.State != EntityState.Added)
+                    {
+                        trackedDeletedLhp.Property(x => x.IsDeleted).IsModified = true;
+                        trackedDeletedLhp.Property(x => x.NgayCapNhat).IsModified = true;
+                    }
+                }
+                else
+                {
+                    var stub = new LopHocPhan { MaLHP = lhp.MaLHP, MaMon = lhp.MaMon, MaHocKy = lhp.MaHocKy, IsDeleted = false, NgayCapNhat = lhp.NgayCapNhat };
+                    ctx.LopHocPhans.Attach(stub);
+                    ctx.Entry(stub).Property(x => x.IsDeleted).IsModified = true;
+                    ctx.Entry(stub).Property(x => x.NgayCapNhat).IsModified = true;
+                }
+                hoanTac.Add(() => lhp.IsDeleted = true);
+            }
+
             if (!string.Equals(lhp.MaHocKy, p.MaHocKy, StringComparison.OrdinalIgnoreCase))
                 CanhBao(tk, d, $"Lớp học phần [{lhp.MaLHP}] đang thuộc học kỳ '{lhp.MaHocKy}', không phải học kỳ đích '{p.MaHocKy}'.");
 
@@ -614,6 +696,8 @@ public class ImportExcelRepository : IImportExcelRepository
                 if (trackedLhp != null)
                 {
                     trackedLhp.Entity.MaGV = maGv;
+                    if (trackedLhp.State != EntityState.Added)
+                        trackedLhp.Property(x => x.MaGV).IsModified = true;
                 }
                 else
                 {
@@ -710,6 +794,16 @@ public class ImportExcelRepository : IImportExcelRepository
                     trackedDk.Entity.SoTienPhaiDong = existingDk.SoTienPhaiDong;
                     trackedDk.Entity.SoTienDaDong = existingDk.SoTienDaDong;
                     trackedDk.Entity.NgayCapNhat = existingDk.NgayCapNhat;
+                    if (trackedDk.State != EntityState.Added)
+                    {
+                        trackedDk.Property(x => x.DiemSo).IsModified = true;
+                        trackedDk.Property(x => x.DiemChu).IsModified = true;
+                        trackedDk.Property(x => x.NgayDK).IsModified = true;
+                        trackedDk.Property(x => x.NguoiDK).IsModified = true;
+                        trackedDk.Property(x => x.SoTienPhaiDong).IsModified = true;
+                        trackedDk.Property(x => x.SoTienDaDong).IsModified = true;
+                        trackedDk.Property(x => x.NgayCapNhat).IsModified = true;
+                    }
                 }
                 else
                 {

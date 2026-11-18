@@ -276,6 +276,20 @@ Quy trình phối hợp với AI Agent được chuẩn hóa theo mô hình 4 b�
 
 ---
 
+### Phiên 22: Nâng Cấp Smart Import Studio Quan Hệ Nhiều-Nhiều (`SinhVien` - `MonHoc` - `LopHocPhan`) Trên SQLite Local & Khắc Phục Giao Diện Nhập Xuất
+* **Thời gian:** 18/11/2026 14:25
+* **Tài liệu tham chiếu:** `ADR-27`, `F09-import-excel-du-lieu-lon.md`, `SmartImportService.cs`, `ImportExcelViewModel.cs`, `ImportExcelView.axaml`, `ImportExcelRepository.cs`
+* **Prompt chính đã thực hiện:**
+  > *"Trong phần import excel ở ngay tại phần xử lý logic đưa sinh viên từ trong danh sách vào database thì đang lỗi, có đổi dtb từ neon xuống local rồi, và khi nhập xong file, đọc xong nhưng nhập vô không được... Cái quan trọng nhất là xử lí cái nút xác nhận nạp sinh viên vào lớp nhe, vì khi tôi ấn nó ko hiện thành công hay thất bại gì cả, và cũng chẳng update lên dtb luôn... Bây giờ tôi muốn sửa lại logic của nhập học sinh như sau: mỗi học sinh sẽ đăng kí rất nhiều học phần và sẽ tái xuất hiện tên lớp khoá hay sao đó, nhưng hiện tại sẽ bị báo là lỗi trùng, tôi muốn khi đọc file xong thì nó sẽ đọc đủ tất cả luôn, mối quan hệ nhiều nhiều, sẽ gặp lại nhiều lần bởi mssv hay tên mà khác nhau là môn học các thứ."*
+* **Kết quả đạt được:**
+  * **Sửa triệt để nút "Xác Nhận Nạp Sinh Viên Vào Lớp" (`XacNhanSmartEnrollCommand`):** Tách hàm `AnalyzeSmartListInternalAsync(bool updateStatusBanner)` để thông báo kết quả nạp (`result.ThongBao`) không bị hàm tái kiểm chứng ghi đè; bổ sung dải `smart-status-banner` toàn chiều rộng trên `ImportExcelView.axaml` hiển thị rõ trạng thái thành công/thất bại kèm chi tiết lỗi.
+  * **Hỗ trợ đầy đủ mối quan hệ Nhiều - Nhiều (`SinhVien` ↔ `DangKyHocPhan` ↔ `LopHocPhan` / `MonHoc`):** Mở rộng `SmartImportService` nhận diện đầy đủ các cột môn học/lớp học phần (*Mã môn, Tên môn, Mã LHP, Số TC, Giảng viên, Điểm, Học phí*); kiểm tra trùng theo cặp khóa `(MaSV, MaLHP)` thay vì chỉ `MaSV` nên một sinh viên đăng ký nhiều học phần khác nhau trên nhiều dòng được đọc và nạp trọn vẹn 100% mà không báo lỗi trùng; tự động Upsert đồng bộ `MonHoc`, `LopHocPhan`, `SinhVien` và `DangKyHocPhan` trong 1 transaction SQLite Local.
+  * **Sửa lỗi cắt nút trên thanh công cụ & Rà soát toàn diện Nhập/Xuất:** Chia thanh công cụ Tab 1 thành 2 hàng co giãn (`WrapPanel`), hiển thị thêm cột `Mã Môn`, `Tên Môn Học`, `Mã Lớp HP`, `Số TC` trên bảng Preview, gắn binding `Mode=TwoWay` cho 2 checkbox `TuDongTaoSv` và `BoQuaTrungMon`, bổ sung `SanitizeSheetName` khi xuất Excel và `stream.SetLength(0)` khi ghi đè file.
+  * **Kiểm thử tự động:** Bổ sung 4 bài kiểm thử mới trong `SmartImportServiceTests.cs` và `ExportServiceTests.cs`, nâng tổng số Unit Tests lên **86/86 Passed (100%)**.
+  * Cập nhật đầy đủ tài liệu Docusaurus: `F09`, `ADR-27`, Báo cáo Unit Test (`86/86`), Commit History, Daily Log và Prompts log (ghi nhận thành viên **Liam / Lâm**).
+
+---
+
 ## 3. Tổng Kết Giá Trị Ứng Dụng AI Vào Đồ Án
 
 Việc ứng dụng AI Agent vào đồ án môn học mang lại hiệu quả vượt trội:

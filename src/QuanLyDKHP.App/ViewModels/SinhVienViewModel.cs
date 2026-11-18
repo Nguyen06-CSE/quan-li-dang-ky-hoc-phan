@@ -636,10 +636,24 @@ public partial class SinhVienViewModel : ObservableObject, IRecipient<DataImport
                 {
                     IsLoading = true;
                     ShowMessage("Đang đọc và import file Excel...", false);
-                    await using var stream = File.OpenRead(path);
+                    await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                     var result = await _importExcelService.ImportFileAsync(stream);
+                    if (_cacheStore != null)
+                    {
+                        try { await _cacheStore.InitializeAsync(forceReload: true); } catch { }
+                    }
                     await InitFiltersAndLoadMasterDataAsync();
-                    ShowMessage($"Import thành công: {result.SoDongThanhCong}/{result.TongSoDong} dòng ({result.SoSinhVienMoi} sinh viên mới)!", false);
+                    WeakReferenceMessenger.Default.Send(new DataImportedNotificationMessage(result));
+
+                    if (result.SoDongThanhCong == 0 && result.SoDongLoi > 0)
+                    {
+                        var firstErr = result.DanhSachLog.FirstOrDefault(l => l.LoaiLog == "Loi")?.NoiDung;
+                        ShowMessage($"Import thất bại ({result.SoDongLoi} dòng lỗi): {firstErr ?? "Vui lòng kiểm tra file đúng mẫu 21 cột hoặc dùng mục Import Excel (Smart Studio)."}", true);
+                    }
+                    else
+                    {
+                        ShowMessage($"Import hoàn tất: {result.SoDongThanhCong}/{result.TongSoDong} dòng thành công ({result.SoSinhVienMoi} sinh viên mới, {result.SoDongLoi} lỗi).", result.SoDongThanhCong == 0);
+                    }
                     return;
                 }
                 catch (Exception ex)

@@ -6,6 +6,32 @@ sidebar_position: 2
 
 # Nhật Ký Công Việc Hằng Ngày (Daily Logs)
 
+## 0AAAA. Nhật Ký Ngày 18/11/2026: Nâng Cấp Smart Import Studio Quan Hệ Nhiều-Nhiều (`SinhVien` - `MonHoc` - `LopHocPhan`) Trên SQLite Local & Khắc Phục Toàn Diện Giao Diện Nhập Xuất
+
+* **Thực hiện:** LIAM (LÂM)
+* **Nội dung trọng tâm:**
+  1. Khắc phục triệt để lỗi nút **"Xác Nhận Nạp Sinh Viên Vào Lớp"** (`XacNhanSmartEnrollCommand`) không hiển thị thông báo thành công/thất bại và không lưu dữ liệu xuống CSDL SQLite Local (`quanlydkhp.db`).
+  2. Nâng cấp toàn diện thuật toán đọc và nạp dữ liệu trong `SmartImportService` sang mô hình **Quan hệ Nhiều - Nhiều (`SinhVien` ↔ `DangKyHocPhan` ↔ `LopHocPhan` / `MonHoc`)**: cho phép một sinh viên xuất hiện nhiều lần trên nhiều dòng với các môn học / lớp học phần khác nhau mà không bị báo lỗi trùng MSSV, đồng thời tự động khởi tạo/cập nhật đồng bộ cả 4 thực thể (`MonHoc`, `LopHocPhan`, `SinhVien`, `DangKyHocPhan`).
+  3. Thiết kế lại thanh công cụ (`Toolbar`) 2 hàng co giãn (`WrapPanel`) và bổ sung dải thông báo kết quả toàn chiều rộng (`Smart Status Banner`) trên `ImportExcelView.axaml`, chấm dứt hiện tượng cắt cụt nút ở mép phải cửa sổ.
+  4. Rà soát và củng cố toàn bộ luồng Nhập/Xuất Excel & PDF (`ImportExcelRepository`, `SinhVienViewModel`, `ExcelExportService`, `SaveFileDialog` stream truncation).
+
+### Các kết quả đạt được
+1. **Xử lý nút "Xác Nhận Nạp Sinh Viên Vào Lớp" & Dải Thông Báo Trạng Thái (`ImportExcelViewModel` & `ImportExcelView.axaml`):**
+   * Tách biệt hàm `AnalyzeSmartListInternalAsync(bool updateStatusBanner)` để khi hệ thống tái kiểm chứng bảng sau khi nạp thành công vào SQLite, thông báo kết quả (`result.ThongBao`) và tóm tắt lỗi (`SmartResultDetailSummary`) được giữ nguyên trên giao diện thay vì bị ghi đè bởi dòng chữ *"Đã phân tích xong..."*.
+   * Bổ sung dải `smart-status-banner` toàn chiều rộng có tự động đổi màu xanh ngọc (thành công) / đỏ (lỗi), hỗ trợ `TextWrapping="Wrap"` và thanh tiến trình `ProgressBar` khi đang ghi CSDL.
+   * Liên kết 2 chiều (`Mode=TwoWay`) cho 2 ô tùy chọn `TuDongTaoSv` (*"Tự động tạo hồ sơ nếu SV chưa có trong hệ thống"*) và `BoQuaTrungMon` (*"Bỏ qua cảnh báo nếu SV đã học môn này ở lớp khác"*).
+2. **Nâng cấp Logic Nhập Học Sinh Quan Hệ Nhiều - Nhiều (`SmartImportService` & `SmartImportDtos`):**
+   * **Nhận diện đầy đủ các cột học phần:** Mở rộng `ProcessParsedMatrix` quét thông minh 10 dòng đầu tiên để nhận diện đồng thời nhóm cột sinh viên (*Mã SV, Họ tên, Lớp sinh hoạt, Khóa học*) và nhóm cột học phần (*Mã môn, Tên môn, Mã LHP, Số TC, Mã GV, Tên GV, Điểm số, Điểm chữ, Đã đóng, Phải đóng*).
+   * **Kiểm tra trùng lặp theo cặp khóa `(MaSV, MaLHP)`:** Trong `AnalyzeAndValidateAsync`, một sinh viên đăng ký 5-10 môn học khác nhau trên nhiều dòng được xác nhận `HopLe` toàn bộ; chỉ khi trùng cả `MaSV` lẫn `MaLHP` mới cảnh báo trùng dòng. Thống kê cơ cấu Lớp sinh hoạt & Khóa học được tính chuẩn xác theo số sinh viên duy nhất (`Distinct MaSV`).
+   * **Upsert đồng bộ 4 bảng trong 1 Transaction SQLite:** `EnrollStudentsAsync` sử dụng bộ so khớp không phân biệt hoa/thường (`StringComparer.OrdinalIgnoreCase`), tự động khởi tạo hoặc khôi phục xóa mềm (`IsDeleted = false`) cho `MonHoc`, `LopHocPhan`, `SinhVien` (gộp 1 hồ sơ duy nhất cho mỗi `MaSV`) và `DangKyHocPhan` (1 bản ghi cho mỗi cặp `(MaSV, MaLHP)`), cập nhật `SiSoHienTai` và tính lại học phí hàng loạt qua `TinhLaiHocPhiHangLoatAsync`.
+3. **Sửa lỗi cắt nút giao diện & Rà soát toàn diện Nhập/Xuất:**
+   * Chia thanh công cụ Tab 1 của `ImportExcelView.axaml` thành 2 hàng hợp lý với `WrapPanel`, đảm bảo nút `Chọn File Excel / CSV...` và nút `Xóa bảng` hiển thị trọn vẹn 100% trên mọi kích thước màn hình.
+   * Sửa lỗi `ImportExcelRepository` tự động khôi phục các bản ghi `SinhVien`, `MonHoc`, `LopHocPhan` từng bị xóa mềm và đánh dấu `IsModified = true` tường minh khi `AutoDetectChangesEnabled = false`.
+   * Bổ sung `SanitizeSheetName` trong `ExcelExportService` (loại bỏ ký tự cấm `\ / ? * [ ] :` và giới hạn 31 ký tự) và `stream.SetLength(0)` trong toàn bộ các View khi ghi đè file xuất Excel/PDF.
+4. **Kiểm thử tự động:** Bổ sung 4 bài kiểm thử mới trong `SmartImportServiceTests.cs` và `ExportServiceTests.cs`, nâng tổng số Unit Tests toàn dự án lên **86/86 Passed (100%)**.
+
+---
+
 ## 0AAA. Nhật Ký Ngày 12/11/2026 (Ca 4): Bộ Công Cụ Điều Hành Đào Tạo & Xưởng Ấn Phẩm Chuyên Sâu Dành Cho Giáo Vụ Desktop (Nâng Cấp 3)
 
 * **Thực hiện:** LIAM (LÂM) & NGUYÊN

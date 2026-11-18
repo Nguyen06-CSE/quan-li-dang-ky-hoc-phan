@@ -281,3 +281,22 @@ Tài liệu này ghi lại các quyết định kỹ thuật, kiến trúc và g
   4. **Bảng Theo Dõi Định Mức & Giờ Giảng Giảng Viên (`DinhMucGiangDayDto` - Tab 6 Chế độ 2):**
      * Tính toán tự động số lớp phụ trách, tổng sinh viên, tiết Lý thuyết (`TC_LT × 15`), tiết Thực hành (`TC_TH × 30`) và tiết quy đổi chuẩn so với định mức học kỳ (`135` tiết), hỗ trợ xuất bảng thanh toán giờ giảng ra Excel.
 * **Lý do:** Biến phân hệ Báo cáo & Thống kê thành một Trung tâm Điều hành Đào tạo toàn diện dành cho cán bộ giáo vụ trên Desktop, kết hợp tính thẩm mỹ cao của giao diện Bento KPI và mã nguồn sạch chuẩn Clean Architecture.
+
+---
+
+## ADR-27: Kiến Trúc Nhập Dữ Liệu Quan Hệ Nhiều-Nhiều (`SinhVien` - `MonHoc` - `LopHocPhan`) Trong Smart Import Studio Trên SQLite Local
+* **Bối cảnh:**
+  1. Sau khi chuyển đổi cơ sở dữ liệu chính từ Neon Cloud sang SQLite Local (`quanlydkhp.db`), khi người dùng nạp tệp Excel/CSV danh sách đăng ký học phần vào **Smart Import Studio**, một sinh viên thường đăng ký nhiều học phần khác nhau nên `MaSV`, `HoTen`, `LopSinhHoat`, `KhoaHoc` xuất hiện lặp lại trên nhiều dòng (mỗi dòng ứng với một `MaMon`, `TenMon`, `MaLHP` khác nhau).
+  2. Thuật toán kiểm tra cũ dùng `HashSet<string>` chỉ theo `MaSV`, dẫn đến từ dòng thứ 2 trở đi của cùng một sinh viên bị đánh dấu nhầm là `LoiDuLieu` (*"Trùng dòng trong danh sách dán"*).
+  3. Ngoài ra, trong `ImportExcelViewModel.XacNhanSmartEnrollAsync`, việc gọi trực tiếp `AnalyzeSmartListAsync()` ngay sau khi nạp xong đã vô tình ghi đè thông báo thành công/thất bại (`result.ThongBao`) bằng thông báo *"Đã phân tích xong..."*, cộng với thanh công cụ 1 hàng ngang bị tràn khiến nút bấm ở mép phải bị cắt khuất.
+* **Quyết định:**
+  1. **Mở rộng Mô hình Dữ liệu & Nhận diện Cột Đa chiều (`SmartImportDtos` & `ProcessParsedMatrix`):**
+     * Bổ sung đầy đủ các trường học phần vào `SinhVienImportPreviewDto`: `MaMon`, `TenMon`, `MaLHP`, `SoTC`, `MaGV`, `TenGV`, `DiemSo`, `DiemChu`, `SoTienDaDong`, `SoTienPhaiDong`, `GiangDayOnline`, đồng thời cài đặt `INotifyPropertyChanged` để cập nhật giao diện tức thì.
+     * Quét tự động tối đa 10 dòng đầu tiên để nhận diện đồng thời các cột thông tin sinh viên và các cột môn học/lớp học phần.
+  2. **Kiểm chứng & Upsert theo Khóa Kết hợp Nhiều-Nhiều `(MaSV, MaLHP)` (`AnalyzeAndValidateAsync` & `EnrollStudentsAsync`):**
+     * Thay thế khóa kiểm tra trùng từ `MaSV` đơn lẻ sang cặp khóa `(MaSV, EffectiveMaLHP)`: cho phép 1 sinh viên đăng ký không giới hạn số môn học/lớp học phần khác nhau trong cùng một lần đọc file.
+     * Trong giao dịch `BeginTransactionAsync` trên SQLite Local: tự động Upsert (tạo mới hoặc khôi phục bản ghi xóa mềm `IsDeleted = false`) theo thứ tự `MonHoc` $\rightarrow$ `LopHocPhan` $\rightarrow$ `SinhVien` (gộp duy nhất 1 hồ sơ cho mỗi `MaSV` bằng `StringComparer.OrdinalIgnoreCase`) $\rightarrow$ `DangKyHocPhan` (1 bản ghi cho mỗi cặp `(MaSV, MaLHP)`), sau đó cập nhật `SiSoHienTai` cho tất cả lớp học phần liên quan và tính lại học phí hàng loạt (`TinhLaiHocPhiHangLoatAsync`).
+  3. **Tách biệt Luồng Cập nhật Trạng thái & Tái thiết kế Thanh Công cụ Co giãn (`ImportExcelView.axaml`):**
+     * Tách hàm `AnalyzeSmartListInternalAsync(bool updateStatusBanner)` để giữ nguyên thông báo kết quả nạp trên dải `smart-status-banner` toàn chiều rộng.
+     * Bố trí lại thanh công cụ thành 2 hàng dùng `WrapPanel` chống cắt nút và hiển thị thêm các cột `Mã Môn`, `Tên Môn Học`, `Mã Lớp HP`, `Số TC` trên bảng xem trước.
+* **Lý do:** Đảm bảo Smart Import Studio xử lý chính xác bản chất quan hệ Nhiều-Nhiều của nghiệp vụ đăng ký tín chỉ đại học trên SQLite Local, hiển thị phản hồi rõ ràng 100% cho người dùng sau khi xác nhận nạp.
